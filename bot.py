@@ -49,7 +49,7 @@ client = discord.Client()
 #Create events and load data
 stream = Event('stream')
 stream.load()
-log('Stream-Zeiten wurden geladen.')
+log('Stream-Zeit wurden geladen: ' + stream.time)
 
 #Define timenow for loop
 timenow = ''
@@ -66,10 +66,10 @@ async def loop():
     #This defines the channel, where the reminder is posted
     #todo: Selector einbauen für die Games und den Stream, muss dann in die Schleife
     #todo: Channel IDs in ein Settings-File, damit die Konfi leichter wird
-    #channel = client.get_channel(323922356491780097) #schnenkonervt
-    #log('Aktueller Channel für Streams ist: ##schnenkonervt')
-    channel = client.get_channel(666764020073889792) #cayton
-    log('Aktueller Channel für Streams ist: #cayton')
+    channel = client.get_channel(323922356491780097) #schnenkonervt
+    log('Aktueller Channel für Streams ist: ##schnenkonervt')
+    #channel = client.get_channel(666764020073889792) #cayton
+    #log('Aktueller Channel für Streams ist: #cayton')
     
     #Endless loop for checking timenow
     while True:
