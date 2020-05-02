@@ -13,13 +13,8 @@ TOKEN = os.getenv('DISCORD_TOKEN')
 client = discord.Client()
 
 #Fragen laden yay
-q = []
 t = open("fragen.txt", "r")
-
-for l in t:
-    if l != "":
-        q.append(l)
-    
+q = t.readlines()
 t.close()
 
 timenow = ''

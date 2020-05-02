@@ -1,0 +1,1 @@
+Dieser Bot ist für Schnenko und er nervt mindestens doppelt so viel!
