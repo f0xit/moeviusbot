@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 #bot.py
+#Wenn der ganze Quatsch fertig ist, nenne ich es Version 1.0
 import discord
 import os
 from dotenv import load_dotenv
@@ -67,7 +68,7 @@ async def loop():
     #todo: Selector einbauen für die Games und den Stream, muss dann in die Schleife
     #todo: Channel IDs in ein Settings-File, damit die Konfi leichter wird
     channel = client.get_channel(323922356491780097) #schnenkonervt
-    log('Aktueller Channel für Streams ist: ##schnenkonervt')
+    log('Aktueller Channel für Streams ist: #schnenkonervt')
     #channel = client.get_channel(666764020073889792) #cayton
     #log('Aktueller Channel für Streams ist: #cayton')
     
@@ -81,6 +82,7 @@ async def loop():
                 log('Der Stream geht los.')
                 await channel.send('Oh, ist es denn schon ' + stream.time + ' Uhr? Dann ab auf https://www.twitch.tv/schnenko/ ... der Stream fängt an, Krah Krah!')
                 stream.reset()
+                stream.save()
                 log('Post wurde abgesetzt, Timer wurde resettet.')
         await asyncio.sleep(10)
     
