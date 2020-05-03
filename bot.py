@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 #bot.py
+
 #Wenn der ganze Quatsch fertig ist, nenne ich es Version 1.0
 import discord
 import os
@@ -8,31 +9,12 @@ import asyncio
 import random
 import re
 from datetime import datetime
-import json
+#import json
 
-#Event-Class
-class Event:
-    name = ''
-    time = ''
-    
-    def __init__ (self, name):
-        self.name = name
-    
-    def update(self, time):
-        self.time = time
-    
-    def reset(self):
-        self.time = ''
-        
-    def save(self):
-        with open(self.name + '.json', 'w') as f:
-            json.dump(self.__dict__, f)
-    
-    def load(self):
-        with open(self.name + '.json', 'r') as f:
-            self.time = json.load(f)['time']
+#Import own classes
+from event import Event
 
-#This is how you get your complete timestamp
+#This is how you Get your Complete TimeStamp
 def gcts():
     return datetime.now().strftime("%Y.%m.%d %H:%M:%S")
 
@@ -45,18 +27,26 @@ def log(inputstr):
 #Loading .env, important for the token
 load_dotenv()
 TOKEN = os.getenv('DISCORD_TOKEN')
+log('Token wurde geladen.')
 
 #Get the Discord Client Object
 client = discord.Client()
 
+#Define timenow for loop
+timenow = ''
+
+#Define channels for ids
+channels = {}
+
 #Create events and load data
 stream = Event('stream')
 stream.load()
-log('Stream-Zeit wurden geladen: ' + stream.time)
+log(f'Stream-Zeit wurden geladen: {stream.time}')
 
-#Define timenow for loop
-timenow = ''
-log('Timenow wurde resettet.')
+#Lade die 500 Fragen
+with open('fragen.txt', 'r') as fragen:
+    q = fragen.readlines()
+    log('Die Fragen wurden geladen.')
 
 async def loop():
     #I like global variables a lot
@@ -66,14 +56,6 @@ async def loop():
     await client.wait_until_ready()
     log('Der Loop wurde gestartet.')
     
-    #This defines the channel, where the reminder is posted
-    #todo: Selector einbauen für die Games und den Stream, muss dann in die Schleife
-    #todo: Channel IDs in ein Settings-File, damit die Konfi leichter wird
-    channel = client.get_channel(323922356491780097) #schnenkonervt
-    log('Aktueller Channel für Streams ist: #schnenkonervt')
-    #channel = client.get_channel(666764020073889792) #cayton
-    #log('Aktueller Channel für Streams ist: #cayton')
-    
     #Endless loop for checking timenow
     while True:
         #Update timenow only if it needs to be updated
@@ -82,12 +64,32 @@ async def loop():
             #Check for stream now?
             if stream.time == timenow:
                 log('Der Stream geht los.')
-                await channel.send('Oh, ist es denn schon ' + stream.time + ' Uhr? Dann ab auf https://www.twitch.tv/schnenko/ ... der Stream fängt an, Krah Krah!')
+                await channels['stream'].send('Oh, ist es denn schon ' + stream.time + ' Uhr? Dann ab auf https://www.twitch.tv/schnenko/ ... der Stream fängt an, Krah Krah!')
                 stream.reset()
                 stream.save()
                 log('Post wurde abgesetzt, Timer wurde resettet.')
         await asyncio.sleep(10)
+
+@client.event
+async def on_ready():
+    #Get guild
+    #todo: Ab damit ins Settings-File
+    #Aktuell: Schnenko 323922215584268290
+    serverid = 323922215584268290
+    streamchannel = 'schnenkonervt'
     
+    server = client.get_guild(serverid)
+    log(f'Server {server.name} gefunden, ID: {serverid}.')
+    
+    #Get channel for streams
+    for c in server.text_channels:
+        if c.name == streamchannel:
+            channels['stream'] = c
+            log(f'Channel mit dem Namen {streamchannel} gefunden, ID: {c.id}')
+    
+    #Get Ready To Rumble!!!
+    log('Alles fertig, es geht los! Krah Krah!')
+
 @client.event
 async def on_message(message):
     #Somehow has to be there
@@ -131,17 +133,6 @@ async def on_message(message):
                 await message.channel.send('Danke, ' + message.author.display_name + ', ich werde einen Reminder für ' + stream.time + ' Uhr einrichten, Krah Krah!')
                 log('Der Timer wurde gesetzt auf ' + stream.time + ' und das Savefile wurde geupdatet.')
 
-@client.event
-async def on_ready():
-    log('Ready to go!')
-
-
-#Lade die 500 Fragen
-with open("fragen.txt", "r") as fragen:
-    q = fragen.readlines()
-    log('Die Fragen wurden geladen.')
-
-#Get Ready To Rumble!!!
 #Start the Loop
 client.loop.create_task(loop())
 #Connect to Discord
