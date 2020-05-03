@@ -39,6 +39,8 @@ def gcts():
 #This is how you log it
 def log(inputstr):
     print('[' + gcts() + '] ' + inputstr)
+    with open('logs/' + datetime.now().strftime('%Y-%m-%d') + '_moevius.log', 'a') as f:
+        f.write('[' + gcts() + '] ' + inputstr + '\n')
 
 #Loading .env, important for the token
 load_dotenv()
