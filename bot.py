@@ -24,9 +24,6 @@ def log(inputstr):
     with open('logs/' + datetime.now().strftime('%Y-%m-%d') + '_moevius.log', 'a') as f:
         f.write('[' + gcts() + '] ' + inputstr + '\n')
 
-def fstr(inputstr):
-    return 
-
 #Loading .env, important for the token
 load_dotenv()
 TOKEN = os.getenv('DISCORD_TOKEN')
@@ -165,12 +162,11 @@ async def on_message(message):
                 load_settings()
 
         #Commands for everyone
-        else:
-            #Frage
-                if message.content.startswith('frage', 1):
-                    frage = random.choice(q)
-                    await message.channel.send(f"Frage an {message.author.display_name}: {frage}")
-                    log(f"{message.author.name} hat eine Frage verlangt. Sie lautet: {frage}")
+        #Frage
+        if message.content.startswith('frage', 1):
+            frage = random.choice(q)
+            await message.channel.send(f"Frage an {message.author.display_name}: {frage}")
+            log(f"{message.author.name} hat eine Frage verlangt. Sie lautet: {frage}")
     
     #Requests
     elif message.content.startswith('?'):
