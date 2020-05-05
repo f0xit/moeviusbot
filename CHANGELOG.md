@@ -1,5 +1,8 @@
 # Changelog
 
+## 0.1.1
+- Fixed a bug in loading stream reminder data from .json
+
 ## 0.1
 
 ### Added

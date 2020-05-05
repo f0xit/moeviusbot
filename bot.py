@@ -35,6 +35,9 @@ client = discord.Client()
 timenow = ''
 channels = {}
 
+#Create events
+stream = Event('stream')
+
 #Default Settings
 
 def load_file(name):
@@ -49,6 +52,9 @@ def import_files():
 
     settings = load_file('settings')
     responses = load_file('responses')
+
+    stream.load()
+    log(f'Stream-Zeit wurden geladen: {stream.time}')
 
     #Setup Discord objects after settings are loaded
     #Get guild
@@ -69,11 +75,6 @@ def startup():
     global settings, responses, server, stream, fragen
 
     import_files()
-
-    #Create events and load data
-    stream = Event('stream')
-    stream.load()
-    log(f'Stream-Zeit wurden geladen: {stream.time}')
     
     #Lade die 500 Fragen
     with open('fragen.txt', 'r') as f:
