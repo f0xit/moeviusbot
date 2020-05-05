@@ -9,7 +9,7 @@ import asyncio
 import random
 import re
 from datetime import datetime
-#import json
+import json
 
 #Import own classes
 from event import Event
@@ -24,6 +24,9 @@ def log(inputstr):
     with open('logs/' + datetime.now().strftime('%Y-%m-%d') + '_moevius.log', 'a') as f:
         f.write('[' + gcts() + '] ' + inputstr + '\n')
 
+def fstr(inputstr):
+    return 
+
 #Loading .env, important for the token
 load_dotenv()
 TOKEN = os.getenv('DISCORD_TOKEN')
@@ -32,11 +35,69 @@ log('Token wurde geladen.')
 #Get the Discord Client Object
 client = discord.Client()
 
-#Define timenow for loop
+#Define global vars
 timenow = ''
-
-#Define channels for ids
+server = {}
 channels = {}
+responses = {}
+
+#Default Settings
+settings = {
+    "debug": True,
+    "server_id": 337227463564328970,
+    "channels": {
+        "stream": "test"
+    },
+    "super-users": [
+        "HansEichLP",
+        "Schnenko"
+    ]
+}
+
+#Importing setting files
+def load_settings():
+    global settings
+    global server
+    global responses
+
+    #Load main settings
+    try:
+        with open('settings.json', 'r') as f:
+            json_settings = json.load(f)
+
+            if json_settings['debug'] != True:
+                for key in settings:
+                    try:
+                        settings[key] = json_settings[key]
+                        log(f'Settings: {key} aus Datei geladen: {settings[key]}')
+                    except:
+                        log(f'Settings: {key} aus Default geladen: {settings[key]}')
+            else:
+                log('DEBUG-MODE! Alle Settings wurden aus Default geladen.')
+    except FileNotFoundError:
+        log('Es konnte keine Datei gefunden werden, die Defaults werden geladen.')
+    
+    #Setup Discord objects after settings are loaded
+    #Get guild
+    server = client.get_guild(int(settings['server_id']))
+    log(f"Server {server.name} gefunden, ID: {settings['server_id']}.")
+    
+    #Get channel for streams
+    for c in server.text_channels:
+        if c.name == settings['channels']['stream']:
+            channels['stream'] = c
+            log(f"Für den Stream wurde der Channel mit dem Namen {settings['channels']['stream']} gefunden, ID: {c.id}")
+    
+    #Settings loaded
+    log("Die Einstellungen wurden komplett geladen.")
+
+    #Load respons settings
+    try:
+        with open('responses.json', 'r') as f:
+            responses = json.load(f)
+            log("Die Responses wurden geladen.")
+    except FileNotFoundError:
+        log("Es konnten keine Responses geladen werden.")
 
 #Create events and load data
 stream = Event('stream')
@@ -72,23 +133,9 @@ async def loop():
 
 @client.event
 async def on_ready():
-    #Get guild
-    #todo: Ab damit ins Settings-File
-    #Aktuell: Schnenko 323922215584268290
-    serverid = 323922215584268290
-    streamchannel = 'schnenkonervt'
-    
-    server = client.get_guild(serverid)
-    log(f'Server {server.name} gefunden, ID: {serverid}.')
-    
-    #Get channel for streams
-    for c in server.text_channels:
-        if c.name == streamchannel:
-            channels['stream'] = c
-            log(f'Channel mit dem Namen {streamchannel} gefunden, ID: {c.id}')
-    
-    #Get Ready To Rumble!!!
-    log('Alles fertig, es geht los! Krah Krah!')
+    #load settings
+    load_settings()
+    log("Ready to Rumble!")
 
 @client.event
 async def on_message(message):
@@ -96,42 +143,59 @@ async def on_message(message):
     if message.author == client.user:
         return
     
-    #Krah krah!
-    if re.search('Mövius', message.content):
-        await message.channel.send("Krah Krah!")
-        log(message.author.name + ' hat mich erwähnt!!!')
-    
-    #Give me a randiom question
-    if message.content == '!frage':
-        frage = random.choice(q)
-        await message.channel.send("Frage an " + message.author.display_name + ": " + frage)
-        log(message.author.name + ' hat eine Frage verlangt. Sie lautet: ' + frage)
-    
-    #Radeberger? Who the hell needs Radeberger?
-    if message.content == '?radeberger':
-        await message.channel.send('Nein, Krah Krah!')
-        await message.channel.send('Einfach nein, ' + message.author.display_name + ', Krah Krah!')
-        log(message.author.name + ' hat einfach gar keinen Geschmack.')
-    
-    #EVENTS
-    #Is there a timer? And if yes: When?
-    if message.content == '?wann':
-        if stream.time == '':
-            await message.channel.send('Uff, der faule Schnenko hat anscheinend keinen Stream angekündigt, Krah Krah!')
-            log(message.author.name + ' hat nach dem Stream gefragt, aber es gibt keinen.')
-        else:
-            await message.channel.send('Gut, dass du fragst! Der nächste Stream beginnt um ' + stream.time + ' Uhr, Krah Krah!')
-            log(message.author.name + ' hat nach dem Stream gefragt.')
-    
-    #Set the timer
-    if message.author.name == 'Schnenko' or message.author.name == 'HansEichLP':
-        if re.search('^!stream \d{1,2}:\d{2}$', message.content):
-            for time in re.findall('\d{1,2}:\d{2}$', message.content):
-                log(message.author.name + ' hat einen Stream-Zeipunkt festgelegt: ' + time)
+    #Commands
+    if message.content.startswith('!'):
+        #Commands for super-users
+        if message.author.name in settings['super-users']:
+            #Stream-Command
+            if message.content.startswith('stream', 1):
+                time = re.findall(r'\d{2}:\d{2}$|$', message.content)[0]
+                if time == '':
+                    await message.channel.send(f"Danke, {message.author.display_name}, ich werde den Reminder zurücksetzen, Krah Krah!")
+                    log(f"{message.author.name} hat den Stream-Zeitpunkt resettet!")
+                else:
+                    await message.channel.send(f"Danke, {message.author.display_name}, ich werde einen Reminder für {time} Uhr einrichten, Krah Krah!")
+                    log(f"{message.author.name} hat den Stream-Zeitpunkt auf {time} festgelegt und das Savefile wurde geupdatet.!")
                 stream.update(time)
                 stream.save()
-                await message.channel.send('Danke, ' + message.author.display_name + ', ich werde einen Reminder für ' + stream.time + ' Uhr einrichten, Krah Krah!')
-                log('Der Timer wurde gesetzt auf ' + stream.time + ' und das Savefile wurde geupdatet.')
+            
+            #Reload-Settings
+            elif message.content.startswith('reload', 1):
+                log(f"{message.author.name} bittet mich, die Einstellungen zurückzusetzen...")
+                load_settings()
+
+        #Commands for everyone
+        else:
+            #Frage
+                if message.content.startswith('frage', 1):
+                    frage = random.choice(q)
+                    await message.channel.send(f"Frage an {message.author.display_name}: {frage}")
+                    log(f"{message.author.name} hat eine Frage verlangt. Sie lautet: {frage}")
+    
+    #Requests
+    elif message.content.startswith('?'):
+        if message.content.startswith('wann', 1):
+            if stream.time == '':
+                await message.channel.send("Uff, der faule Schnenko hat anscheinend keinen Stream angekündigt, Krah Krah!")
+                log(f"{message.author.name} hat nach dem Stream gefragt, aber es gibt keinen.")
+            else:
+                await message.channel.send(f"Gut, dass du fragst! Der nächste Stream beginnt um {stream.time} Uhr, Krah Krah!")
+                log(f"{message.author.name} hat nach dem Stream gefragt.")
+        #Other requests from responses-file
+        elif message.content[1:] in responses['req'].keys():
+            response = responses['req'][message.content[1:]]
+            for r in response['res']:
+                await message.channel.send(r.format(**locals(), **globals()))
+            log(response['log'].format(**locals(), **globals()))
+    
+    #Responses
+    else:
+        for key in responses['res'].keys():
+            if re.search(key, message.content):
+                response = responses['res'][key]
+                for r in response['res']:
+                    await message.channel.send(r.format(**locals(), **globals()))
+                log(response['log'].format(**locals(), **globals()))
 
 #Start the Loop
 client.loop.create_task(loop())
