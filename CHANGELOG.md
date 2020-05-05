@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.2
+- Added !game command analog to !stream to announce a time for coop playing
+- Expanded the event class for this purpose
+- Moved helper functions to myfunc.py
+
 ## 0.1.1
 - Fixed a bug in loading stream reminder data from .json
 
