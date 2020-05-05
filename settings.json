@@ -1,8 +1,8 @@
 {
     "debug": false,
-    "server_id": 323922215584268290,
+    "server_id": 337227463564328970,
     "channels": {
-        "stream": "schnenkonervt"
+        "stream": "test"
     },
     "super-users": [
         "HansEichLP",

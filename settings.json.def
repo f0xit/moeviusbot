@@ -1,0 +1,10 @@
+{
+    "debug": false,
+    "server_id": 0, # <== Server_id from Discord
+    "channels": {
+        "stream": "" # << Name of the channel for stream announcements
+    },
+    "super-users": [
+        "", # <== Names of super-users for special commands
+    ]
+}

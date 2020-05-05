@@ -1,7 +1,6 @@
 #!/usr/bin/env python3
 #bot.py
 
-#Wenn der ganze Quatsch fertig ist, nenne ich es Version 1.0
 import discord
 import os
 from dotenv import load_dotenv
@@ -34,51 +33,28 @@ client = discord.Client()
 
 #Define global vars
 timenow = ''
-server = {}
 channels = {}
-responses = {}
 
 #Default Settings
-settings = {
-    "debug": True,
-    "server_id": 337227463564328970,
-    "channels": {
-        "stream": "test"
-    },
-    "super-users": [
-        "HansEichLP",
-        "Schnenko"
-    ]
-}
 
-#Importing setting files
-def load_settings():
-    global settings
-    global server
-    global responses
-
-    #Load main settings
+def load_file(name):
     try:
-        with open('settings.json', 'r') as f:
-            json_settings = json.load(f)
+        with open(f'{name}.json', 'r') as f:
+            return json.load(f)
+    except:
+        pass
 
-            if json_settings['debug'] != True:
-                for key in settings:
-                    try:
-                        settings[key] = json_settings[key]
-                        log(f'Settings: {key} aus Datei geladen: {settings[key]}')
-                    except:
-                        log(f'Settings: {key} aus Default geladen: {settings[key]}')
-            else:
-                log('DEBUG-MODE! Alle Settings wurden aus Default geladen.')
-    except FileNotFoundError:
-        log('Es konnte keine Datei gefunden werden, die Defaults werden geladen.')
-    
+def import_files():
+    global settings, responses, server
+
+    settings = load_file('settings')
+    responses = load_file('responses')
+
     #Setup Discord objects after settings are loaded
     #Get guild
     server = client.get_guild(int(settings['server_id']))
     log(f"Server {server.name} gefunden, ID: {settings['server_id']}.")
-    
+
     #Get channel for streams
     for c in server.text_channels:
         if c.name == settings['channels']['stream']:
@@ -88,27 +64,25 @@ def load_settings():
     #Settings loaded
     log("Die Einstellungen wurden komplett geladen.")
 
-    #Load respons settings
-    try:
-        with open('responses.json', 'r') as f:
-            responses = json.load(f)
-            log("Die Responses wurden geladen.")
-    except FileNotFoundError:
-        log("Es konnten keine Responses geladen werden.")
+#Importing setting files
+def startup():
+    global settings, responses, server, stream, fragen
 
-#Create events and load data
-stream = Event('stream')
-stream.load()
-log(f'Stream-Zeit wurden geladen: {stream.time}')
+    import_files()
 
-#Lade die 500 Fragen
-with open('fragen.txt', 'r') as fragen:
-    q = fragen.readlines()
-    log('Die Fragen wurden geladen.')
+    #Create events and load data
+    stream = Event('stream')
+    stream.load()
+    log(f'Stream-Zeit wurden geladen: {stream.time}')
+    
+    #Lade die 500 Fragen
+    with open('fragen.txt', 'r') as f:
+        fragen = f.readlines()
+        log('Die Fragen wurden geladen.')
 
 async def loop():
     #I like global variables a lot
-    global timenow
+    global timenow, stream
     
     #Wait until ready
     await client.wait_until_ready()
@@ -131,7 +105,7 @@ async def loop():
 @client.event
 async def on_ready():
     #load settings
-    load_settings()
+    startup()
     log("Ready to Rumble!")
 
 @client.event
@@ -159,12 +133,12 @@ async def on_message(message):
             #Reload-Settings
             elif message.content.startswith('reload', 1):
                 log(f"{message.author.name} bittet mich, die Einstellungen zurückzusetzen...")
-                load_settings()
+                import_files()
 
         #Commands for everyone
         #Frage
         if message.content.startswith('frage', 1):
-            frage = random.choice(q)
+            frage = random.choice(fragen)
             await message.channel.send(f"Frage an {message.author.display_name}: {frage}")
             log(f"{message.author.name} hat eine Frage verlangt. Sie lautet: {frage}")
     
