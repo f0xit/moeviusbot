@@ -1,5 +1,5 @@
 {
-    "debug": true,
+    "debug": false,
     "server_id": 323922215584268290,
     "channels": {
         "stream": "schnenkonervt"
