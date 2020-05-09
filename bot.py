@@ -177,7 +177,7 @@ async def on_message(message):
 
         #Join Event
         if message.content.startswith('join', 1):
-            if message.channel in channels:
+            if message.channel in channels.values():
                 if message.channel == channels['stream']:
                     if events['stream'].time == '':
                         await message.channel.send(f"Nanu, anscheinend gibt es nichts zum Beitreten, Krah Krah!")
