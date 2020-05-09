@@ -177,24 +177,25 @@ async def on_message(message):
 
         #Join Event
         if message.content.startswith('join', 1):
-            if message.channel == channels['stream']:
-                if events['stream'].time == '':
-                    await message.channel.send(f"Nanu, anscheinend gibt es nichts zum Beitreten, Krah Krah!")
-                else:
-                    if message.author.display_name in events['stream'].members.values():
-                        await message.channel.send(f"Hey du Vogel, du stehst bereits auf der Teilnehmerliste, Krah Krah!")
+            if message.channel in channels:
+                if message.channel == channels['stream']:
+                    if events['stream'].time == '':
+                        await message.channel.send(f"Nanu, anscheinend gibt es nichts zum Beitreten, Krah Krah!")
                     else:
-                        events['stream'].addMember(message.author)
-                        await message.channel.send(f"Alles klar, {message.author.display_name}, ich packe dich auf die Teilnehmerliste für den Stream, Krah Krah!")
-            elif message.channel == channels['game']:
-                if events['game'].time == '':
-                    await message.channel.send(f"Nanu, anscheinend gibt es nichts zum Beitreten, Krah Krah!")
+                        if message.author.display_name in events['stream'].members.values():
+                            await message.channel.send(f"Hey du Vogel, du stehst bereits auf der Teilnehmerliste, Krah Krah!")
+                        else:
+                            events['stream'].addMember(message.author)
+                            await message.channel.send(f"Alles klar, {message.author.display_name}, ich packe dich auf die Teilnehmerliste für den Stream, Krah Krah!")
                 else:
-                    if message.author.display_name in events['game'].members.values():
-                        await message.channel.send(f"Hey du Vogel, du stehst bereits auf der Teilnehmerliste, Krah Krah!")
+                    if events['game'].time == '':
+                        await message.channel.send(f"Nanu, anscheinend gibt es nichts zum Beitreten, Krah Krah!")
                     else:
-                        events['game'].addMember(message.author)
-                        await message.channel.send(f"Alles klar, {message.author.display_name}, ich packe dich auf die Teilnehmerliste für {events['game'].game}!")
+                        if message.author.display_name in events['game'].members.values():
+                            await message.channel.send(f"Hey du Vogel, du stehst bereits auf der Teilnehmerliste, Krah Krah!")
+                        else:
+                            events['game'].addMember(message.author)
+                            await message.channel.send(f"Alles klar, {message.author.display_name}, ich packe dich auf die Teilnehmerliste für {events['game'].game}!")
     
     #Requests
     elif message.content.startswith('?'):
