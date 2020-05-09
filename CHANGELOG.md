@@ -1,5 +1,8 @@
 # Changelog
 
+## 0.3.1
+- Fixed a bug when trying to join a game
+
 ## 0.3
 - Added !join command to join a stream or a game and be mentioned when the event starts
 - Added ?wer request to see, who already joined an event

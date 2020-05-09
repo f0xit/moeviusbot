@@ -187,7 +187,7 @@ async def on_message(message):
                         events['stream'].addMember(message.author)
                         await message.channel.send(f"Alles klar, {message.author.display_name}, ich packe dich auf die Teilnehmerliste für den Stream, Krah Krah!")
             elif message.channel == channels['game']:
-                if events['stream'].time == '':
+                if events['game'].time == '':
                     await message.channel.send(f"Nanu, anscheinend gibt es nichts zum Beitreten, Krah Krah!")
                 else:
                     if message.author.display_name in events['game'].members.values():
