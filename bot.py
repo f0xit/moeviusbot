@@ -35,11 +35,11 @@ events = {
 #Default Settings
 
 def load_file(name):
-    try:
+    #try:
         with open(f'{name}.json', 'r') as f:
             return json.load(f)
-    except:
-        pass
+    #except:
+        #pass
 
 def import_files():
     global settings, responses, channels, server
@@ -97,10 +97,15 @@ async def loop():
             for e in events.values():
                 if e.time == timenow:
                     log(f"Ein Event beginnt: {e.name}!")
+                    
+                    members = ""
+                    for m in e.members.keys():
+                        members += f"<@{m}> "
+
                     if e.name == 'stream':
-                        await channels['stream'].send(f"Oh, ist es denn schon {e.time} Uhr? Dann ab auf https://www.twitch.tv/schnenko/ ... der Stream fängt an, Krah Krah!")
+                        await channels['stream'].send(f"Oh, ist es denn schon {e.time} Uhr? Dann ab auf https://www.twitch.tv/schnenko/ ... der Stream fängt an, Krah Krah! Heute mit von der Partie: {members}")
                     elif e.name == 'game':
-                        await channels['game'].send(f"Oh, ist es denn schon {e.time} Uhr? Dann ab in den Voice-Chat, {e.game} fängt an, Krah Krah!")
+                        await channels['game'].send(f"Oh, ist es denn schon {e.time} Uhr? Dann ab in den Voice-Chat, {e.game} fängt an, Krah Krah! Heute mit von der Partie: {members}")
                     e.reset()
                     e.save()
                     log('Event-Post abgesetzt, Timer resettet.')
@@ -129,21 +134,34 @@ async def on_message(message):
         if message.author.name in settings['super-users']:
             #Stream-Command
             if command in events.keys():
-                time = str(message.content.split(' ')[1])
+                try:
+                    time = str(message.content.split(' ')[1])
 
-                if time == '':
-                    events[command].reset()
-                    await message.channel.send(f"Danke, {message.author.display_name}, ich habe den Reminder zurückgesetzt, Krah Krah!")
-                    log(f"Event resettet: {message.author.name} - {command}")
-                else:
                     if command == 'stream':
-                        events[command].updateStream(time)
-                        await message.channel.send(f"Danke, {message.author.display_name}, ich habe einen Stream-Reminder für {time} Uhr eingerichtet, Krah Krah!")
+                        events['stream'].updateStream(time)
+                        if message.author.id in events['stream'].members.keys():
+                            pass
+                        else:
+                            events['stream'].addMember(message.author)
+                        
+                        if message.channel != channels['stream']:
+                            await message.channel.send(f"Ich habe einen Stream-Reminder für {time} Uhr im Channel {channels['stream']} eingerichtet, Krah Krah!")
+                        await channels['stream'].send(f"Macht euch bereit für einen Stream, um {time} Uhr geht es los, Krah Krah!")
                     elif command == 'game':
                         channels['game'] = message.channel
                         game = channels['game'].name.replace('-',' ').title()
-                        events[command].updateGame(time, game)
+                        events['game'].updateGame(time, game)
+
+                        if message.author.id in events['game'].members.keys():
+                            pass
+                        else:
+                            events['game'].addMember(message.author)
+                        
                         await message.channel.send(f"Danke, {message.author.display_name}, ich habe einen Coop-Reminder für {game} um {time} Uhr eingerichtet, Krah Krah!")
+                except:
+                    events[command].reset()
+                    await message.channel.send(f"Danke, {message.author.display_name}, ich habe den Reminder zurückgesetzt, Krah Krah!")
+                    log(f"Event resettet: {message.author.name} - {command}")         
             
             #Reload-Settings
             elif message.content.startswith('reload', 1):
@@ -156,16 +174,48 @@ async def on_message(message):
             frage = random.choice(fragen)
             await message.channel.send(f"Frage an {message.author.display_name}: {frage}")
             log(f"{message.author.name} hat eine Frage verlangt. Sie lautet: {frage}")
+
+        #Join Event
+        if message.content.startswith('join', 1):
+            if message.channel == channels['stream']:
+                if events['stream'].time == '':
+                    await message.channel.send(f"Nanu, anscheinend gibt es nichts zum Beitreten, Krah Krah!")
+                else:
+                    if message.author.display_name in events['stream'].members.values():
+                        await message.channel.send(f"Hey du Vogel, du stehst bereits auf der Teilnehmerliste, Krah Krah!")
+                    else:
+                        events['stream'].addMember(message.author)
+                        await message.channel.send(f"Alles klar, {message.author.display_name}, ich packe dich auf die Teilnehmerliste für den Stream, Krah Krah!")
+            elif message.channel == channels['game']:
+                if events['stream'].time == '':
+                    await message.channel.send(f"Nanu, anscheinend gibt es nichts zum Beitreten, Krah Krah!")
+                else:
+                    if message.author.display_name in events['game'].members.values():
+                        await message.channel.send(f"Hey du Vogel, du stehst bereits auf der Teilnehmerliste, Krah Krah!")
+                    else:
+                        events['game'].addMember(message.author)
+                        await message.channel.send(f"Alles klar, {message.author.display_name}, ich packe dich auf die Teilnehmerliste für {events['game'].game}!")
     
     #Requests
     elif message.content.startswith('?'):
         if message.content.startswith('wann', 1):
-            if events['stream'].time == '':
-                await message.channel.send("Uff, der faule Schnenko hat anscheinend keinen Stream angekündigt, Krah Krah!")
-                log(f"{message.author.name} hat nach dem Stream gefragt, aber es gibt keinen.")
+            if events['stream'].time != '':
+                await message.channel.send(f"Der nächste Stream beginnt um {events['stream'].time} Uhr, Krah Krah!")
             else:
-                await message.channel.send(f"Gut, dass du fragst! Der nächste Stream beginnt um {events['stream'].time} Uhr, Krah Krah!")
-                log(f"{message.author.name} hat nach dem Stream gefragt.")
+                await message.channel.send(f"Es wurde noch kein Stream angekündigt, Krah Krah!")
+            if events['game'].time != '':
+                await message.channel.send(f"Wir spielen {events['game'].game} heute um {events['game'].time} Uhr, Krah Krah!")
+            else:
+                await message.channel.send(f"Es wurde noch kein Coop-Game angekündigt, Krah Krah!")
+        elif message.content.startswith('wer', 1):
+            if events['stream'].time != '':
+                members = ",".join(events['stream'].members.values())
+                await message.channel.send(f"Heute beim Stream dabei sind bisher: {members}, Krah Krah!")
+            if events['game'].time != '':
+                members = ",".join(events['game'].members.values())
+                await message.channel.send(f"Heute bei {events['game'].game} dabei sind bisher: {members}, Krah Krah!")
+
+
         #Other requests from responses-file
         elif message.content[1:] in responses['req'].keys():
             response = responses['req'][message.content[1:]]

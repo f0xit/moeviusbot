@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.3
+- Added !join command to join a stream or a game and be mentioned when the event starts
+- Added ?wer request to see, who already joined an event
+- Redesigned the event class to members
+
 ## 0.2
 - Added !game command analog to !stream to announce a time for coop playing
 - Expanded the event class for this purpose
