@@ -1,6 +1,6 @@
 # ToDo-List
 ## High Priority
-- [ ] Refactoring most of the code to work with the bot-subclass of client for easier command-handling
+- [*] Refactoring most of the code to work with the bot-subclass of client for easier command-handling
 ## Medium Priority
 - [ ] Add a check at !stream or !game commands for updates in time to mention everyone who joined the event
 ## Low Priority

@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.4
+- Refactored most of the code to work with the bot-subclass of client for easier command-handling
+- There will be bugs ... fixes ahead
+
 ## 0.3.2
 - Added another easter egg
 - Fixed some text-bugs
