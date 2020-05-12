@@ -25,6 +25,7 @@ client = discord.Client()
 #Define global vars
 timenow = ''
 channels = {}
+charge = 0
 
 #Create events
 events = {
@@ -32,7 +33,10 @@ events = {
     'game': Event('game')
 }
 
-#Default Settings
+def addCharge(amount):
+    global charge
+    if charge < 100:
+        charge = min(charge + amount, 100)
 
 def load_file(name):
     #try:
@@ -120,7 +124,6 @@ async def on_ready():
     #Start the Loop
     client.loop.create_task(loop())
 
-
 @client.event
 async def on_message(message):
     #Somehow has to be there
@@ -174,6 +177,13 @@ async def on_message(message):
             frage = random.choice(fragen)
             await message.channel.send(f"Frage an {message.author.display_name}: {frage}")
             log(f"{message.author.name} hat eine Frage verlangt. Sie lautet: {frage}")
+            addCharge(20)
+        elif message.content.startswith('Q', 1):
+            if charge < 100:
+                await message.channel.send(f"Meine ultimative Fähigkeit ist noch nicht bereit, Krah Krah! [{charge}%]")
+            else:
+                await message.channel.send(f"BOOOOOOOOOB, TU DOCH WAS!!!")
+
 
         #Join Event
         if message.content.startswith('join', 1):
@@ -195,26 +205,29 @@ async def on_message(message):
                             await message.channel.send(f"Hey du Vogel, du stehst bereits auf der Teilnehmerliste, Krah Krah!")
                         else:
                             events['game'].addMember(message.author)
-                            await message.channel.send(f"Alles klar, {message.author.display_name}, ich packe dich auf die Teilnehmerliste für {events['game'].game}!")
+                            await message.channel.send(f"Alles klar, {message.author.display_name}, ich packe dich auf die Teilnehmerliste für {events['game'].game}, Krah Krah!")
     
     #Requests
     elif message.content.startswith('?'):
         if message.content.startswith('wann', 1):
             if events['stream'].time != '':
                 await message.channel.send(f"Der nächste Stream beginnt um {events['stream'].time} Uhr, Krah Krah!")
-            else:
-                await message.channel.send(f"Es wurde noch kein Stream angekündigt, Krah Krah!")
             if events['game'].time != '':
                 await message.channel.send(f"Wir spielen {events['game'].game} heute um {events['game'].time} Uhr, Krah Krah!")
-            else:
-                await message.channel.send(f"Es wurde noch kein Coop-Game angekündigt, Krah Krah!")
         elif message.content.startswith('wer', 1):
             if events['stream'].time != '':
-                members = ",".join(events['stream'].members.values())
+                members = ", ".join(events['stream'].members.values())
                 await message.channel.send(f"Heute beim Stream dabei sind bisher: {members}, Krah Krah!")
             if events['game'].time != '':
-                members = ",".join(events['game'].members.values())
+                members = ", ".join(events['game'].members.values())
                 await message.channel.send(f"Heute bei {events['game'].game} dabei sind bisher: {members}, Krah Krah!")
+        elif message.content.startswith('charge', 1):
+            if charge < 90:
+                await message.channel.send(f"Meine ultimative Fähigkeit lädt sich auf, Krah Krah! [{charge}%]")
+            elif charge < 100:
+                await message.channel.send(f"Meine ultimative Fähigkeit ist fast bereit, Krah Krah! [{charge}%]")
+            else:
+                await message.channel.send(f"Meine ultimative Fähigkeit ist bereit, Krah Krah! [{charge}%]")
 
 
         #Other requests from responses-file

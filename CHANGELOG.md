@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.3.2
+- Added another easter egg
+- Fixed some text-bugs
+- Deleted some default files for saving, because the bot creates the needed files if they don't exist
+
 ## 0.3.1
 - Fixed a bug when trying to join a game
 
