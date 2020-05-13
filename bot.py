@@ -3,7 +3,7 @@
 
 ##### Imports #####
 import discord
-from discord.ext import commands
+from discord.ext import commands, tasks
 import os
 from dotenv import load_dotenv
 import asyncio
@@ -80,39 +80,7 @@ async def addUltCharge(amount):
     if ultCharge < 100:
         ultCharge = min(ultCharge + amount, 100)
     
-    await client.change_presence(activity=discord.Game(f"Charge: {ultCharge}%"))
-
-async def loop():
-    # TODO: Make it a loop-event for the bot
-    global timenow, events
-    
-    #Wait until ready
-    await client.wait_until_ready()
-    log("Der Loop wurde gestartet.")
-    
-    #Endless loop for checking timenow
-    while True:
-        #Update timenow only if it needs to be updated
-        if timenow != datetime.now().strftime('%H:%M'):
-            timenow = datetime.now().strftime('%H:%M')
-
-            #Check for events now
-            for e in events.values():
-                if e.eventTime == timenow:
-                    log(f"Ein Event beginnt: {e.eventType}!")
-                    
-                    members = ""
-                    for m in e.eventMembers.keys():
-                        members += f"<@{m}> "
-
-                    if e.eventType == 'stream':
-                        await channels['stream'].send(f"Oh, ist es denn schon {e.eventTime} Uhr? Dann ab auf https://www.twitch.tv/schnenko/ ... der Stream fängt an, Krah Krah! Heute mit von der Partie: {members}")
-                    else:
-                        await channels['game'].send(f"Oh, ist es denn schon {e.eventTime} Uhr? Dann ab in den Voice-Chat, {e.eventGame} fängt an, Krah Krah! Heute mit von der Partie: {members}")
-                    
-                    e.reset()
-                    log('Event-Post abgesetzt, Timer resettet.')
-        await asyncio.sleep(10)
+    await client.change_presence(activity=discord.Game(f"Charge: {int(ultCharge)}%"))
 
 ##### Cogs #####
 class Reminder(commands.Cog, name='Events'):
@@ -337,6 +305,20 @@ class Fun(commands.Cog, name='Spaß'):
             await ctx.send(f"BOOOOOOOOOB, TU DOCH WAS!!!")
             ultCharge = 0
 
+    @commands.command(
+        name='charge',
+        brief='Gibt die aktuelle Ult-Charge an.'
+    )
+    async def _charge(self, ctx):
+        global ultCharge
+
+        if ultCharge < 90:
+            await ctx.send(f"Meine ultimative Fähigkeit lädt sich auf, Krah Krah! [{ultCharge}%]")
+        elif ultCharge < 100:
+            await ctx.send(f"Meine ultimative Fähigkeit ist fast bereit, Krah Krah! [{ultCharge}%]")
+        else:
+            await ctx.send(f"Meine ultimative Fähigkeit ist bereit, Krah Krah! [{ultCharge}%]")
+
 class Administration(commands.Cog, name='Administration'):
     '''Diese Kategorie erfordert bestimmte Berechtigungen'''
 
@@ -360,21 +342,50 @@ client.add_cog(Administration(client))
 
 @client.event
 async def on_ready():
-    #Load Settings for the first time
+    # Load Settings for the first time
     startup()
-    log("Ready to Rumble!")
+
+    # Start Loop
+    await timeCheck.start()
 
     # First Ult Charge Update
     await client.change_presence(activity=discord.Game(f"Charge: {ultCharge}%"))
 
-    #Start the Loop
-    client.loop.create_task(loop())
+    log("Ready to Rumble!")
+
+##### Tasks #####
+@tasks.loop(seconds=5)
+async def timeCheck():
+    global timenow, events
+
+    if timenow != datetime.now().strftime('%H:%M'):
+        timenow = datetime.now().strftime('%H:%M')
+
+        #Check for events now
+        for e in events.values():
+            if e.eventTime == timenow:
+                log(f"Ein Event beginnt: {e.eventType}!")
+                
+                members = ""
+                for m in e.eventMembers.keys():
+                    members += f"<@{m}> "
+
+                if e.eventType == 'stream':
+                    await channels['stream'].send(f"Oh, ist es denn schon {e.eventTime} Uhr? Dann ab auf https://www.twitch.tv/schnenko/ ... der Stream fängt an, Krah Krah! Heute mit von der Partie: {members}")
+                else:
+                    await channels['game'].send(f"Oh, ist es denn schon {e.eventTime} Uhr? Dann ab in den Voice-Chat, {e.eventGame} fängt an, Krah Krah! Heute mit von der Partie: {members}")
+                
+                e.reset()
+                log('Event-Post abgesetzt, Timer resettet.')
 
 @client.event
 async def on_message(message):
-    #Somehow has to be there
+    # Somehow has to be there
     if message.author == client.user:
         return
+
+    # Add a little charge
+    await addUltCharge(0.1)
     
     # Requests from file
     if message.content[1:] in responses['req'].keys():
