@@ -10,7 +10,9 @@ import asyncio
 import random
 import re
 from datetime import datetime
+import time
 import json
+import markovify
 
 # Import Custom Stuff
 from event import Event
@@ -25,6 +27,7 @@ log('Token wurde geladen.')
 client = commands.Bot(command_prefix=('!','?'))
 
 # Variables for global use
+quoteby = ''
 timenow = ''
 channels = {}
 ultCharge = 0
@@ -66,6 +69,8 @@ def startup():
     with open('fragen.txt', 'r') as f:
         fragen = f.readlines()
         log('Die Fragen wurden geladen.')
+    
+    buildMarkov()
 
 # Check for user is Super User
 def isSuperUser():
@@ -81,6 +86,23 @@ async def addUltCharge(amount):
         ultCharge = min(ultCharge + amount, 100)
     
     await client.change_presence(activity=discord.Game(f"Charge: {int(ultCharge)}%"))
+
+# Markov
+def buildMarkov():
+    global text_model, quoteby
+
+    try:
+        # Build Markov Chain
+        start_time = time.time()
+        with open("channel_messages.txt") as f:
+            quoteby = f.readline()[:-1]
+            text = f.read()
+
+        # Build the model.
+        text_model = markovify.NewlineText(text)
+        log(f"Markov Update. Dauer: {(time.time() - start_time)}")
+    except:
+        log(f"Markov fehlgeschlagen. Dauer: {(time.time() - start_time)}")
 
 ##### Cogs #####
 class Reminder(commands.Cog, name='Events'):
@@ -318,6 +340,21 @@ class Fun(commands.Cog, name='Spaß'):
             await ctx.send(f"Meine ultimative Fähigkeit ist fast bereit, Krah Krah! [{ultCharge}%]")
         else:
             await ctx.send(f"Meine ultimative Fähigkeit ist bereit, Krah Krah! [{ultCharge}%]")
+    
+    @commands.command(
+        name='zitat',
+        brief='Zitiert eine weise Persönlichkeit.'
+    )
+    async def _quote(self, ctx):
+        global text_model
+
+        try:
+            # Print five randomly-generated sentences
+            text = f"»{str(text_model.make_sentence(tries=100))}« - Zitat: {quoteby}"
+
+            await ctx.send(text)
+        except:
+            pass
 
 class Administration(commands.Cog, name='Administration'):
     '''Diese Kategorie erfordert bestimmte Berechtigungen'''
@@ -334,6 +371,51 @@ class Administration(commands.Cog, name='Administration'):
     async def _reload(self, ctx):
         log(f"{ctx.author.name} bittet mich, die Einstellungen zurückzusetzen...")
         startup()
+    
+    @isSuperUser()
+    @commands.command(
+        name='getquotes',
+        alias='gq',
+        brief='Besorgt sich die nötigen Daten für den Zitategenerator. ACHTUNG: Nicht zu oft machen.'
+    )
+    async def _getquotes(self, ctx, id: int, lim: int):
+        global server, quoteby
+
+        user = await client.fetch_user(id)
+        quoteby = user.display_name
+        
+        # Download history
+        start_time = time.time()
+        lines = [quoteby]
+
+        rammgut = client.get_guild(323922215584268290)
+        for channel in rammgut.text_channels:
+            messages = await channel.history(limit=lim).flatten()
+            for m in messages:
+                if m.author.id == id:
+                    sentences = m.content.split('. ')
+                    for s in sentences:
+                        if s != '':
+                            lines.append(s)
+
+        with open("channel_messages.txt", "w", encoding="utf-8") as f:
+            print(*lines, sep='\n', file=f)
+
+        
+
+        await ctx.send(f"History Update: {len(lines)} Sätze von {user.name}. Dauer: {(time.time() - start_time)}")
+        log(f"History Update: {len(lines)} Sätze von {user.name}. Dauer: {(time.time() - start_time)}")
+    
+    @isSuperUser()
+    @commands.command(
+        name='makequotes',
+        alias='mk',
+        brief='Generiert das Modell für zufällige Zitate.'
+    )
+    async def _makequotes(self, ctx):
+        buildMarkov()
+
+        await ctx.send(f"Markov Update.")
 
 ##### Add the cogs #####
 client.add_cog(Reminder(client))
