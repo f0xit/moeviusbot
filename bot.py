@@ -118,7 +118,7 @@ class Reminder(commands.Cog, name='Events'):
         global channels, events
 
         # Check for super-user
-        if ctx.author.name not in settings['super-users']:
+        if eventType == 'stream' and ctx.author.name not in settings['super-users']:
             await ctx.send('Nanana, das darfst du nicht, Krah Krah!')
 
             # Charge!
