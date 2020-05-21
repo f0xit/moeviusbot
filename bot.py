@@ -322,7 +322,7 @@ class Fun(commands.Cog, name='Spaß'):
         global ultCharge
 
         if ultCharge < 100:
-            await ctx.send(f"Meine ultimative Fähigkeit ist noch nicht bereit, Krah Krah! [{ultCharge}%]")
+            await ctx.send(f"Meine ultimative Fähigkeit ist noch nicht bereit, Krah Krah! [{int(ultCharge)}%]")
         else:
             await ctx.send(f"BOOOOOOOOOB, TU DOCH WAS!!!")
             ultCharge = 0
@@ -335,11 +335,11 @@ class Fun(commands.Cog, name='Spaß'):
         global ultCharge
 
         if ultCharge < 90:
-            await ctx.send(f"Meine ultimative Fähigkeit lädt sich auf, Krah Krah! [{ultCharge}%]")
+            await ctx.send(f"Meine ultimative Fähigkeit lädt sich auf, Krah Krah! [{int(ultCharge)}%]")
         elif ultCharge < 100:
-            await ctx.send(f"Meine ultimative Fähigkeit ist fast bereit, Krah Krah! [{ultCharge}%]")
+            await ctx.send(f"Meine ultimative Fähigkeit ist fast bereit, Krah Krah! [{int(ultCharge)}%]")
         else:
-            await ctx.send(f"Meine ultimative Fähigkeit ist bereit, Krah Krah! [{ultCharge}%]")
+            await ctx.send(f"Meine ultimative Fähigkeit ist bereit, Krah Krah! [{int(ultCharge)}%]")
     
     @commands.command(
         name='zitat',
@@ -431,7 +431,7 @@ async def on_ready():
     await timeCheck.start()
 
     # First Ult Charge Update
-    await client.change_presence(activity=discord.Game(f"Charge: {ultCharge}%"))
+    await client.change_presence(activity=discord.Game(f"Charge: {int(ultCharge)}%"))
 
     log("Ready to Rumble!")
 
