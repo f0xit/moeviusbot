@@ -16,7 +16,7 @@ import markovify
 
 # Import Custom Stuff
 from event import Event
-from myfunc import log, load_file
+from myfunc import log, load_file, save_file
 
 ##### First Setup #####
 load_dotenv()
@@ -42,10 +42,11 @@ events = {
 
 # Set up everything when load or reload
 def startup():
-    global fragen, settings, responses, channels, server
+    global fragen, settings, responses, channels, server, squads
 
     settings = load_file('settings')
     responses = load_file('responses')
+    squads = load_file('squads')
 
     # Get Discord objects after settings are loaded
     # Get guild = server
@@ -62,6 +63,8 @@ def startup():
         elif c.category != None:
             if c.category.name == 'Spiele':
                 channels[c.name] = c
+                if c.name not in squads.keys():
+                    squads[c.name] = {}
                 log(f"Channel für Spiel gefunden: {c.name} - {c.id}")
     log(f"Channel-Suche abgeschlossen.")
     
@@ -71,6 +74,8 @@ def startup():
         log('Die Fragen wurden geladen.')
     
     buildMarkov()
+
+    log("Startup complete!")
 
 # Check for user is Super User
 def isSuperUser():
@@ -294,6 +299,65 @@ class Reminder(commands.Cog, name='Events'):
                 await self.joinEvent('stream', ctx)
             else:
                 await self.joinEvent('game', ctx)
+    
+    @commands.command(
+        name='hey',
+        brief='Informiere das Squad über ein bevorstehendes Event.',
+        usage=''
+    )
+    async def _hey(self, ctx):
+        global channels
+
+        if ctx.channel.category == "Spiele":
+            pass
+        else:
+            members = ''
+            for m in squads[ctx.channel.name].values():
+                if m != ctx.author.id:
+                    members += f'<@{m}> '
+            await ctx.send(f"Hey Squad! Ja, genau ihr seid gemeint, Krah Krah!\n{members}")
+    
+    @commands.command(
+        name='squad',
+        brief='Manage dein Squad mit ein paar simplen Kommandos.'
+    )
+    async def _squad(self, ctx, *args):
+        '''Du willst dein Squad managen? Okay, so gehts!
+        Achtung: Jeder Game-Channel hat ein eigenes Squad. Du musst also im richtigen Channel sein.
+        
+        !squad                  zeigt dir an, wer aktuell im Squad ist.
+        !squad add User1 ...    fügt User hinzu. Du kannst auch mehrere User gleichzeitig hinzufügen.
+        !squad rem User1 ...    entfernt den oder die User wieder.'''
+        
+        global squads
+
+        if ctx.channel.category.name == "Spiele":
+            if len(args) == 0:
+                pass
+            else:
+                if args[0] == "add" and len(args) > 1:
+                    for arg in args[1:]:
+                        member = client.get_user(int(arg[3:-1]))
+                        if member.name in squads[ctx.channel.name].keys():
+                            await ctx.send(f"{member.name} scheint schon im Squad zu sein, Krah Krah!")
+                            pass
+                        else:
+                            squads[ctx.channel.name][member.name] = member.id
+                            save_file('squads', squads)
+                            await ctx.send(f"{member.name} wurde zum Squad hinzugefügt, Krah Krah!")
+                if args[0] == "rem" and len(args) > 1:
+                    for arg in args[1:]:
+                        member = client.get_user(int(arg[3:-1]))
+                        if member.name in squads[ctx.channel.name].keys():
+                            squads[ctx.channel.name].pop(member.name)
+                            save_file('squads', squads)
+                            await ctx.send(f"{member.name} wurde aus dem Squad entfernt, Krah Krah!")
+                        else:
+                            pass
+                elif args[0] == "list":
+                    squad = ctx.channel.name.replace('-',' ').title()
+                    members = ", ".join(squads[ctx.channel.name].keys())
+                    await ctx.send(f"Das sind die Mitglieder im {squad}-Squad, Krah Krah!\n{members}")
 
 class Fun(commands.Cog, name='Spaß'):
     '''Ein paar spaßige Kommandos für zwischendurch.'''

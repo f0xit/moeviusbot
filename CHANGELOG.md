@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.5
+- Added a simple function to add users to a squad for each game
+- You can of course remove them at any time
+- Call you squad with "hey" and they will be notified
+- There will be bugs ... fixes ahead
+
 ## 0.4.1
 - Added charge-command
 - Integrated the loop into a discord.ext.task

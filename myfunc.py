@@ -14,5 +14,16 @@ def log(inputstr):
 
 # A quick and dirty load function for .json-files
 def load_file(name):
-    with open(f'{name}.json', 'r') as f:
-        return json.load(f)
+    try:
+        with open(f'{name}.json', 'r') as f:
+            return json.load(f)
+    except:
+        log(f'File {name} konnte nicht geladen werden!')
+        return {}
+
+def save_file(name, content):
+    try:
+        with open(f'{name}.json', 'w') as f:
+            json.dump(content, f)
+    except:
+        log(f'File {name} konnte nicht gespeichert werden!')
