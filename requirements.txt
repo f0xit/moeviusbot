@@ -1,10 +1,11 @@
 aiohttp
 async-timeout
-discord
+attrs
+chardet
 discord.py
-python-dotenv
-urllib3
-webencodings
-websockets
-GitPython
+idna
 markovify
+multidict
+python-dotenv
+Unidecode
+yarl
