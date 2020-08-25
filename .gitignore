@@ -2,5 +2,6 @@
 .DS_Store
 __pycache__
 *.json
-logs/*
 channel_messages.txt
+logs
+testfiles

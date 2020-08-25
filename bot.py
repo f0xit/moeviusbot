@@ -42,7 +42,7 @@ events = {
 
 # Set up everything when load or reload
 def startup():
-    global fragen, settings, responses, channels, server, squads
+    global fragen, bibel, settings, responses, channels, server, squads
 
     settings = load_file('settings')
     responses = load_file('responses')
@@ -76,6 +76,10 @@ def startup():
     with open('fragen.txt', 'r') as f:
         fragen = f.readlines()
         log('Die Fragen wurden geladen.')
+
+    with open('moevius-bibel.txt', 'r') as f:
+        quptes = f.readlines()
+        log('Die Bibel wurde geladen.')
     
     buildMarkov()
 
@@ -439,6 +443,18 @@ class Fun(commands.Cog, name='Spaß'):
         frage = random.choice(fragen)
         await ctx.send(f"Frage an {ctx.author.display_name}: {frage}")
         log(f"{ctx.author.name} hat eine Frage verlangt. Sie lautet: {frage}")
+
+    @commands.command(
+        name='bibel',
+        brief='Präsentiert die Weisheiten des Krächzers.'
+    )
+    async def _bibel(self, ctx):
+        # Charge!
+        await addUltCharge(5)
+
+        quote = random.choice(bibel)
+        await ctx.send(f"{quote}")
+        log(f"{ctx.author.name} hat eine Bibel-Zitat verlangt. Es lautet: {frage}")
     
     @commands.command(
         name='Q',
