@@ -52,20 +52,24 @@ def startup():
     # Get guild = server
     log(f"Server-Suche startet.")
     server = client.get_guild(int(settings['server_id']))
-    log(f"Server-Suche abgeschlossen: {server.name} - {server.id}.")
+    log(f"Server-Suche abgeschlossen: {server.name} [{server.id}]")
 
     # Get channel for stream and games
     log(f"Channel-Suche startet.")
     for c in server.text_channels:
         if c.name == settings['channels']['stream']:
             channels['stream'] = c
-            log(f"Channel für Stream gefunden: {c.name} - {c.id}")
+            log(f"Channel für Stream gefunden: {c.name.replace('-',' ').title()} [{c.id}]")
         elif c.category != None:
             if c.category.name == 'Spiele':
                 channels[c.name] = c
+                log(f"Spiel gefunden: {c.name.replace('-',' ').title()} [{c.id}]")
                 if c.name not in squads.keys():
                     squads[c.name] = {}
-                log(f"Channel für Spiel gefunden: {c.name} - {c.id}")
+                    log(f"Leeres Squad erstellt!")
+                else:
+                    log(f"Squad gefunden: {','.join(squads[c.name].keys())}")
+    
     log(f"Channel-Suche abgeschlossen.")
     
     # 500 Fragen
@@ -89,6 +93,9 @@ async def addUltCharge(amount):
 
     if ultCharge < 100:
         ultCharge = min(ultCharge + amount, 100)
+        log(f'Ult-Charge hinzugefügt: {amount}')
+    else:
+        log(f'Ult-Charge bereit.')
     
     await client.change_presence(activity=discord.Game(f"Charge: {int(ultCharge)}%"))
 
@@ -107,7 +114,7 @@ def buildMarkov():
         text_model = markovify.NewlineText(text)
         log(f"Markov Update. Dauer: {(time.time() - start_time)}")
     except:
-        log(f"Markov fehlgeschlagen. Dauer: {(time.time() - start_time)}")
+        log(f"ERROR: Markov fehlgeschlagen. Dauer: {(time.time() - start_time)}")
 
 ##### Cogs #####
 class Reminder(commands.Cog, name='Events'):
@@ -120,11 +127,12 @@ class Reminder(commands.Cog, name='Events'):
     
     # Process an Event-Command (Stream, Game, ...)
     async def processEventCommand(self, eventType: str, ctx, args):
-        global channels, events
+        global channels, events, squads
 
         # Check for super-user
         if eventType == 'stream' and ctx.author.name not in settings['super-users']:
             await ctx.send('Nanana, das darfst du nicht, Krah Krah!')
+            log(f'ERROR: {ctx.author.name} wollte den Stream-Reminder einstellen.')
 
             # Charge!
             await addUltCharge(1)
@@ -165,6 +173,7 @@ class Reminder(commands.Cog, name='Events'):
                         gameStr = f". Gespielt wird: {game}"
                     else:
                         await ctx.send('Hey, das ist kein Spiele-Channel, Krah Krah!')
+                        log(f"ERROR: {ctx.author.name} wollte einen Game-Reminder im Channel {ctx.channel.name} erstellen.")
                         return
             # More than one argument
             else:
@@ -172,9 +181,11 @@ class Reminder(commands.Cog, name='Events'):
                 gameStr = f". Gespielt wird: {game}"
 
             # Update event
+            log(f"{ctx.author.name} hat das Event {eventType} geupdatet.")
             events[eventType].updateEvent(time, game)
 
             # Add creator to the watchlist
+            log(f"{ctx.author.name} wurde zum Event {eventType} hinzugefügt.")
             events[eventType].addMember(ctx.author)
             
             # Direct feedback for the creator
@@ -188,7 +199,14 @@ class Reminder(commands.Cog, name='Events'):
             # Game
             else:
                 await ctx.send(f"Macht euch bereit für ein Ründchen Coop um {time} Uhr{gameStr}, Krah Krah!")
-
+                if ctx.channel.name in squads.keys():
+                    members = ''
+                    for m in squads[ctx.channel.name].values():
+                        if m != ctx.author.id:
+                            members += f'<@{m}> '
+                    await ctx.send(f"Das gilt insbesondere für das Squad, Krah Krah!\n{members}")
+            log(f"Event-Info wurde mitgeteilt, das Squad wurde benachrichtigt.")
+    
     # Process the Request for Event-Info
     async def processEventInfo(self, eventType: str, ctx):
         global events
@@ -202,6 +220,7 @@ class Reminder(commands.Cog, name='Events'):
                 await ctx.send(f"Es wurde noch kein Stream angekündigt, Krah Krah!")
             else:
                 await ctx.send(f"Es wurde noch keine Coop-Runde angekündigt, Krah Krah!")
+            log(f"ERROR: {ctx.author.name} hat nach einem Event {eventType} gefragt, dass es nicht gibt.")
         
         # There is an event
         else:
@@ -222,6 +241,7 @@ class Reminder(commands.Cog, name='Events'):
 
             # Post the info
             await ctx.send(f"{beginStr} beginnt um {events[eventType].eventTime} Uhr. {gameStr}Mit dabei sind bisher: {members}, Krah Krah!")
+            log(f"{ctx.author.name} hat nach einem Event {eventType} gefragt. Die Infos dazu wurden rausgehauen.")
 
     # Join an event
     async def joinEvent(self, eventType: str, ctx):
@@ -229,14 +249,17 @@ class Reminder(commands.Cog, name='Events'):
 
         if events[eventType].eventTime == '':
             await ctx.send(f"Nanu, anscheinend gibt es nichts zum Beitreten, Krah Krah!")
+            log(f"ERROR: {ctx.author.name} wollte einem Event {eventType} beitreten, dass es nicht gibt.")
         else:
             # Charge!
             await addUltCharge(5)
             if ctx.author.display_name in events[eventType].eventMembers.values():
                 await ctx.send(f"Hey du Vogel, du stehst bereits auf der Teilnehmerliste, Krah Krah!")
+                log(f"ERROR: {ctx.author.name} steht bereits auf der Teilnehmerliste von Event {eventType}.")
             else:
                 events[eventType].addMember(ctx.author)
                 await ctx.send(f"Alles klar, ich packe dich auf die Teilnehmerliste, Krah Krah!")
+                log(f"{ctx.author.name} wurde auf die Teilnehmerliste von Event {eventType} hinzugefügt.")
     
     # Commands
     @commands.command(
@@ -306,16 +329,22 @@ class Reminder(commands.Cog, name='Events'):
         usage=''
     )
     async def _hey(self, ctx):
-        global channels
+        global squads, events
 
         if ctx.channel.category == "Spiele":
-            pass
+            await ctx.send('Hey, das ist kein Spiele-Channel, Krah Krah!')
+            log(f"ERROR: {ctx.author.name} hat das Squad außerhalb eines Spiele-Channels gerufen.")
         else:
             members = ''
             for m in squads[ctx.channel.name].values():
-                if m != ctx.author.id:
+                if m != ctx.author.id and str(m) not in events['game'].eventMembers.keys():
                     members += f'<@{m}> '
-            await ctx.send(f"Hey Squad! Ja, genau ihr seid gemeint, Krah Krah!\n{members}")
+            if members != '':
+                await ctx.send(f"Hey Squad! Ja, genau ihr seid gemeint, Krah Krah!\n{members}")
+                log(f"{ctx.author.name} hat das Squad in {ctx.channel.name} gerufen.")
+            else:
+                await ctx.send(f"Entweder gibt es hier kein Squad oder alle wissen schon bescheid, Krah Krah!")
+                log(f"ERROR: {ctx.author.name} hat das Squad in {ctx.channel.name} gerufen aber es gibt keins.")
     
     @commands.command(
         name='squad',
@@ -326,38 +355,71 @@ class Reminder(commands.Cog, name='Events'):
         Achtung: Jeder Game-Channel hat ein eigenes Squad. Du musst also im richtigen Channel sein.
         
         !squad                  zeigt dir an, wer aktuell im Squad ist.
-        !squad add User1 ...    fügt User hinzu. Du kannst auch mehrere User gleichzeitig hinzufügen.
+        !squad add User1 ...    fügt User hinzu. Du kannst auch mehrere User gleichzeitig hinzufügen. "add me" fügt dich hinzu.
         !squad rem User1 ...    entfernt den oder die User wieder.'''
         
         global squads
 
-        if ctx.channel.category.name == "Spiele":
+        if ctx.channel.category != None and ctx.channel.category.name == "Spiele":
             if len(args) == 0:
-                pass
+                if len(squads[ctx.channel.name]) > 0:
+                    game = ctx.channel.name.replace('-',' ').title()
+                    members = ", ".join(squads[ctx.channel.name].keys())
+                    await ctx.send(f"Das sind die Mitglieder im {game}-Squad, Krah Krah!\n{members}")
+                    log(f"{ctx.author.name} hat das Squad in {ctx.channel.name} angezeigt: {members}.")
+                else:
+                    await ctx.send(f"Es gibt hier noch kein Squad, Krah Krah!")
+                    log(f"ERROR: {ctx.author.name} hat das Squad in {ctx.channel.name} gerufen aber es gibt keins.")
             else:
                 if args[0] == "add" and len(args) > 1:
                     for arg in args[1:]:
-                        member = client.get_user(int(arg[3:-1]))
-                        if member.name in squads[ctx.channel.name].keys():
-                            await ctx.send(f"{member.name} scheint schon im Squad zu sein, Krah Krah!")
-                            pass
+                        if arg == 'me':
+                            member = ctx.author
                         else:
-                            squads[ctx.channel.name][member.name] = member.id
-                            save_file('squads', squads)
-                            await ctx.send(f"{member.name} wurde zum Squad hinzugefügt, Krah Krah!")
+                            try:
+                                member = client.get_user(int(arg[3:-1]))
+                            except:
+                                member = None
+                        
+                        try:
+                            if member.name in squads[ctx.channel.name].keys():
+                                await ctx.send(f"{member.name} scheint schon im Squad zu sein, Krah Krah!")
+                                log(f"ERROR: {ctx.author.name} wollte {member.name} mehrfach zum {ctx.channel.name}-Squad hinzuzufügen.")
+                            else:
+                                squads[ctx.channel.name][member.name] = member.id
+                                await ctx.send(f"{member.name} wurde zum Squad hinzugefügt, Krah Krah!")
+                                log(f"{ctx.author.name} hat {member.name} zum {ctx.channel.name}-Squad hinzugefügt.")
+                        except:
+                            await ctx.send(f"Ich kenne {arg} nicht, verlinke ihn bitte mit @.")
+                            log(f"ERROR: {ctx.author.name} hat versucht, {arg} zum {ctx.channel.name}-Squad hinzuzufügen.")
+                            
+
                 if args[0] == "rem" and len(args) > 1:
                     for arg in args[1:]:
-                        member = client.get_user(int(arg[3:-1]))
-                        if member.name in squads[ctx.channel.name].keys():
-                            squads[ctx.channel.name].pop(member.name)
-                            save_file('squads', squads)
-                            await ctx.send(f"{member.name} wurde aus dem Squad entfernt, Krah Krah!")
+                        if arg == 'me':
+                            member = ctx.author
                         else:
-                            pass
-                elif args[0] == "list":
-                    squad = ctx.channel.name.replace('-',' ').title()
-                    members = ", ".join(squads[ctx.channel.name].keys())
-                    await ctx.send(f"Das sind die Mitglieder im {squad}-Squad, Krah Krah!\n{members}")
+                            try:
+                                member = client.get_user(int(arg[3:-1]))
+                            except:
+                                member = None
+
+                        try:
+                            if member.name in squads[ctx.channel.name].keys():
+                                squads[ctx.channel.name].pop(member.name)
+                                await ctx.send(f"{member.name} wurde aus dem Squad entfernt, Krah Krah!")
+                                log(f"{ctx.author.name} hat {member.name} aus dem {ctx.channel.name}-Squad entfernt.")
+                            else:
+                                await ctx.send(f"Das macht gar keinen Sinn. {member.name} ist gar nicht im Squad, Krah Krah!")
+                                log(f"ERROR: {ctx.author.name} wollte {member.name} aus dem {ctx.channel.name}-Squad entfernen, aber er war nicht Mitglied.")
+                        except:
+                            await ctx.send(f"Ich kenne {arg} nicht, verlinke ihn bitte mit @.")
+                            log(f"ERROR: {ctx.author.name} hat versucht, {arg} aus dem {ctx.channel.name}-Squad zu entfernen.")
+                        
+                save_file('squads', squads)
+        else:
+            await ctx.send('Hey, das ist kein Spiele-Channel, Krah Krah!')
+            log(f"ERROR: {ctx.author.name} denkt, {ctx.channel.name} sei ein Spiele-Channel.")
 
 class Fun(commands.Cog, name='Spaß'):
     '''Ein paar spaßige Kommandos für zwischendurch.'''
@@ -387,8 +449,10 @@ class Fun(commands.Cog, name='Spaß'):
 
         if ultCharge < 100:
             await ctx.send(f"Meine ultimative Fähigkeit ist noch nicht bereit, Krah Krah! [{int(ultCharge)}%]")
+            log(f"{ctx.author.name} wollte meine Ult aktivieren. Charge: {ultCharge}%")
         else:
             await ctx.send(f"BOOOOOOOOOB, TU DOCH WAS!!!")
+            log(f"{ctx.author.name} hat meine Ult aktiviert.")
             ultCharge = 0
 
     @commands.command(
@@ -404,6 +468,8 @@ class Fun(commands.Cog, name='Spaß'):
             await ctx.send(f"Meine ultimative Fähigkeit ist fast bereit, Krah Krah! [{int(ultCharge)}%]")
         else:
             await ctx.send(f"Meine ultimative Fähigkeit ist bereit, Krah Krah! [{int(ultCharge)}%]")
+        
+        log(f"{ctx.author.name} hat nach meiner Ult-Charge gefragt: {ultCharge}%")
     
     @commands.command(
         name='zitat',
@@ -413,10 +479,10 @@ class Fun(commands.Cog, name='Spaß'):
         global text_model
 
         try:
-            # Print five randomly-generated sentences
             text = f"»{str(text_model.make_sentence(tries=100))}« - Zitat: {quoteby}"
 
             await ctx.send(text)
+            log(f"{ctx.author.name} hat ein Zitat von {quoteby} verlangt.")
         except:
             pass
 
@@ -433,7 +499,7 @@ class Administration(commands.Cog, name='Administration'):
         brief='Lädt die Einstellungen neu.'
     )
     async def _reload(self, ctx):
-        log(f"{ctx.author.name} bittet mich, die Einstellungen zurückzusetzen...")
+        log(f"{ctx.author.name} hat einen Reload gestartet.")
         startup()
     
     @isSuperUser()
@@ -447,6 +513,8 @@ class Administration(commands.Cog, name='Administration'):
 
         user = await client.fetch_user(id)
         quoteby = user.display_name
+
+        log(f"{ctx.author.name} lädt die Nachrichten von {quoteby} herunter.")
         
         # Download history
         start_time = time.time()
@@ -496,8 +564,6 @@ async def on_ready():
 
     # First Ult Charge Update
     await client.change_presence(activity=discord.Game(f"Charge: {int(ultCharge)}%"))
-
-    log("Ready to Rumble!")
 
 ##### Tasks #####
 @tasks.loop(seconds=5)

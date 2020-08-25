@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.5.1
+- Now the squad-feature works along the game-reminder. Your squad will be informed, when you want to play
+- The bot tries to avoid double mentions ... fingers crossed
+- Added some exception-handling here and there
+- Also logging for squads should now work
+- Talking about logging ... I reworked some of the messages
+
 ## 0.5
 - Added a simple function to add users to a squad for each game
 - You can of course remove them at any time
