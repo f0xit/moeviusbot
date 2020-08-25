@@ -78,7 +78,7 @@ def startup():
         log('Die Fragen wurden geladen.')
 
     with open('moevius-bibel.txt', 'r') as f:
-        quptes = f.readlines()
+        bibel = f.readlines()
         log('Die Bibel wurde geladen.')
     
     buildMarkov()
@@ -427,6 +427,8 @@ class Reminder(commands.Cog, name='Events'):
 
 class Fun(commands.Cog, name='Spaß'):
     '''Ein paar spaßige Kommandos für zwischendurch.'''
+
+    global bibel
     
     def __init__(self, bot):
         self.bot = bot
@@ -454,7 +456,7 @@ class Fun(commands.Cog, name='Spaß'):
 
         quote = random.choice(bibel)
         await ctx.send(f"{quote}")
-        log(f"{ctx.author.name} hat eine Bibel-Zitat verlangt. Es lautet: {frage}")
+        log(f"{ctx.author.name} hat eine Bibel-Zitat verlangt. Es lautet: {quote}")
     
     @commands.command(
         name='Q',
