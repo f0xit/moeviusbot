@@ -97,7 +97,8 @@ async def addUltCharge(amount):
 
     if ultCharge < 100:
         ultCharge = min(ultCharge + amount, 100)
-        log(f'Ult-Charge hinzugefügt: {amount}')
+        if amount > 1:
+            log(f'Ult-Charge hinzugefügt: {amount}')
     else:
         log(f'Ult-Charge bereit.')
     
@@ -614,7 +615,19 @@ async def timeCheck():
     if timenow != datetime.now().strftime('%H:%M'):
         timenow = datetime.now().strftime('%H:%M')
 
-        #Check for events now
+        # Check for daily Stuff at 9am
+        if timenow == '09:00':
+            global text_model
+
+            try:
+                embed = discord.Embed()
+                embed.add_field(name="Das Schnenko-Zitat des Tages", value=str(text_model.make_sentence(tries=100)))
+
+                await server.get_channel(323922215584268290).send(content="Guten Morgen, Krah Krah!", embed=embed)
+            except:
+                pass
+        
+        # Check for events now
         for e in events.values():
             if e.eventTime == timenow:
                 log(f"Ein Event beginnt: {e.eventType}!")
