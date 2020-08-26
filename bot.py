@@ -523,7 +523,7 @@ class Fun(commands.Cog, name='Spaß'):
             elif actionID == 3:
                 await Fun._bibel(self, ctx)
             elif actionID == 4:
-                await Administration._avc(Administration)
+                await Administration._avc(Administration, None)
 
             # reset Ult
             ultCharge = 0
@@ -586,7 +586,7 @@ class Administration(commands.Cog, name='Administration'):
     @commands.command(
         name='av'
     )
-    async def _av(self):
+    async def _av(self, ctx):
         with open('Inhaling-Seagull.jpg', 'rb') as f:
             ava = f.read()
             try:
@@ -600,7 +600,7 @@ class Administration(commands.Cog, name='Administration'):
     @commands.command(
         name='avc'
     )
-    async def _avc(self):
+    async def _avc(self, ctx):
         global server
         clone = random.choice(server.members)
 
@@ -681,7 +681,7 @@ async def on_ready():
     # Load Settings for the first time
     startup()
 
-    await Administration._av(Administration)
+    await Administration._av(Administration, None)
 
     # First Ult Charge Update
     await client.change_presence(activity=discord.Game(f"Charge: {int(ultCharge)}%"))
@@ -710,7 +710,7 @@ async def timeCheck():
             except:
                 pass
 
-            await Administration._av(Administration)
+            await Administration._av(Administration, None)
         
         # Check for events now
         for e in events.values():
