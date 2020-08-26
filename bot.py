@@ -587,6 +587,8 @@ class Administration(commands.Cog, name='Administration'):
         name='av'
     )
     async def _av(self, ctx):
+        await server.me.edit(nick=None)
+
         with open('Inhaling-Seagull.jpg', 'rb') as f:
             ava = f.read()
             try:
@@ -594,8 +596,6 @@ class Administration(commands.Cog, name='Administration'):
             except:
                 pass
 
-        await server.me.edit(nick='Mövius der Krächzer')
-    
     @isSuperUser()
     @commands.command(
         name='avc'
@@ -603,6 +603,8 @@ class Administration(commands.Cog, name='Administration'):
     async def _avc(self, ctx):
         global server
         clone = random.choice(server.members)
+
+        await server.me.edit(nick=clone.display_name)
 
         await clone.avatar_url_as(format='jpg').save('clone.jpg')
 
@@ -613,8 +615,6 @@ class Administration(commands.Cog, name='Administration'):
             except:
                 pass
 
-        await server.me.edit(nick=clone.display_name)
-    
     @isSuperUser()
     @commands.command(
         name='getquotes',
