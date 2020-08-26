@@ -451,7 +451,11 @@ class Fun(commands.Cog, name='Spaß'):
         await addUltCharge(1)
 
         frage = random.choice(fragen)
-        await ctx.send(f"Frage an {ctx.author.display_name}: {frage}")
+
+        embed = discord.Embed(colour=discord.Colour(0xff00ff))
+        embed.add_field(name=f"Frage an {ctx.author.display_name}", value=frage)
+
+        await ctx.send(embed=embed)
         log(f"{ctx.author.name} hat eine Frage verlangt. Sie lautet: {frage}")
     
     @commands.command(
@@ -467,7 +471,11 @@ class Fun(commands.Cog, name='Spaß'):
             data = json.loads(f.read().decode('utf-8'))
             definition = data['list'][0]['definition'].translate({ord(c): None for c in '[]'})
         
-        await ctx.send(definition)
+        embed = discord.Embed(colour=discord.Colour(0xff00ff))
+        embed.set_footer(text="Quelle: Urban Dictionary")
+        embed.add_field(name=f"Definition von {args[0]}", value=definition)
+
+        await ctx.send(embed=embed)
         log(f"{ctx.author.name} hat {args[0]} im Urban Dictionary recherchiert.")
 
     @commands.command(
@@ -480,7 +488,11 @@ class Fun(commands.Cog, name='Spaß'):
         await addUltCharge(5)
 
         quote = random.choice(bibel)
-        await ctx.send(f"{quote}")
+
+        embed = discord.Embed(colour=discord.Colour(0xff00ff))
+        embed.add_field(name=f"Das Wort unseres Herrn, Krah Krah!", value=quote)
+
+        await ctx.send(embed=embed)
         log(f"{ctx.author.name} hat eine Bibel-Zitat verlangt. Es lautet: {quote}")
     
     @commands.command(
@@ -541,8 +553,9 @@ class Fun(commands.Cog, name='Spaß'):
         global text_model
 
         try:
-            embed = discord.Embed()
-            embed.add_field(name=f"Ein Zitat von {quoteby}", value=str(text_model.make_sentence(tries=100)))
+            embed = discord.Embed(colour=discord.Colour(0xff00ff), timestamp=datetime.utcfromtimestamp(random.randint(0, int(datetime.now().timestamp()))))
+            embed.set_footer(text="Schnenko")
+            embed.add_field(name=f"Zitat", value=str(text_model.make_sentence(tries=100)))
 
             await ctx.send(embed=embed)
             
@@ -651,8 +664,9 @@ async def timeCheck():
             global text_model
 
             try:
-                embed = discord.Embed()
-                embed.add_field(name="Das Schnenko-Zitat des Tages", value=str(text_model.make_sentence(tries=100)))
+                embed = discord.Embed(colour=discord.Colour(0xff00ff), timestamp=datetime.utcfromtimestamp(random.randint(0, int(datetime.now().timestamp()))))
+                embed.set_footer(text="Schnenko")   
+                embed.add_field(name="Zitat des Tages", value=str(text_model.make_sentence(tries=100)))
 
                 await server.get_channel(323922215584268290).send(content="Guten Morgen, Krah Krah!", embed=embed)
             except:
