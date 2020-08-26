@@ -508,7 +508,7 @@ class Fun(commands.Cog, name='Spaß'):
             log(f"{ctx.author.name} wollte meine Ult aktivieren. Charge: {ultCharge}%")
         else:
             # Ult
-            actionID = random.randint(0, 3)
+            actionID = random.randint(0, 4)
             
             if actionID < 2:
                 # Random Stream & Game
@@ -522,6 +522,8 @@ class Fun(commands.Cog, name='Spaß'):
                 await Fun._frage(self, ctx)
             elif actionID == 3:
                 await Fun._bibel(self, ctx)
+            elif actionID == 4:
+                await Administration._avc(Administration)
 
             # reset Ult
             ultCharge = 0
@@ -584,7 +586,7 @@ class Administration(commands.Cog, name='Administration'):
     @commands.command(
         name='av'
     )
-    async def _av(self, ctx):
+    async def _av(self):
         with open('Inhaling-Seagull.jpg', 'rb') as f:
             ava = f.read()
             try:
@@ -598,7 +600,7 @@ class Administration(commands.Cog, name='Administration'):
     @commands.command(
         name='avc'
     )
-    async def _avc(self, ctx):
+    async def _avc(self):
         global server
         clone = random.choice(server.members)
 
@@ -667,6 +669,7 @@ class Administration(commands.Cog, name='Administration'):
     async def _charge(self, ctx, charge: int):
         global ultCharge
         ultCharge = min(int(charge),100)
+        await client.change_presence(activity=discord.Game(f"Charge: {int(ultCharge)}%"))
 
 ##### Add the cogs #####
 client.add_cog(Reminder(client))
@@ -677,6 +680,8 @@ client.add_cog(Administration(client))
 async def on_ready():
     # Load Settings for the first time
     startup()
+
+    await Administration._av(Administration)
 
     # First Ult Charge Update
     await client.change_presence(activity=discord.Game(f"Charge: {int(ultCharge)}%"))
@@ -704,6 +709,8 @@ async def timeCheck():
                 await server.get_channel(323922215584268290).send(content="Guten Morgen, Krah Krah!", embed=embed)
             except:
                 pass
+
+            await Administration._av(Administration)
         
         # Check for events now
         for e in events.values():
