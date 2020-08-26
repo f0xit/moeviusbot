@@ -579,6 +579,40 @@ class Administration(commands.Cog, name='Administration'):
     async def _reload(self, ctx):
         log(f"{ctx.author.name} hat einen Reload gestartet.")
         startup()
+
+    @isSuperUser()
+    @commands.command(
+        name='av'
+    )
+    async def _av(self, ctx):
+        with open('Inhaling-Seagull.jpg', 'rb') as f:
+            ava = f.read()
+            try:
+                await client.user.edit(avatar=ava)
+            except:
+                pass
+
+        await server.me.edit(nick='Mövius der Krächzer')
+    
+    @isSuperUser()
+    @commands.command(
+        name='avc'
+    )
+    async def _avc(self, ctx):
+        global server
+        clone = 257249704872509441
+
+        user = server.get_member(clone)
+        await user.avatar_url_as(format='jpg').save('schnenko.jpg')
+
+        with open('schnenko.jpg', 'rb') as f:
+            ava = f.read()
+            try:
+                await client.user.edit(avatar=ava)
+            except:
+                pass
+
+        await server.me.edit(nick=user.display_name)
     
     @isSuperUser()
     @commands.command(
