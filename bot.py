@@ -602,8 +602,7 @@ class Administration(commands.Cog, name='Administration'):
         global server
         clone = random.choice(server.members)
 
-        user = server.get_member(clone)
-        await user.avatar_url_as(format='jpg').save('clone.jpg')
+        await clone.avatar_url_as(format='jpg').save('clone.jpg')
 
         with open('clone.jpg', 'rb') as f:
             ava = f.read()
@@ -612,7 +611,7 @@ class Administration(commands.Cog, name='Administration'):
             except:
                 pass
 
-        await server.me.edit(nick=user.display_name)
+        await server.me.edit(nick=clone.display_name)
     
     @isSuperUser()
     @commands.command(
