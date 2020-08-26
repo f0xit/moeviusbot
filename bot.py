@@ -269,17 +269,18 @@ class Reminder(commands.Cog, name='Events'):
     # Commands
     @commands.command(
         name='stream',
+        aliases=['s'],
         brief='Infos und Einstellungen zum aktuellen Stream-Reminder.',
         usage='(hh:mm) (game)'
     )
     async def _stream(self, ctx, *args):
         '''Hier kannst du alles über einen aktuellen Stream-Reminder herausfinden oder seine Einstellungen anpassen
         
-        ?stream Sagt dir, ob ein Stream angekündigt wurde. Falls ja, erfährst du, wann und welches Spiel gestream wird. Außerdem kannst du sehen, wer sich bisher zum Stream angemeldet hat. Mehr dazu findest du in der Hilfe zum join-Kommando.
+        ?stream             Sagt dir, ob ein Stream angekündigt wurde. Falls ja, erfährst du, wann und welches Spiel gestream wird. Außerdem kannst du sehen, wer sich bisher zum Stream angemeldet hat. Mehr dazu findest du in der Hilfe zum join-Kommando.
 
-        !stream resettet den aktuellen Reminder.
-        !stream hh:mm stellt einen Reminder für die gewählte Uhrzeit ein.
-        !stream hh:mm game stellt außerdem ein, welches Spiel gespielt wird.'''
+        !stream             resettet den aktuellen Reminder.
+        !stream hh:mm       stellt einen Reminder für die gewählte Uhrzeit ein.
+        !stream hh:mm       game stellt außerdem ein, welches Spiel gespielt wird.'''
 
         # Stream command
         if ctx.prefix == '!':
@@ -291,17 +292,18 @@ class Reminder(commands.Cog, name='Events'):
     
     @commands.command(
         name='game',
+        aliases=['g'],
         brief='Infos und Einstellungen zum aktuellen Coop-Reminder.',
         usage='(hh:mm) (game)'
     )
     async def _game(self, ctx, *args):
         '''Hier kannst du alles über einen aktuellen Coop-Reminder herausfinden oder seine Einstellungen anpassen
         
-        ?game Sagt dir, ob eine Coop-Runde angekündigt wurde. Falls ja, erfährst du, wann und welches Spiel gestream wird. Außerdem kannst du sehen, wer sich bisher zum Coop angemeldet hat. Mehr dazu findest du in der Hilfe zum join-Kommando.
+        ?game               Sagt dir, ob eine Coop-Runde angekündigt wurde. Falls ja, erfährst du, wann und welches Spiel gestream wird. Außerdem kannst du sehen, wer sich bisher zum Coop angemeldet hat. Mehr dazu findest du in der Hilfe zum join-Kommando.
 
-        !game resettet den aktuellen Reminder.
-        !game hh:mm stellt einen Reminder für die gewählte Uhrzeit im Channel ein.
-        !game hh:mm game stellt wahlweise ein Spiel ein, welches keinen eigenen Channel hat.'''
+        !game               resettet den aktuellen Reminder.
+        !game               hh:mm stellt einen Reminder für die gewählte Uhrzeit im Channel ein.
+        !game hh:mm game    stellt wahlweise ein Spiel ein, welches keinen eigenen Channel hat.'''
 
         # Game command
         if ctx.prefix == '!':
@@ -313,6 +315,7 @@ class Reminder(commands.Cog, name='Events'):
     
     @commands.command(
         name='join',
+        aliases=['j'],
         brief='Tritt einem Event bei.'
     )
     async def _join(self, ctx):
@@ -330,8 +333,8 @@ class Reminder(commands.Cog, name='Events'):
     
     @commands.command(
         name='hey',
-        brief='Informiere das Squad über ein bevorstehendes Event.',
-        usage=''
+        aliases=['h'],
+        brief='Informiere das Squad über ein bevorstehendes Event.'
     )
     async def _hey(self, ctx):
         global squads, events
@@ -353,6 +356,7 @@ class Reminder(commands.Cog, name='Events'):
     
     @commands.command(
         name='squad',
+        aliases=['sq'],
         brief='Manage dein Squad mit ein paar simplen Kommandos.'
     )
     async def _squad(self, ctx, *args):
@@ -376,7 +380,7 @@ class Reminder(commands.Cog, name='Events'):
                     await ctx.send(f"Es gibt hier noch kein Squad, Krah Krah!")
                     log(f"ERROR: {ctx.author.name} hat das Squad in {ctx.channel.name} gerufen aber es gibt keins.")
             else:
-                if args[0] == "add" and len(args) > 1:
+                if args[0] in ["add", "a"] and len(args) > 1:
                     for arg in args[1:]:
                         if arg == 'me':
                             member = ctx.author
@@ -399,7 +403,7 @@ class Reminder(commands.Cog, name='Events'):
                             log(f"ERROR: {ctx.author.name} hat versucht, {arg} zum {ctx.channel.name}-Squad hinzuzufügen.")
                             
 
-                if args[0] == "rem" and len(args) > 1:
+                if args[0] in ["rem", "r"] and len(args) > 1:
                     for arg in args[1:]:
                         if arg == 'me':
                             member = ctx.author
@@ -437,6 +441,7 @@ class Fun(commands.Cog, name='Spaß'):
     # Commands
     @commands.command(
         name='frage',
+        aliases=['f'],
         brief='Stellt eine zufällige Frage.'
     )
     async def _frage(self, ctx):
@@ -449,6 +454,7 @@ class Fun(commands.Cog, name='Spaß'):
 
     @commands.command(
         name='bibel',
+        aliases=['b'],
         brief='Präsentiert die Weisheiten des Krächzers.'
     )
     async def _bibel(self, ctx):
@@ -461,6 +467,7 @@ class Fun(commands.Cog, name='Spaß'):
     
     @commands.command(
         name='Q',
+        aliases=['q'],
         brief='Setzt Mövius ultimative Fähigkeit ein.'
     )
     async def _ult(self, ctx):
@@ -492,6 +499,7 @@ class Fun(commands.Cog, name='Spaß'):
 
     @commands.command(
         name='charge',
+        aliases=['c'],
         brief='Gibt die aktuelle Ult-Charge an.'
     )
     async def _charge(self, ctx):
@@ -508,15 +516,18 @@ class Fun(commands.Cog, name='Spaß'):
     
     @commands.command(
         name='zitat',
+        aliases=['z'],
         brief='Zitiert eine weise Persönlichkeit.'
     )
     async def _quote(self, ctx):
         global text_model
 
         try:
-            text = f"»{str(text_model.make_sentence(tries=100))}« - Zitat: {quoteby}"
+            embed = discord.Embed()
+            embed.add_field(name=f"Ein Zitat von {quoteby}", value=str(text_model.make_sentence(tries=100)))
 
-            await ctx.send(text)
+            await ctx.send(embed=embed)
+            
             log(f"{ctx.author.name} hat ein Zitat von {quoteby} verlangt.")
         except:
             pass
@@ -531,6 +542,7 @@ class Administration(commands.Cog, name='Administration'):
     @isSuperUser()
     @commands.command(
         name='reload',
+        aliases=['r'],
         brief='Lädt die Einstellungen neu.'
     )
     async def _reload(self, ctx):
@@ -540,7 +552,7 @@ class Administration(commands.Cog, name='Administration'):
     @isSuperUser()
     @commands.command(
         name='getquotes',
-        alias='gq',
+        aliases=['gq'],
         brief='Besorgt sich die nötigen Daten für den Zitategenerator. ACHTUNG: Nicht zu oft machen.'
     )
     async def _getquotes(self, ctx, id: int, lim: int):
@@ -574,7 +586,7 @@ class Administration(commands.Cog, name='Administration'):
     @isSuperUser()
     @commands.command(
         name='makequotes',
-        alias='mk',
+        aliases=['mk'],
         brief='Generiert das Modell für zufällige Zitate.'
     )
     async def _makequotes(self, ctx):
@@ -585,6 +597,7 @@ class Administration(commands.Cog, name='Administration'):
     @isSuperUser()
     @commands.command(
         name='addcharge',
+        aliases=['ac'],
         brief='Ändert die Ult-Charge.'
     )
     async def _charge(self, ctx, charge: int):
