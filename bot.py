@@ -722,9 +722,9 @@ async def timeCheck():
                     members += f"<@{m}> "
 
                 if e.eventType == 'stream':
-                    await channels['stream'].send(f"Oh, ist es denn schon {e.eventTime} Uhr? Dann ab auf https://www.twitch.tv/schnenko/ ... der Stream fängt an, Krah Krah! Heute mit von der Partie: {members}")
+                    await channels['stream'].send(content=f"Oh, ist es denn schon {e.eventTime} Uhr? Dann ab auf https://www.twitch.tv/schnenko/ ... der Stream fängt an, Krah Krah! Heute mit von der Partie: {members}", tts=True)
                 else:
-                    await channels['game'].send(f"Oh, ist es denn schon {e.eventTime} Uhr? Dann ab in den Voice-Chat, {e.eventGame} fängt an, Krah Krah! Heute mit von der Partie: {members}")
+                    await channels['game'].send(content=f"Oh, ist es denn schon {e.eventTime} Uhr? Dann ab in den Voice-Chat, {e.eventGame} fängt an, Krah Krah! Heute mit von der Partie: {members}", tts=True)
                 
                 e.reset()
                 log('Event-Post abgesetzt, Timer resettet.')
@@ -751,7 +751,7 @@ async def on_message(message):
             if re.search(key, message.content):
                 response = responses['res'][key]
                 for r in response['res']:
-                    await message.channel.send(r.format(**locals(), **globals()))
+                    await message.channel.send(content=r.format(**locals(), **globals()), tts=True)
                 log(response['log'].format(**locals(), **globals()))
 
     #Important for processing commands
