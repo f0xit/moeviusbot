@@ -13,6 +13,8 @@ from datetime import datetime
 import time
 import json
 import markovify
+from urllib.request import urlopen
+from urllib.parse import quote as urlquote
 
 # Import Custom Stuff
 from event import Event
@@ -380,7 +382,7 @@ class Reminder(commands.Cog, name='Events'):
                     await ctx.send(f"Es gibt hier noch kein Squad, Krah Krah!")
                     log(f"ERROR: {ctx.author.name} hat das Squad in {ctx.channel.name} gerufen aber es gibt keins.")
             else:
-                if args[0] in ["add", "a"] and len(args) > 1:
+                if args[0] in ["add", "a", "+"] and len(args) > 1:
                     for arg in args[1:]:
                         if arg == 'me':
                             member = ctx.author
@@ -403,7 +405,7 @@ class Reminder(commands.Cog, name='Events'):
                             log(f"ERROR: {ctx.author.name} hat versucht, {arg} zum {ctx.channel.name}-Squad hinzuzufügen.")
                             
 
-                if args[0] in ["rem", "r"] and len(args) > 1:
+                if args[0] in ["rem", "r", "-"] and len(args) > 1:
                     for arg in args[1:]:
                         if arg == 'me':
                             member = ctx.author
@@ -451,6 +453,22 @@ class Fun(commands.Cog, name='Spaß'):
         frage = random.choice(fragen)
         await ctx.send(f"Frage an {ctx.author.display_name}: {frage}")
         log(f"{ctx.author.name} hat eine Frage verlangt. Sie lautet: {frage}")
+    
+    @commands.command(
+        name='urbandict',
+        aliases=['ud'],
+        brief='Durchforstet das Urban Dictionary'
+    )
+    async def _urbandict(self, ctx, *args):
+        # Charge!
+        await addUltCharge(1)
+
+        with urlopen(f'http://api.urbandictionary.com/v0/define?term={urlquote(args[0])}') as f:
+            data = json.loads(f.read().decode('utf-8'))
+            definition = data['list'][0]['definition'].translate({ord(c): None for c in '[]'})
+        
+        await ctx.send(definition)
+        log(f"{ctx.author.name} hat {args[0]} im Urban Dictionary recherchiert.")
 
     @commands.command(
         name='bibel',

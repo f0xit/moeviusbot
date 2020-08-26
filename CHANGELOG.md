@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.5.2
+- Added some minor features for fun ... more easter eggs than anything else
+- I hope this doesn't crash anything ...
+
 ## 0.5.1
 - Now the squad-feature works along the game-reminder. Your squad will be informed, when you want to play
 - The bot tries to avoid double mentions ... fingers crossed
