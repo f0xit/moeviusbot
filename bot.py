@@ -600,12 +600,12 @@ class Administration(commands.Cog, name='Administration'):
     )
     async def _avc(self, ctx):
         global server
-        clone = 257249704872509441
+        clone = random.choice(server.members)
 
         user = server.get_member(clone)
-        await user.avatar_url_as(format='jpg').save('schnenko.jpg')
+        await user.avatar_url_as(format='jpg').save('clone.jpg')
 
-        with open('schnenko.jpg', 'rb') as f:
+        with open('clone.jpg', 'rb') as f:
             ava = f.read()
             try:
                 await client.user.edit(avatar=ava)
