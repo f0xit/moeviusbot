@@ -30,7 +30,7 @@ client = commands.Bot(command_prefix=('!','?'))
 quoteby = ''
 timenow = ''
 channels = {}
-ultCharge = 0
+ultCharge = 100
 
 # Create events
 events = {
@@ -463,15 +463,31 @@ class Fun(commands.Cog, name='Spaß'):
         brief='Setzt Mövius ultimative Fähigkeit ein.'
     )
     async def _ult(self, ctx):
-        global ultCharge
+        global ultCharge, channels
 
         if ultCharge < 100:
             await ctx.send(f"Meine ultimative Fähigkeit ist noch nicht bereit, Krah Krah! [{int(ultCharge)}%]")
             log(f"{ctx.author.name} wollte meine Ult aktivieren. Charge: {ultCharge}%")
         else:
-            await ctx.send(f"BOOOOOOOOOB, TU DOCH WAS!!!")
-            log(f"{ctx.author.name} hat meine Ult aktiviert.")
+            # Ult
+            actionID = random.randint(0, 3)
+            
+            if actionID < 2:
+                # Random Stream & Game
+                gameType = random.choice(['stream', 'game'])
+                time = f'{str(random.randint(0, 23)).zfill(2)}:{str(random.randint(0, 59)).zfill(2)}'
+                games = list(channels.keys())[1:]
+                game = random.choice(games).replace('-',' ').title()
+
+                await Reminder.processEventCommand(self, gameType, ctx, (time, game))
+            elif actionID == 2:
+                await Fun._frage(self, ctx)
+            elif actionID == 3:
+                await Fun._bibel(self, ctx)
+
+            # reset Ult
             ultCharge = 0
+            await client.change_presence(activity=discord.Game(f"Charge: {int(ultCharge)}%"))
 
     @commands.command(
         name='charge',
@@ -551,8 +567,6 @@ class Administration(commands.Cog, name='Administration'):
         with open("channel_messages.txt", "w", encoding="utf-8") as f:
             print(*lines, sep='\n', file=f)
 
-        
-
         await ctx.send(f"History Update: {len(lines)} Sätze von {user.name}. Dauer: {(time.time() - start_time)}")
         log(f"History Update: {len(lines)} Sätze von {user.name}. Dauer: {(time.time() - start_time)}")
     
@@ -566,6 +580,15 @@ class Administration(commands.Cog, name='Administration'):
         buildMarkov()
 
         await ctx.send(f"Markov Update.")
+    
+    @isSuperUser()
+    @commands.command(
+        name='addcharge',
+        brief='Ändert die Ult-Charge.'
+    )
+    async def _charge(self, ctx, charge: int):
+        global ultCharge
+        ultCharge = min(int(charge),100)
 
 ##### Add the cogs #####
 client.add_cog(Reminder(client))
@@ -577,11 +600,11 @@ async def on_ready():
     # Load Settings for the first time
     startup()
 
-    # Start Loop
-    await timeCheck.start()
-
     # First Ult Charge Update
     await client.change_presence(activity=discord.Game(f"Charge: {int(ultCharge)}%"))
+
+    # Start Loop
+    await timeCheck.start()
 
 ##### Tasks #####
 @tasks.loop(seconds=5)
