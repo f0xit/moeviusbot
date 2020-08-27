@@ -698,7 +698,7 @@ async def timeCheck():
         timenow = datetime.now().strftime('%H:%M')
 
         # Check for daily Stuff at 9am
-        if timenow == '10:50':
+        if timenow == '09:00':
             global text_model
 
             try:
