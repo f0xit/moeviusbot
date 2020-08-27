@@ -698,7 +698,7 @@ async def timeCheck():
         timenow = datetime.now().strftime('%H:%M')
 
         # Check for daily Stuff at 9am
-        if timenow == '09:00':
+        if timenow == '10:50':
             global text_model
 
             try:
@@ -706,9 +706,10 @@ async def timeCheck():
                 embed.set_footer(text="Schnenko")   
                 embed.add_field(name="Zitat des Tages", value=str(text_model.make_sentence(tries=100)))
 
-                await server.get_channel(323922215584268290).send(content="Guten Morgen, Krah Krah!", embed=embed)
-            except:
-                pass
+                await server.get_channel(706383037012770898).send(content="Guten Morgen, Krah Krah!", embed=embed)
+                log(f'Zitat des Tages.')
+            except Exception as e:
+                log(f'ERROR: Kein Zitat des Tages: {e}')
 
             await Administration._av(Administration, None)
         
