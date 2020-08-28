@@ -133,11 +133,11 @@ class Reminder(commands.Cog, name='Events'):
         self.bot = bot
     
     # Process an Event-Command (Stream, Game, ...)
-    async def processEventCommand(self, eventType: str, ctx, args):
+    async def processEventCommand(self, eventType: str, ctx, args, ult=False):
         global channels, events, squads
 
         # Check for super-user
-        if eventType == 'stream' and ctx.author.name not in settings['super-users']:
+        if eventType == 'stream' and ctx.author.name not in settings['super-users'] and not ult:
             await ctx.send('Nanana, das darfst du nicht, Krah Krah!')
             log(f'ERROR: {ctx.author.name} wollte den Stream-Reminder einstellen.')
 
@@ -186,6 +186,8 @@ class Reminder(commands.Cog, name='Events'):
             else:
                 game = ' '.join(args[1:])
                 gameStr = f". Gespielt wird: {game}"
+                if eventType == 'game':
+                    channels['game'] = server.get_channel(379345471719604236)
 
             # Update event
             log(f"{ctx.author.name} hat das Event {eventType} geupdatet.")
@@ -201,8 +203,14 @@ class Reminder(commands.Cog, name='Events'):
                 if ctx.channel != channels['stream']:
                     await ctx.send(f"Ich habe einen Stream-Reminder für {time} Uhr eingerichtet, Krah Krah!")
                 
+                if ult:
+                    a = random.choice(['geile', 'saftige', 'knackige', 'wohlgeformte', 'kleine aber feine', 'prall gefüllte'])
+                    o = random.choice(['Möhren', 'Pflaumen', 'Melonen', 'Oliven', 'Nüsse', 'Schinken'])
+                    v = random.choice(['mit Öl bepinselt und massiert', 'vernascht', 'gebürstet', 'gefüllt', 'gebuttert', 'geknetet'])
+                    guest = f'<@{ctx.author.id}>'
+                    gameStr = f". Heute werden {a} {o} {v}, mit dabei als Special-Guest: {guest}"
                 # Announce the event in the right channel
-                await channels['stream'].send(f"Macht euch bereit für einen Stream, um {time} Uhr{gameStr}, Krah Krah!")
+                await channels['stream'].send(f"{'Kochstudio!' if ult else ''}Macht euch bereit für einen Stream, um {time} Uhr{gameStr}, Krah Krah!")
             # Game
             else:
                 await ctx.send(f"Macht euch bereit für ein Ründchen Coop um {time} Uhr{gameStr}, Krah Krah!")
@@ -517,7 +525,7 @@ class Fun(commands.Cog, name='Spaß'):
                 games = list(channels.keys())[1:]
                 game = random.choice(games).replace('-',' ').title()
 
-                await Reminder.processEventCommand(self, gameType, ctx, (time, game))
+                await Reminder.processEventCommand(self, gameType, ctx, (time, game), ult=True)
             elif actionID == 2:
                 await Fun._frage(self, ctx)
             elif actionID == 3:
@@ -700,6 +708,8 @@ async def timeCheck():
         # Check for daily Stuff at 9am
         if timenow == '09:00':
             global text_model
+
+            log(f'Daily wird abgefeuert')
 
             try:
                 embed = discord.Embed(colour=discord.Colour(0xff00ff), timestamp=datetime.utcfromtimestamp(random.randint(0, int(datetime.now().timestamp()))))
