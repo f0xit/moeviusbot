@@ -191,7 +191,7 @@ class Reminder(commands.Cog, name='Events'):
 
             # Update event
             log(f"{ctx.author.name} hat das Event {eventType} geupdatet.")
-            events[eventType].updateEvent(time, game)
+            events[eventType].updateEvent('25:00' if ult else time, game)
 
             # Add creator to the watchlist
             log(f"{ctx.author.name} wurde zum Event {eventType} hinzugefügt.")
@@ -210,7 +210,7 @@ class Reminder(commands.Cog, name='Events'):
                     guest = f'<@{ctx.author.id}>'
                     gameStr = f". Heute werden {a} {o} {v}, mit dabei als Special-Guest: {guest}"
                 # Announce the event in the right channel
-                await channels['stream'].send(f"{'Kochstudio!' if ult else ''}Macht euch bereit für einen Stream, um {time} Uhr{gameStr}, Krah Krah!")
+                await channels['stream'].send(f"{'Kochstudio! ' if ult else ''}Macht euch bereit für einen Stream, um {time} Uhr{gameStr}, Krah Krah!")
             # Game
             else:
                 await ctx.send(f"Macht euch bereit für ein Ründchen Coop um {time} Uhr{gameStr}, Krah Krah!")
@@ -733,9 +733,9 @@ async def timeCheck():
                     members += f"<@{m}> "
 
                 if e.eventType == 'stream':
-                    await channels['stream'].send(content=f"Oh, ist es denn schon {e.eventTime} Uhr? Dann ab auf https://www.twitch.tv/schnenko/ ... der Stream fängt an, Krah Krah! Heute mit von der Partie: {members}", tts=True)
+                    await channels['stream'].send(content=f"Oh, ist es denn schon {e.eventTime} Uhr? Dann ab auf https://www.twitch.tv/schnenko/ ... der Stream fängt an, Krah Krah! Heute mit von der Partie: {members}", tts=False)
                 else:
-                    await channels['game'].send(content=f"Oh, ist es denn schon {e.eventTime} Uhr? Dann ab in den Voice-Chat, {e.eventGame} fängt an, Krah Krah! Heute mit von der Partie: {members}", tts=True)
+                    await channels['game'].send(content=f"Oh, ist es denn schon {e.eventTime} Uhr? Dann ab in den Voice-Chat, {e.eventGame} fängt an, Krah Krah! Heute mit von der Partie: {members}", tts=False)
                 
                 e.reset()
                 log('Event-Post abgesetzt, Timer resettet.')
@@ -762,7 +762,7 @@ async def on_message(message):
             if re.search(key, message.content):
                 response = responses['res'][key]
                 for r in response['res']:
-                    await message.channel.send(content=r.format(**locals(), **globals()), tts=True)
+                    await message.channel.send(content=r.format(**locals(), **globals()), tts=False)
                 log(response['log'].format(**locals(), **globals()))
 
     #Important for processing commands
