@@ -716,7 +716,7 @@ async def timeCheck():
                 embed.set_footer(text="Schnenko")   
                 embed.add_field(name="Zitat des Tages", value=str(text_model.make_sentence(tries=100)))
 
-                await server.get_channel(706383037012770898).send(content="Guten Morgen, Krah Krah!", embed=embed)
+                await server.get_channel(580143021790855178).send(content="Guten Morgen, Krah Krah!", embed=embed)
                 log(f'Zitat des Tages.')
             except Exception as e:
                 log(f'ERROR: Kein Zitat des Tages: {e}')
