@@ -475,16 +475,15 @@ class Fun(commands.Cog, name='Spaß'):
         # Charge!
         await addUltCharge(1)
 
-        with urlopen(f'http://api.urbandictionary.com/v0/define?term={urlquote(args[0])}') as f:
+        term = " ".join(args)
+
+        with urlopen(f'http://api.urbandictionary.com/v0/define?term={term.replace(" ", "+")}') as f:
             data = json.loads(f.read().decode('utf-8'))
             definition = data['list'][0]['definition'].translate({ord(c): None for c in '[]'})
         
-        embed = discord.Embed(colour=discord.Colour(0xff00ff))
-        embed.set_footer(text="Quelle: Urban Dictionary")
-        embed.add_field(name=f"Definition von {args[0]}", value=definition)
-
+        embed = discord.Embed(title=f"{term}", colour=discord.Colour(0xff00ff), url=f'https://www.urbandictionary.com/define.php?term={term.replace(" ", "+")}', description=definition)
         await ctx.send(embed=embed)
-        log(f"{ctx.author.name} hat {args[0]} im Urban Dictionary recherchiert.")
+        log(f"{ctx.author.name} hat {term} im Urban Dictionary recherchiert.")
 
     @commands.command(
         name='bibel',
