@@ -1,6 +1,7 @@
 # Helper Functions
 from datetime import datetime
 import json
+import os
 
 # Timestamps for timing
 def gcts():
@@ -9,7 +10,9 @@ def gcts():
 # A tiny custom logger for console output and log-files
 def log(inputstr):
     print('[' + gcts() + '] ' + inputstr)
-    with open('logs/' + datetime.now().strftime('%Y-%m-%d') + '_moevius.log', 'a') as f:
+    if not os.path.exists('logs'):
+        os.makedirs('logs')
+    with open('logs/' + datetime.now().strftime('%Y-%m-%d') + '_moevius.log', 'a+') as f:
         f.write('[' + gcts() + '] ' + inputstr + '\n')
 
 # A quick and dirty load function for .json-files
