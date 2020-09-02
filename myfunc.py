@@ -3,9 +3,18 @@ from datetime import datetime
 import json
 import os
 
-# Timestamps for timing
+# Timestamps for loggin
 def gcts():
     return datetime.now().strftime("%Y.%m.%d %H:%M:%S")
+
+# Format time delta for uptime
+def strfdelta(tdelta, fmt):
+    d = {"days": tdelta.days}
+    d["hours"], rem = divmod(tdelta.seconds, 3600)
+    d["minutes"], d["seconds"] = divmod(rem, 60)
+    d["minutes"] = str(d["minutes"]).zfill(2)
+    d["seconds"] = str(d["seconds"]).zfill(2)
+    return fmt.format(**d)
 
 # A tiny custom logger for console output and log-files
 def log(inputstr):

@@ -19,7 +19,7 @@ from urllib.parse import quote as urlquote
 
 # Import Custom Stuff
 from event import Event
-from myfunc import log, load_file, save_file
+from myfunc import log, load_file, save_file, strfdelta
 
 ##### First Setup #####
 load_dotenv()
@@ -34,6 +34,8 @@ quoteby = ''
 timenow = ''
 channels = {}
 ultCharge = 100
+
+startuptime = datetime.now()
 
 # Create events
 events = {
@@ -690,6 +692,12 @@ class Administration(commands.Cog, name='Administration'):
         elif cmd in ['reload', '-r']:
             log(f"{ctx.author.name} hat einen Reload gestartet.")
             startup()
+        elif cmd in ['uptime', '-u']:
+            uptime = (datetime.now() - startuptime)
+            uptimestr = strfdelta(uptime, "{days} Tage {hours}:{minutes}:{seconds}")
+
+            await ctx.send(f"Uptime: {uptimestr} seit {startuptime.strftime('%Y.%m.%d %H:%M:%S')}")
+            log(f"Uptime: {uptimestr} seit {startuptime.strftime('%Y.%m.%d %H:%M:%S')}")
 
 ##### Add the cogs #####
 client.add_cog(Reminder(client))
