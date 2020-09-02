@@ -1,5 +1,21 @@
 # Changelog
 
+## 0.6
+### Faith-Points
+- Everybody get's points for using the bot!
+- According to the Mövius-Lore, they are called Faith
+- Points have no practical use. They're just a measurement of usage
+    - Reminders or other useful things grant many points
+    - Fun stuff grants less points
+    - Administrating the bot grants no points at all
+- Super users can grant faith manually for outstanding performances of a user
+- Points are saved in a file to be restored when restarting the bot
+### Ult Command
+- The commands for ult, charge and adding charge are now combined
+- ?ult shows the current charge
+- !ult activates the ult
+- Super users can control the charge with !ult add or !ult set
+
 ## 0.5.2
 - Added some minor features for fun ... more easter eggs than anything else
 - I hope this doesn't crash anything ...
@@ -11,7 +27,7 @@
 - Also logging for squads should now work
 - Talking about logging ... I reworked some of the messages
 
-## 0.5
+## 0.5 - Squads
 - Added a simple function to add users to a squad for each game
 - You can of course remove them at any time
 - Call you squad with "hey" and they will be notified
