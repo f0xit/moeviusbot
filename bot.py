@@ -462,9 +462,12 @@ class Fun(commands.Cog, name='Spaß'):
 
         embed = discord.Embed(colour=discord.Colour(0xff00ff))
         embed.add_field(name=f"Frage an {ctx.author.display_name}", value=frage)
-
-        await ctx.send(embed=embed)
-        log(f"{ctx.author.name} hat eine Frage verlangt. Sie lautet: {frage}")
+        
+        try:
+            await ctx.send(embed=embed)
+            log(f"{ctx.author.name} hat eine Frage verlangt. Sie lautet: {frage}")
+        except Exception as e:
+            log(f'ERROR: Keine Frage gefunden. Leere Zeile in fragen.txt?: {e}')
     
     @commands.command(
         name='urbandict',
