@@ -5,6 +5,7 @@
 import discord
 from discord.ext import commands, tasks
 import os
+import subprocess
 from dotenv import load_dotenv
 import asyncio
 import random
@@ -462,7 +463,7 @@ class Fun(commands.Cog, name='Spaß'):
 
         embed = discord.Embed(colour=discord.Colour(0xff00ff))
         embed.add_field(name=f"Frage an {ctx.author.display_name}", value=frage)
-        
+
         try:
             await ctx.send(embed=embed)
             log(f"{ctx.author.name} hat eine Frage verlangt. Sie lautet: {frage}")
@@ -490,7 +491,7 @@ class Fun(commands.Cog, name='Spaß'):
 
     @commands.command(
         name='bibel',
-        aliases=['b'],
+        aliases=['bi'],
         brief='Präsentiert die Weisheiten des Krächzers.'
     )
     async def _bibel(self, ctx):
@@ -584,16 +585,6 @@ class Administration(commands.Cog, name='Administration'):
     # Commands
     @isSuperUser()
     @commands.command(
-        name='reload',
-        aliases=['r'],
-        brief='Lädt die Einstellungen neu.'
-    )
-    async def _reload(self, ctx):
-        log(f"{ctx.author.name} hat einen Reload gestartet.")
-        startup()
-
-    @isSuperUser()
-    @commands.command(
         name='av'
     )
     async def _av(self, ctx):
@@ -681,6 +672,25 @@ class Administration(commands.Cog, name='Administration'):
         ultCharge = min(int(charge),100)
         await client.change_presence(activity=discord.Game(f"Charge: {int(ultCharge)}%"))
 
+    @isSuperUser()
+    @commands.command(
+        name='bot',
+        aliases=['b'],
+        brief='Kann den Bot steuern.'
+    )
+    async def _charge(self, ctx, cmd, *args):
+        if cmd in ['version', '-v']:
+            try:
+                version = subprocess.check_output('git describe --tags', shell=True).strip().decode('ascii')
+
+                await ctx.send(f"Bot läuft auf Version {version}")
+                log(f'Version {version}')
+            except Exception as e:
+                log(f'ERROR: Version konnte nicht erkannt werden: {e}')
+        elif cmd in ['reload', '-r']:
+            log(f"{ctx.author.name} hat einen Reload gestartet.")
+            startup()
+
 ##### Add the cogs #####
 client.add_cog(Reminder(client))
 client.add_cog(Fun(client))
@@ -691,7 +701,7 @@ async def on_ready():
     # Load Settings for the first time
     startup()
 
-    await Administration._av(Administration, None)
+    #await Administration._av(Administration, None)
 
     # First Ult Charge Update
     await client.change_presence(activity=discord.Game(f"Charge: {int(ultCharge)}%"))
@@ -769,6 +779,10 @@ async def on_message(message):
 
     #Important for processing commands
     await client.process_commands(message)
+
+@client.event
+async def on_command_error(ctx, error):
+    log(f"ERROR: {ctx.author.name} - {ctx.message.content} - {error}")
 
 #Connect to Discord
 client.run(TOKEN)
