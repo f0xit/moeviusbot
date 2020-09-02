@@ -658,9 +658,12 @@ class Fun(commands.Cog, name='Spaß'):
         global faith
 
         if ctx.prefix == '?':
+            # Sort faith descending by value
+            sortedFaith = {k: v for k, v in sorted(faith.items(), key=lambda item: item[1], reverse=True)}
+
             # Output faith per user
             output = ""
-            for user, amount in faith.items():
+            for user, amount in sortedFaith.items():
                 output += f"{client.get_user(int(user)).display_name}: {format(amount,',d').replace(',','.')}🕊\n"
             
             if output != "":
