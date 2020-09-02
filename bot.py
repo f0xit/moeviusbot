@@ -680,7 +680,7 @@ class Administration(commands.Cog, name='Administration'):
         aliases=['b'],
         brief='Kann den Bot steuern.'
     )
-    async def _charge(self, ctx, cmd, *args):
+    async def _bot(self, ctx, cmd, *args):
         if cmd in ['version', '-v']:
             try:
                 version = subprocess.check_output('git describe --tags', shell=True).strip().decode('ascii')
