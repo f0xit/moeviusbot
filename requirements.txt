@@ -9,3 +9,4 @@ multidict
 python-dotenv
 Unidecode
 yarl
+autocorrect
