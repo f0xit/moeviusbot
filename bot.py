@@ -17,6 +17,8 @@ import markovify
 from urllib.request import urlopen
 from urllib.parse import quote as urlquote
 
+from autocorrect import Speller
+
 # Import Custom Stuff
 from event import Event
 from myfunc import log, load_file, save_file, strfdelta
@@ -34,6 +36,7 @@ quoteby = ''
 timenow = ''
 channels = {}
 ultCharge = 0
+latestmsg = []
 
 startuptime = datetime.now()
 
@@ -373,6 +376,10 @@ class Reminder(commands.Cog, name='Events'):
             await ctx.send('Hey, das ist kein Spiele-Channel, Krah Krah!')
             log(f"ERROR: {ctx.author.name} hat das Squad außerhalb eines Spiele-Channels gerufen.")
         else:
+            # Ult & Faith
+            await addUltCharge(5)
+            await addFaith(ctx.author.id, 5)
+
             members = ''
             for m in squads[ctx.channel.name].values():
                 if m != ctx.author.id and str(m) not in events['game'].eventMembers.keys():
@@ -400,6 +407,10 @@ class Reminder(commands.Cog, name='Events'):
         global squads
 
         if ctx.channel.category != None and ctx.channel.category.name == "Spiele":
+            # Ult & Faith
+            await addUltCharge(5)
+            await addFaith(ctx.author.id, 5)
+
             if len(args) == 0:
                 if len(squads[ctx.channel.name]) > 0:
                     game = ctx.channel.name.replace('-',' ').title()
@@ -465,6 +476,7 @@ class Fun(commands.Cog, name='Spaß'):
     
     def __init__(self, bot):
         self.bot = bot
+        self.spell = Speller()
 
     @commands.command(
         name='urbandict',
@@ -473,7 +485,7 @@ class Fun(commands.Cog, name='Spaß'):
     )
     async def _urbandict(self, ctx, *args):
         # Charge!
-        await addUltCharge(1)
+        await addUltCharge(5)
         await addFaith(ctx.author.id, 1)
 
         term = " ".join(args)
@@ -553,7 +565,9 @@ class Fun(commands.Cog, name='Spaß'):
             log(f"{ctx.author.name} hat ein Zitat von {quoteby} verlangt.")
         except:
             pass
-
+        
+        # Ult & Faith
+        await addUltCharge(5)
         await addFaith(ctx.author.id, 1)
     
     @commands.command(
@@ -701,6 +715,18 @@ class Fun(commands.Cog, name='Spaß'):
                 await ctx.send('Nanana, so geht das nicht, Krah Krah! [add|rem|set] id amount')
         else:
             await ctx.send('Nanana, das darfst du nicht, Krah Krah!')
+
+    @commands.command(
+        name='wurstfinger'
+    )
+    async def _wurstfinger(self, ctx):
+        global latestmsg
+
+        # Ult & Faith
+        await addUltCharge(5)
+        await addFaith(ctx.author.id, 1)
+
+        await ctx.send(f"Meintest du vielleicht: {self.spell(latestmsg[0])}")
 
 class Administration(commands.Cog, name='Administration'):
     '''Diese Kategorie erfordert bestimmte Berechtigungen'''
@@ -892,6 +918,11 @@ async def on_message(message):
 
     # Add a little charge
     await addUltCharge(0.1)
+
+    global latestmsg
+    latestmsg.append(message.content)
+    if len(latestmsg) > 2:
+        latestmsg.pop(0)
     
     # Requests from file
     if message.content[1:] in responses['req'].keys():
