@@ -489,7 +489,7 @@ class Fun(commands.Cog, name='Spaß'):
 
         term = " ".join(args)
 
-        with urlopen(f'http://api.urbandictionary.com/v0/define?term={term.replace(" ", "+")}') as f:
+        with urlopen(f'http://api.urbandictionary.com/v0/define?term={urlquote(term.replace(" ", "+"))}') as f:
             data = json.loads(f.read().decode('utf-8'))
             definition = data['list'][0]['definition'].translate({ord(c): None for c in '[]'})
         
