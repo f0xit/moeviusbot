@@ -4,4 +4,4 @@
 - [ ] Fix: !wurstfinger, fetch last msg
 - [ ] Fix: Vorschläge, wenn Urban Dict kein Ergebnis liefert
 - [ ] Add: Krah-Krah-Reaction bringt Faith als Belohnung
-- [ ] ...
+- [ ] Add: Random Overwatch Charakter

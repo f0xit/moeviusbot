@@ -858,8 +858,6 @@ async def on_ready():
     # Load Settings for the first time
     startup()
 
-    #await Administration._av(Administration, None)
-
     # First Ult Charge Update
     await client.change_presence(activity=discord.Game(f"Charge: {int(ultCharge)}%"))
 
