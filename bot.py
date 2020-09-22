@@ -492,8 +492,9 @@ class Fun(commands.Cog, name='Spaß'):
         with urlopen(f'http://api.urbandictionary.com/v0/define?term={urlquote(term.replace(" ", "+"))}') as f:
             data = json.loads(f.read().decode('utf-8'))
             definition = data['list'][0]['definition'].translate({ord(c): None for c in '[]'})
+            example = data['list'][0]['example'].translate({ord(c): None for c in '[]'})
         
-        embed = discord.Embed(title=f"{term}", colour=discord.Colour(0xff00ff), url=f'https://www.urbandictionary.com/define.php?term={term.replace(" ", "+")}', description=definition)
+        embed = discord.Embed(title=f"{term}", colour=discord.Colour(0xff00ff), url=f'https://www.urbandictionary.com/define.php?term={term.replace(" ", "+")}', description=f"{definition}\n\n*{example}*")
         await ctx.send(embed=embed)
         log(f"{ctx.author.name} hat {term} im Urban Dictionary recherchiert.")
 
