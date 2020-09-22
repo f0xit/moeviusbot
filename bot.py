@@ -512,8 +512,7 @@ class Fun(commands.Cog, name='Spaß'):
         frage = random.choice(fragen)
 
         # Build embed object
-        embed = discord.Embed(colour=discord.Colour(0xff00ff))
-        embed.add_field(name=f"Frage an {ctx.author.display_name}", value=frage)
+        embed = discord.Embed(title=f"Frage an {ctx.author.display_name}", colour=discord.Colour(0xff00ff), description=frage)
 
         # Send embed object
         try:
@@ -536,8 +535,7 @@ class Fun(commands.Cog, name='Spaß'):
         quote = random.choice(bibel)
 
         # Build embed object
-        embed = discord.Embed(colour=discord.Colour(0xff00ff))
-        embed.add_field(name=f"Das Wort unseres Herrn, Krah Krah!", value=quote)
+        embed = discord.Embed(title="Das Wort unseres Herrn, Krah Krah!", colour=discord.Colour(0xff00ff), description=quote)
 
         # Send embed object
         try:
@@ -555,9 +553,8 @@ class Fun(commands.Cog, name='Spaß'):
         global text_model
 
         try:
-            embed = discord.Embed(colour=discord.Colour(0xff00ff), timestamp=datetime.utcfromtimestamp(random.randint(0, int(datetime.now().timestamp()))))
+            embed = discord.Embed(title="Zitat", colour=discord.Colour(0xff00ff), description=str(text_model.make_sentence(tries=100)), timestamp=datetime.utcfromtimestamp(random.randint(0, int(datetime.now().timestamp()))))
             embed.set_footer(text="Schnenko")
-            embed.add_field(name=f"Zitat", value=str(text_model.make_sentence(tries=100)))
 
             await ctx.send(embed=embed)
             
@@ -680,8 +677,7 @@ class Fun(commands.Cog, name='Spaß'):
                 output += f"{client.get_user(int(user)).display_name}: {format(amount,',d').replace(',','.')}🕊\n"
             
             if output != "":
-                embed = discord.Embed(colour=discord.Colour(0xff00ff))
-                embed.add_field(name=f"Die treuen Jünger des Mövius und ihre Punkte", value=output)
+                embed = discord.Embed(title="Die treuen Jünger des Mövius und ihre Punkte", colour=discord.Colour(0xff00ff), description=output)
 
                 await ctx.send(embed=embed)
         elif ctx.prefix == '!' and ctx.author.name in settings['super-users']:
@@ -879,9 +875,8 @@ async def timeCheck():
             log(f'Daily wird abgefeuert')
 
             try:
-                embed = discord.Embed(colour=discord.Colour(0xff00ff), timestamp=datetime.utcfromtimestamp(random.randint(0, int(datetime.now().timestamp()))))
-                embed.set_footer(text="Schnenko")   
-                embed.add_field(name="Zitat des Tages", value=str(text_model.make_sentence(tries=100)))
+                embed = discord.Embed(title="Zitat des Tages", colour=discord.Colour(0xff00ff), description=str(text_model.make_sentence(tries=100)), timestamp=datetime.utcfromtimestamp(random.randint(0, int(datetime.now().timestamp()))))
+                embed.set_footer(text="Schnenko")
 
                 await server.get_channel(580143021790855178).send(content="Guten Morgen, Krah Krah!", embed=embed)
                 log(f'Zitat des Tages.')
