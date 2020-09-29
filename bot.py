@@ -16,6 +16,7 @@ import json
 import markovify
 from urllib.request import urlopen
 from urllib.parse import quote as urlquote
+from autocorrect import Speller
 
 # Import Custom Stuff
 from event import Event
@@ -33,7 +34,8 @@ client = commands.Bot(command_prefix=('!','?'))
 quoteby = ''
 timenow = ''
 channels = {}
-ultCharge = 100
+ultCharge = 0
+latestmsg = []
 
 startuptime = datetime.now()
 
@@ -47,11 +49,12 @@ events = {
 
 # Set up everything when load or reload
 def startup():
-    global fragen, bibel, settings, responses, channels, server, squads
+    global fragen, bibel, settings, responses, channels, server, squads, faith
 
     settings = load_file('settings')
     responses = load_file('responses')
     squads = load_file('squads')
+    faith = load_file('faith')
 
     # Get Discord objects after settings are loaded
     # Get guild = server
@@ -109,6 +112,18 @@ async def addUltCharge(amount):
     
     await client.change_presence(activity=discord.Game(f"Charge: {int(ultCharge)}%"))
 
+# Faith
+async def addFaith(id, amount):
+    global faith
+
+    try:
+        faith[str(id)] += amount
+    except:
+        faith[str(id)] = amount
+
+    with open('faith.json', 'w') as f:
+        json.dump(faith, f)
+
 # Markov
 def buildMarkov():
     global text_model, quoteby
@@ -150,6 +165,7 @@ class Reminder(commands.Cog, name='Events'):
         
         # Charge!
         await addUltCharge(5)
+        await addFaith(ctx.author.id, 10)
 
         # No argument => Reset stream
         if len(args) == 0:
@@ -231,6 +247,7 @@ class Reminder(commands.Cog, name='Events'):
 
         # Charge!
         await addUltCharge(5)
+        await addFaith(ctx.author.id, 5)
 
         # There is no event
         if events[eventType].eventTime == '':
@@ -271,6 +288,8 @@ class Reminder(commands.Cog, name='Events'):
         else:
             # Charge!
             await addUltCharge(5)
+            await addFaith(ctx.author.id, 5)
+
             if ctx.author.display_name in events[eventType].eventMembers.values():
                 await ctx.send(f"Hey du Vogel, du stehst bereits auf der Teilnehmerliste, Krah Krah!")
                 log(f"ERROR: {ctx.author.name} steht bereits auf der Teilnehmerliste von Event {eventType}.")
@@ -356,6 +375,10 @@ class Reminder(commands.Cog, name='Events'):
             await ctx.send('Hey, das ist kein Spiele-Channel, Krah Krah!')
             log(f"ERROR: {ctx.author.name} hat das Squad außerhalb eines Spiele-Channels gerufen.")
         else:
+            # Ult & Faith
+            await addUltCharge(5)
+            await addFaith(ctx.author.id, 5)
+
             members = ''
             for m in squads[ctx.channel.name].values():
                 if m != ctx.author.id and str(m) not in events['game'].eventMembers.keys():
@@ -383,6 +406,10 @@ class Reminder(commands.Cog, name='Events'):
         global squads
 
         if ctx.channel.category != None and ctx.channel.category.name == "Spiele":
+            # Ult & Faith
+            await addUltCharge(5)
+            await addFaith(ctx.author.id, 5)
+
             if len(args) == 0:
                 if len(squads[ctx.channel.name]) > 0:
                     game = ctx.channel.name.replace('-',' ').title()
@@ -445,11 +472,31 @@ class Reminder(commands.Cog, name='Events'):
 
 class Fun(commands.Cog, name='Spaß'):
     '''Ein paar spaßige Kommandos für zwischendurch.'''
-
-    global bibel
     
     def __init__(self, bot):
         self.bot = bot
+        self.spell = Speller()
+
+    @commands.command(
+        name='urbandict',
+        aliases=['ud'],
+        brief='Durchforstet das Urban Dictionary'
+    )
+    async def _urbandict(self, ctx, *args):
+        # Charge!
+        await addUltCharge(5)
+        await addFaith(ctx.author.id, 1)
+
+        term = " ".join(args)
+
+        with urlopen(f'http://api.urbandictionary.com/v0/define?term={urlquote(term.replace(" ", "+"))}') as f:
+            data = json.loads(f.read().decode('utf-8'))
+            definition = data['list'][0]['definition'].translate({ord(c): None for c in '[]'})
+            example = data['list'][0]['example'].translate({ord(c): None for c in '[]'})
+        
+        embed = discord.Embed(title=f"{term}", colour=discord.Colour(0xff00ff), url=f'https://www.urbandictionary.com/define.php?term={term.replace(" ", "+")}', description=f"{definition}\n\n*{example}*")
+        await ctx.send(embed=embed)
+        log(f"{ctx.author.name} hat {term} im Urban Dictionary recherchiert.")
 
     # Commands
     @commands.command(
@@ -458,38 +505,22 @@ class Fun(commands.Cog, name='Spaß'):
         brief='Stellt eine zufällige Frage.'
     )
     async def _frage(self, ctx):
-        # Charge!
+        # Charge & Faith
         await addUltCharge(1)
+        await addFaith(ctx.author.id, 1)
 
+        # Get random question
         frage = random.choice(fragen)
 
-        embed = discord.Embed(colour=discord.Colour(0xff00ff))
-        embed.add_field(name=f"Frage an {ctx.author.display_name}", value=frage)
+        # Build embed object
+        embed = discord.Embed(title=f"Frage an {ctx.author.display_name}", colour=discord.Colour(0xff00ff), description=frage)
 
+        # Send embed object
         try:
             await ctx.send(embed=embed)
             log(f"{ctx.author.name} hat eine Frage verlangt. Sie lautet: {frage}")
         except Exception as e:
             log(f'ERROR: Keine Frage gefunden. Leere Zeile in fragen.txt?: {e}')
-    
-    @commands.command(
-        name='urbandict',
-        aliases=['ud'],
-        brief='Durchforstet das Urban Dictionary'
-    )
-    async def _urbandict(self, ctx, *args):
-        # Charge!
-        await addUltCharge(1)
-
-        term = " ".join(args)
-
-        with urlopen(f'http://api.urbandictionary.com/v0/define?term={term.replace(" ", "+")}') as f:
-            data = json.loads(f.read().decode('utf-8'))
-            definition = data['list'][0]['definition'].translate({ord(c): None for c in '[]'})
-        
-        embed = discord.Embed(title=f"{term}", colour=discord.Colour(0xff00ff), url=f'https://www.urbandictionary.com/define.php?term={term.replace(" ", "+")}', description=definition)
-        await ctx.send(embed=embed)
-        log(f"{ctx.author.name} hat {term} im Urban Dictionary recherchiert.")
 
     @commands.command(
         name='bibel',
@@ -497,67 +528,22 @@ class Fun(commands.Cog, name='Spaß'):
         brief='Präsentiert die Weisheiten des Krächzers.'
     )
     async def _bibel(self, ctx):
-        # Charge!
-        await addUltCharge(5)
+        # Charge & Faith
+        await addUltCharge(1)
+        await addFaith(ctx.author.id, 1)
 
+        # Get random bible quote
         quote = random.choice(bibel)
 
-        embed = discord.Embed(colour=discord.Colour(0xff00ff))
-        embed.add_field(name=f"Das Wort unseres Herrn, Krah Krah!", value=quote)
+        # Build embed object
+        embed = discord.Embed(title="Das Wort unseres Herrn, Krah Krah!", colour=discord.Colour(0xff00ff), description=quote)
 
-        await ctx.send(embed=embed)
-        log(f"{ctx.author.name} hat eine Bibel-Zitat verlangt. Es lautet: {quote}")
-    
-    @commands.command(
-        name='Q',
-        aliases=['q'],
-        brief='Setzt Mövius ultimative Fähigkeit ein.'
-    )
-    async def _ult(self, ctx):
-        global ultCharge, channels
-
-        if ultCharge < 100:
-            await ctx.send(f"Meine ultimative Fähigkeit ist noch nicht bereit, Krah Krah! [{int(ultCharge)}%]")
-            log(f"{ctx.author.name} wollte meine Ult aktivieren. Charge: {ultCharge}%")
-        else:
-            # Ult
-            actionID = random.randint(0, 4)
-            
-            if actionID < 2:
-                # Random Stream & Game
-                gameType = random.choice(['stream', 'game'])
-                time = f'{str(random.randint(0, 23)).zfill(2)}:{str(random.randint(0, 59)).zfill(2)}'
-                games = list(channels.keys())[1:]
-                game = random.choice(games).replace('-',' ').title()
-
-                await Reminder.processEventCommand(self, gameType, ctx, (time, game), ult=True)
-            elif actionID == 2:
-                await Fun._frage(self, ctx)
-            elif actionID == 3:
-                await Fun._bibel(self, ctx)
-            elif actionID == 4:
-                await Administration._avc(Administration, None)
-
-            # reset Ult
-            ultCharge = 0
-            await client.change_presence(activity=discord.Game(f"Charge: {int(ultCharge)}%"))
-
-    @commands.command(
-        name='charge',
-        aliases=['c'],
-        brief='Gibt die aktuelle Ult-Charge an.'
-    )
-    async def _charge(self, ctx):
-        global ultCharge
-
-        if ultCharge < 90:
-            await ctx.send(f"Meine ultimative Fähigkeit lädt sich auf, Krah Krah! [{int(ultCharge)}%]")
-        elif ultCharge < 100:
-            await ctx.send(f"Meine ultimative Fähigkeit ist fast bereit, Krah Krah! [{int(ultCharge)}%]")
-        else:
-            await ctx.send(f"Meine ultimative Fähigkeit ist bereit, Krah Krah! [{int(ultCharge)}%]")
-        
-        log(f"{ctx.author.name} hat nach meiner Ult-Charge gefragt: {ultCharge}%")
+        # Send embed object
+        try:
+            await ctx.send(embed=embed)
+            log(f"{ctx.author.name} hat ein Bibel-Zitat verlangt. Es lautet: {quote}")
+        except Exception as e:
+            log(f'ERROR: Keine Frage gefunden. Leere Zeile in fragen.txt?: {e}')
     
     @commands.command(
         name='zitat',
@@ -568,15 +554,175 @@ class Fun(commands.Cog, name='Spaß'):
         global text_model
 
         try:
-            embed = discord.Embed(colour=discord.Colour(0xff00ff), timestamp=datetime.utcfromtimestamp(random.randint(0, int(datetime.now().timestamp()))))
+            embed = discord.Embed(title="Zitat", colour=discord.Colour(0xff00ff), description=str(text_model.make_sentence(tries=100)), timestamp=datetime.utcfromtimestamp(random.randint(0, int(datetime.now().timestamp()))))
             embed.set_footer(text="Schnenko")
-            embed.add_field(name=f"Zitat", value=str(text_model.make_sentence(tries=100)))
 
             await ctx.send(embed=embed)
             
             log(f"{ctx.author.name} hat ein Zitat von {quoteby} verlangt.")
         except:
             pass
+        
+        # Ult & Faith
+        await addUltCharge(5)
+        await addFaith(ctx.author.id, 1)
+    
+    @commands.command(
+        name='ult',
+        aliases=['Q','q'],
+        brief='Die ultimative Fähigkeit von Mövius dem Krächzer.'
+    )
+    async def _ult(self, ctx, *args):
+        '''Dieses Kommando feuert die ultimative Fähigkeit von Mövius ab oder liefert dir Informationen über die Ult-Charge.
+        Alle Kommandos funktionieren mit dem Wort Ult, können aber auch mit Q oder q getriggert werden.
+        
+        ?ult    Finde heraus, wie viel Charge Mövius gerade hat.
+        !ult    Setze die ultimative Fähigkeit von Mövius ein und warte ab, was dieses Mal geschieht.
+
+        Admin Kommandos:
+        !ult [add, -a, +] <n: int>  Fügt der Charge n Prozent hinzu.
+        !ult [set, -s, =] <n: int>  Setzt die Charge auf n Prozent.'''
+
+        global ultCharge, channels
+
+        if ctx.prefix == '?':
+            # Output charge
+            if ultCharge < 90:
+                await ctx.send(f"Meine ultimative Fähigkeit lädt sich auf, Krah Krah! [{int(ultCharge)}%]")
+            elif ultCharge < 100:
+                await ctx.send(f"Meine ultimative Fähigkeit ist fast bereit, Krah Krah! [{int(ultCharge)}%]")
+            else:
+                await ctx.send(f"Meine ultimative Fähigkeit ist bereit, Krah Krah! [{int(ultCharge)}%]")
+            
+            await addFaith(ctx.author.id, 1)
+            log(f"{ctx.author.name} hat nach meiner Ult-Charge gefragt: {ultCharge}%")
+        elif ctx.prefix == '!':
+            # Do something
+            if len(args) == 0:
+                # Ultimate is triggered
+
+                if ultCharge < 100:
+                    # Not enough charge
+                    await ctx.send(f"Meine ultimative Fähigkeit ist noch nicht bereit, Krah Krah! [{int(ultCharge)}%]")
+                    log(f"{ctx.author.name} wollte meine Ult aktivieren. Charge: {ultCharge}%")
+                else:
+                    # Ult is ready
+
+                    # Faith
+                    await addFaith(ctx.author.id, 10)
+                    actionID = random.randint(0, 4)
+                    
+                    if actionID < 2:
+                        # Random stream or game
+                        gameType = random.choice(['stream', 'game'])
+                        time = f'{str(random.randint(0, 23)).zfill(2)}:{str(random.randint(0, 59)).zfill(2)}'
+                        games = list(channels.keys())[1:]
+                        game = random.choice(games).replace('-',' ').title()
+
+                        await Reminder.processEventCommand(self, gameType, ctx, (time, game), ult=True)
+                    elif actionID == 2:
+                        # Random questions
+                        await Fun._frage(self, ctx)
+                    elif actionID == 3:
+                        # Random bible quote
+                        await Fun._bibel(self, ctx)
+                    elif actionID == 4:
+                        # Echo-Ult
+                        await Administration._avc(Administration, None)
+
+                    # Reset charge
+                    ultCharge = 0
+                    await client.change_presence(activity=discord.Game(f"Charge: {int(ultCharge)}%"))
+            else:
+                # Charge is manipulated by a user
+                if ctx.author.name in settings['super-users']:
+                    # Only allowed if super user
+                    if args[0] in ['add', '-a', '+']:
+                        # Add charge
+                        try:
+                            await addUltCharge(int(args[1]))
+                        except:
+                            await ctx.send('Nanana, so geht das nicht, Krah Krah!')
+                    elif args[0] in ['set', '-s', '=']:
+                        # Set charge
+                        try:
+                            ultCharge = max(min(int(args[1]), 100), 0)
+                            await client.change_presence(activity=discord.Game(f"Charge: {int(ultCharge)}%"))
+                        except:
+                            await ctx.send('Nanana, so geht das nicht, Krah Krah!')
+                else:
+                    await ctx.send('Nanana, das darfst du nicht, Krah Krah!')
+
+    @commands.command(
+        name='faith',
+        brief='Wie treu sind wohl die Jünger des Mövius'
+    )
+    async def _faith(self, ctx, *args):
+        '''Dieses Kommando zeigt dir, wie viel 🕊-Glaubenspunkte die Jünger von Mövius gerade haben.
+        
+        ?faith  Alle Jünger des Mövius und ihre 🕊 werden angezeigt.
+
+        Admin Kommandos:
+        !faith [add, -a, +] <id: int> <n: int>  Erhöht den Glauben von einem User mit der id um n🕊.
+        !faith [rem, -r, -] <id: int> <n: int>  Reudziert den Glauben von einem User mit der id um n🕊.
+        !faith [set, -s, =] <id: int> <n: int>  Setzt den Glauben von einem User mit der id auf n🕊.'''
+        global faith
+
+        if ctx.prefix == '?':
+            # Sort faith descending by value
+            sortedFaith = {k: v for k, v in sorted(faith.items(), key=lambda item: item[1], reverse=True)}
+
+            # Output faith per user
+            output = ""
+            for user, amount in sortedFaith.items():
+                output += f"{client.get_user(int(user)).display_name}: {format(amount,',d').replace(',','.')}🕊\n"
+            
+            if output != "":
+                embed = discord.Embed(title="Die treuen Jünger des Mövius und ihre Punkte", colour=discord.Colour(0xff00ff), description=output)
+
+                await ctx.send(embed=embed)
+        elif ctx.prefix == '!' and ctx.author.name in settings['super-users']:
+            if len(args) == 3:
+                try:
+                    id = int(args[1])
+                    user = client.get_user(id)
+                    if user == None:
+                        raise Exception
+                    amount = int(args[2])
+                except Exception as e:
+                    await ctx.send('Nanana, so geht das nicht, Krah Krah!')
+                    log(f"ERROR: Glaube konnte nicht zugewiesen werden: {e}")
+                    
+                    return
+                
+                if args[0] in ['add', '-a', '+']:
+                    # Add faith
+                    await addFaith(id, amount)
+                    await ctx.send(f"Alles klar, {user.display_name} hat {amount}🕊 erhalten, Krah Krah!")
+                elif args[0] in ['rem', '-r', '-']:
+                    # Remove faith
+                    await addFaith(id, amount*(-1))
+                    await ctx.send(f"Alles klar, {user.display_name} wurden {amount}🕊 abgezogen, Krah Krah!")
+                elif args[0] in ['set', '-s', '=']:
+                    # Set faith
+                    faith[str(id)] = amount
+                    await ctx.send(f"Alles klar, {user.display_name} hat nun {amount}🕊, Krah Krah!")
+            else:
+                await ctx.send('Nanana, so geht das nicht, Krah Krah! [add|rem|set] id amount')
+        else:
+            await ctx.send('Nanana, das darfst du nicht, Krah Krah!')
+
+    @commands.command(
+        name='wurstfinger'
+    )
+    async def _wurstfinger(self, ctx):
+        global latestmsg
+
+        # Ult & Faith
+        await addUltCharge(5)
+        await addFaith(ctx.author.id, 1)
+
+        await ctx.send(f"Meintest du vielleicht: {self.spell(latestmsg[0])}")
 
 class Administration(commands.Cog, name='Administration'):
     '''Diese Kategorie erfordert bestimmte Berechtigungen'''
@@ -709,8 +855,6 @@ async def on_ready():
     # Load Settings for the first time
     startup()
 
-    #await Administration._av(Administration, None)
-
     # First Ult Charge Update
     await client.change_presence(activity=discord.Game(f"Charge: {int(ultCharge)}%"))
 
@@ -732,9 +876,8 @@ async def timeCheck():
             log(f'Daily wird abgefeuert')
 
             try:
-                embed = discord.Embed(colour=discord.Colour(0xff00ff), timestamp=datetime.utcfromtimestamp(random.randint(0, int(datetime.now().timestamp()))))
-                embed.set_footer(text="Schnenko")   
-                embed.add_field(name="Zitat des Tages", value=str(text_model.make_sentence(tries=100)))
+                embed = discord.Embed(title="Zitat des Tages", colour=discord.Colour(0xff00ff), description=str(text_model.make_sentence(tries=100)), timestamp=datetime.utcfromtimestamp(random.randint(0, int(datetime.now().timestamp()))))
+                embed.set_footer(text="Schnenko")
 
                 await server.get_channel(580143021790855178).send(content="Guten Morgen, Krah Krah!", embed=embed)
                 log(f'Zitat des Tages.')
@@ -768,6 +911,11 @@ async def on_message(message):
 
     # Add a little charge
     await addUltCharge(0.1)
+
+    global latestmsg
+    latestmsg.append(message.content)
+    if len(latestmsg) > 2:
+        latestmsg.pop(0)
     
     # Requests from file
     if message.content[1:] in responses['req'].keys():

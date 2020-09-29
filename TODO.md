@@ -1,6 +1,6 @@
 # ToDo-List
 ## High Priority
-- [] Clean up some functions
+- [ ] Clean up some functions
 - [x] Refactoring most of the code to work with the bot-subclass of client for easier command-handling
 ## Medium Priority
 - [ ] Add a check at !stream or !game commands for updates in time to mention everyone who joined the event
