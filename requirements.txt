@@ -10,3 +10,5 @@ python-dotenv
 Unidecode
 yarl
 autocorrect
+requests
+bs4
