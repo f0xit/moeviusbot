@@ -16,7 +16,10 @@ import json
 import markovify
 from urllib.request import urlopen
 from urllib.parse import quote as urlquote
+import requests
+from bs4 import BeautifulSoup
 from autocorrect import Speller
+import math
 
 # Import Custom Stuff
 from event import Event
@@ -478,7 +481,28 @@ class Fun(commands.Cog, name='Spaß'):
     
     def __init__(self, bot):
         self.bot = bot
-        self.spell = Speller()
+        self.speller = Speller()
+
+    @commands.command(
+        name='ps5',
+        brief='Vergleicht die erste Zahl aus der vorherigen Nachricht mit dem  Preis einer PS5.'
+    )
+    async def _ps5(self, ctx):
+        PS5_PRICE = 499
+
+        history = await ctx.channel.history(limit=2).flatten()
+        message = history[1].content
+        
+        number = float(re.search(r"\d+(,\d+)?", message).group(0).replace(',','.'))
+
+        quotPS5 = number / PS5_PRICE
+
+        if quotPS5 < 1:
+            output = f"Wow, das reicht ja gerade mal für {round(quotPS5*100)}% einer PS5."
+        else:
+            output = f"Wow, das reicht ja gerade mal für {math.floor(quotPS5)} {'PS5' if math.floor(quotPS5) == 1 else 'PS5en'}."
+
+        await ctx.send(output)
 
     @commands.command(
         name='urbandict',
@@ -494,12 +518,32 @@ class Fun(commands.Cog, name='Spaß'):
 
         with urlopen(f'http://api.urbandictionary.com/v0/define?term={urlquote(term.replace(" ", "+"))}') as f:
             data = json.loads(f.read().decode('utf-8'))
-            definition = data['list'][0]['definition'].translate({ord(c): None for c in '[]'})
-            example = data['list'][0]['example'].translate({ord(c): None for c in '[]'})
-        
-        embed = discord.Embed(title=f"{term}", colour=discord.Colour(0xff00ff), url=f'https://www.urbandictionary.com/define.php?term={term.replace(" ", "+")}', description=f"{definition}\n\n*{example}*")
-        await ctx.send(embed=embed)
-        log(f"{ctx.author.name} hat {term} im Urban Dictionary recherchiert.")
+            try:
+                # Case: Definition found
+                definition = data['list'][0]['definition'].translate({ord(c): None for c in '[]'})
+                example = data['list'][0]['example'].translate({ord(c): None for c in '[]'})
+
+                embed = discord.Embed(title=f"{term.title()}", colour=discord.Colour(0xff00ff), url=f'https://www.urbandictionary.com/define.php?term={term.replace(" ", "+")}', description=f"{definition}\n\n*{example}*")
+                await ctx.send(embed=embed)
+                log(f"{ctx.author.name} hat {term} im Urban Dictionary recherchiert.")
+            except IndexError:
+                # Case: No Definition => Try These
+                page = requests.get(f'https://www.urbandictionary.com/define.php?term={urlquote(term.replace(" ", "+"))}')
+                soup = BeautifulSoup(page.content, 'html.parser')
+
+                try:
+                    items = soup.find('div', class_='try-these').find_all('li')[:10]
+
+                    listitems = [*map(lambda i: i.text, items)]
+
+                    output = "\n".join(listitems)
+                    
+                    embed = discord.Embed(title=f"Suchvorschläge für {term.title()}", colour=discord.Colour(0xff00ff), description=output)
+                    await ctx.send(content="Hey, ich habe habe dazu nichts gefunden, aber versuch's doch mal hiermit:", embed=embed)
+                except Exception as e:
+                    # Nothing found, not even try these
+                    await ctx.send(f"Dazu kann ich nun wirklich gar nichts sagen, Krah Krah!")
+                    log(f"{ctx.author.name} hat {term} im Urban Dictionary recherchiert. ERROR: {e}")
 
     # Commands
     @commands.command(
@@ -719,13 +763,14 @@ class Fun(commands.Cog, name='Spaß'):
         name='wurstfinger'
     )
     async def _wurstfinger(self, ctx):
-        global latestmsg
+        history = await ctx.channel.history(limit=2).flatten()
+        message = history[1].content
+
+        await ctx.send(f"Meintest du vielleicht: {self.speller(message)}")
 
         # Ult & Faith
         await addUltCharge(5)
         await addFaith(ctx.author.id, 1)
-
-        await ctx.send(f"Meintest du vielleicht: {self.spell(latestmsg[0])}")
 
 class Administration(commands.Cog, name='Administration'):
     '''Diese Kategorie erfordert bestimmte Berechtigungen'''
@@ -917,11 +962,6 @@ async def on_message(message):
 
     # Add a little charge
     await addUltCharge(0.1)
-
-    global latestmsg
-    latestmsg.append(message.content)
-    if len(latestmsg) > 2:
-        latestmsg.pop(0)
     
     # Requests from file
     if message.content[1:] in responses['req'].keys():
