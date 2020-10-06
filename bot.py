@@ -31,7 +31,9 @@ TOKEN = os.getenv('DISCORD_TOKEN')
 log('Token wurde geladen.')
 
 # Get the Discord Client Object
-client = commands.Bot(command_prefix=('!','?'))
+intents = discord.Intents.default()
+intents.members = True
+client = commands.Bot(command_prefix=('!','?'), intents=intents)
 
 # Variables for global use
 quoteby = ''
@@ -722,7 +724,10 @@ class Fun(commands.Cog, name='Spaß'):
             # Output faith per user
             output = ""
             for user, amount in sortedFaith.items():
-                output += f"{client.get_user(int(user)).display_name}: {format(amount,',d').replace(',','.')}🕊\n"
+                try:
+                    output += f"{client.get_user(int(user)).display_name}: {format(amount,',d').replace(',','.')}🕊\n"
+                except:
+                    log(f"ERROR: Ich konnte den User mit der ID {user} nicht finden.")
             
             if output != "":
                 embed = discord.Embed(title="Die treuen Jünger des Mövius und ihre Punkte", colour=discord.Colour(0xff00ff), description=output)
@@ -856,17 +861,6 @@ class Administration(commands.Cog, name='Administration'):
         buildMarkov()
 
         await ctx.send(f"Markov Update.")
-    
-    @isSuperUser()
-    @commands.command(
-        name='addcharge',
-        aliases=['ac'],
-        brief='Ändert die Ult-Charge.'
-    )
-    async def _charge(self, ctx, charge: int):
-        global ultCharge
-        ultCharge = min(int(charge),100)
-        await client.change_presence(activity=discord.Game(f"Charge: {int(ultCharge)}%"))
 
     @isSuperUser()
     @commands.command(
@@ -981,6 +975,31 @@ async def on_message(message):
 
     #Important for processing commands
     await client.process_commands(message)
+
+async def faithOnReact(payload, operation='add'):
+    reactionFaith = 10
+
+    if payload.emoji.name == 'Moevius':
+        textChannel = client.get_channel(payload.channel_id)
+        # Who received the faith
+        author = (await textChannel.fetch_message(payload.message_id)).author
+        # Who gave the faith
+        giver = client.get_user(payload.user_id)
+
+        # Add/Remove Faith, giver always gets 1
+        await addFaith(author.id, reactionFaith*(-1 if operation == 'remove' else 1))
+        await addFaith(giver.id, 1)
+
+        # Log
+        log(f"FaithAdd-Reaction: {giver.display_name} {'nimmt' if operation == 'remove' else 'gibt'} {author.display_name} {reactionFaith}🕊")
+
+@client.event
+async def on_raw_reaction_add(payload):
+    await faithOnReact(payload)
+
+@client.event
+async def on_raw_reaction_remove(payload):
+    await faithOnReact(payload, operation='remove')
 
 @client.event
 async def on_command_error(ctx, error):
