@@ -39,7 +39,6 @@ client = commands.Bot(command_prefix=('!','?'), intents=intents)
 quoteby = ''
 timenow = ''
 channels = {}
-ultCharge = 0
 latestmsg = []
 
 startuptime = datetime.now()
@@ -54,9 +53,10 @@ events = {
 
 # Set up everything when load or reload
 def startup():
-    global fragen, bibel, settings, responses, channels, server, squads, faith
+    global fragen, bibel, settings, STATE, responses, channels, server, squads, faith
 
     settings = load_file('settings')
+    STATE = load_file('state')
     responses = load_file('responses')
     squads = load_file('squads')
     faith = load_file('faith')
@@ -106,16 +106,20 @@ def isSuperUser():
 
 # Ult charge
 async def addUltCharge(amount):
-    global ultCharge
+    global STATE
 
-    if ultCharge < 100:
-        ultCharge = min(ultCharge + amount, 100)
-        if amount > 1:
+    if amount > 1:
+        if STATE['ultCharge'] < 100:
+            STATE['ultCharge'] = min(STATE['ultCharge'] + amount, 100)
+
+            await client.change_presence(activity=discord.Game(f"Charge: {int(STATE['ultCharge'])}%"))
+
+            with open('state.json', 'w') as f:
+                json.dump(STATE, f)
+
             log(f'Ult-Charge hinzugefügt: {amount}')
-    else:
-        log(f'Ult-Charge bereit.')
-    
-    await client.change_presence(activity=discord.Game(f"Charge: {int(ultCharge)}%"))
+        else:
+            log(f'Ult-Charge bereit.')
 
 # Faith
 async def addFaith(id, amount):
@@ -128,6 +132,8 @@ async def addFaith(id, amount):
 
     with open('faith.json', 'w') as f:
         json.dump(faith, f)
+
+    log(f'Faith wurde hinzugefügt: {id}, {amount}')
 
 # Markov
 def buildMarkov():
@@ -632,28 +638,28 @@ class Fun(commands.Cog, name='Spaß'):
         !ult [add, -a, +] <n: int>  Fügt der Charge n Prozent hinzu.
         !ult [set, -s, =] <n: int>  Setzt die Charge auf n Prozent.'''
 
-        global ultCharge, channels
+        global STATE, channels
 
         if ctx.prefix == '?':
             # Output charge
-            if ultCharge < 90:
-                await ctx.send(f"Meine ultimative Fähigkeit lädt sich auf, Krah Krah! [{int(ultCharge)}%]")
-            elif ultCharge < 100:
-                await ctx.send(f"Meine ultimative Fähigkeit ist fast bereit, Krah Krah! [{int(ultCharge)}%]")
+            if STATE['ultCharge'] < 90:
+                await ctx.send(f"Meine ultimative Fähigkeit lädt sich auf, Krah Krah! [{int(STATE['ultCharge'])}%]")
+            elif STATE['ultCharge'] < 100:
+                await ctx.send(f"Meine ultimative Fähigkeit ist fast bereit, Krah Krah! [{int(STATE['ultCharge'])}%]")
             else:
-                await ctx.send(f"Meine ultimative Fähigkeit ist bereit, Krah Krah! [{int(ultCharge)}%]")
+                await ctx.send(f"Meine ultimative Fähigkeit ist bereit, Krah Krah! [{int(STATE['ultCharge'])}%]")
             
             await addFaith(ctx.author.id, 1)
-            log(f"{ctx.author.name} hat nach meiner Ult-Charge gefragt: {ultCharge}%")
+            log(f"{ctx.author.name} hat nach meiner Ult-Charge gefragt: {STATE['ultCharge']}%")
         elif ctx.prefix == '!':
             # Do something
             if len(args) == 0:
                 # Ultimate is triggered
 
-                if ultCharge < 100:
+                if STATE['ultCharge'] < 100:
                     # Not enough charge
-                    await ctx.send(f"Meine ultimative Fähigkeit ist noch nicht bereit, Krah Krah! [{int(ultCharge)}%]")
-                    log(f"{ctx.author.name} wollte meine Ult aktivieren. Charge: {ultCharge}%")
+                    await ctx.send(f"Meine ultimative Fähigkeit ist noch nicht bereit, Krah Krah! [{int(STATE['ultCharge'])}%]")
+                    log(f"{ctx.author.name} wollte meine Ult aktivieren. Charge: {STATE['ultCharge']}%")
                 else:
                     # Ult is ready
 
@@ -680,8 +686,12 @@ class Fun(commands.Cog, name='Spaß'):
                         await Administration._avc(Administration, None)
 
                     # Reset charge
-                    ultCharge = 0
-                    await client.change_presence(activity=discord.Game(f"Charge: {int(ultCharge)}%"))
+                    STATE['ultCharge'] = 0
+
+                    with open('state.json', 'w') as f:
+                        json.dump(STATE, f)
+
+                    await client.change_presence(activity=discord.Game(f"Charge: {int(STATE['ultCharge'])}%"))
             else:
                 # Charge is manipulated by a user
                 if ctx.author.name in settings['super-users']:
@@ -695,8 +705,12 @@ class Fun(commands.Cog, name='Spaß'):
                     elif args[0] in ['set', '-s', '=']:
                         # Set charge
                         try:
-                            ultCharge = max(min(int(args[1]), 100), 0)
-                            await client.change_presence(activity=discord.Game(f"Charge: {int(ultCharge)}%"))
+                            STATE['ultCharge'] = max(min(int(args[1]), 100), 0)
+                            
+                            with open('state.json', 'w') as f:
+                                json.dump(STATE, f)
+
+                            await client.change_presence(activity=discord.Game(f"Charge: {int(STATE['ultCharge'])}%"))
                         except:
                             await ctx.send('Nanana, so geht das nicht, Krah Krah!')
                 else:
@@ -733,6 +747,8 @@ class Fun(commands.Cog, name='Spaß'):
                 embed = discord.Embed(title="Die treuen Jünger des Mövius und ihre Punkte", colour=discord.Colour(0xff00ff), description=output)
 
                 await ctx.send(embed=embed)
+            
+            log('Faith wurde angezeigt')
         elif ctx.prefix == '!' and ctx.author.name in settings['super-users']:
             if len(args) == 3:
                 try:
@@ -768,10 +784,15 @@ class Fun(commands.Cog, name='Spaß'):
         name='wurstfinger'
     )
     async def _wurstfinger(self, ctx):
+        start_time = time.time()
+
         history = await ctx.channel.history(limit=2).flatten()
         message = history[1].content
+        correction = self.speller(message)
 
-        await ctx.send(f"Meintest du vielleicht: {self.speller(message)}")
+        log(f'Wurstfinger: "{message}" → "{correction}", Dauer: {(time.time() - start_time)}')
+
+        await ctx.send(f"Meintest du vielleicht: {correction}")
 
         # Ult & Faith
         await addUltCharge(5)
@@ -898,7 +919,7 @@ async def on_ready():
     startup()
 
     # First Ult Charge Update
-    await client.change_presence(activity=discord.Game(f"Charge: {int(ultCharge)}%"))
+    await client.change_presence(activity=discord.Game(f"Charge: {int(STATE['ultCharge'])}%"))
 
     # Start Loop
     await timeCheck.start()
