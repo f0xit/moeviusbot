@@ -136,21 +136,24 @@ async def addFaith(id, amount):
     log(f'Faith wurde hinzugefügt: {id}, {amount}')
 
 # Markov
-def buildMarkov():
+def buildMarkov(size: int = 3):
     global text_model, quoteby
+
+    log(f"Markov Update gestartet, Size: {size}")
+    start_time = time.time()
 
     try:
         # Build Markov Chain
-        start_time = time.time()
         with open("channel_messages.txt") as f:
             quoteby = f.readline()[:-1]
             text = f.read()
 
         # Build the model.
-        text_model = markovify.NewlineText(text)
-        log(f"Markov Update. Dauer: {(time.time() - start_time)}")
+        text_model = markovify.NewlineText(text, state_size=size)
+
+        log(f"Markov Update abgeschlossen. Size: {size}, Dauer: {(time.time() - start_time)}")
     except:
-        log(f"ERROR: Markov fehlgeschlagen. Dauer: {(time.time() - start_time)}")
+        log(f"ERROR: Markov fehlgeschlagen. Size: {size}, Dauer: {(time.time() - start_time)}")
 
 ##### Cogs #####
 class Reminder(commands.Cog, name='Events'):
@@ -606,17 +609,26 @@ class Fun(commands.Cog, name='Spaß'):
         brief='Zitiert eine weise Persönlichkeit.'
     )
     async def _quote(self, ctx):
-        global text_model
+        global text_model, quoteby
+
+        log(f"Quote: {ctx.author.name} hat ein Zitat von {quoteby} verlangt.")
 
         try:
-            embed = discord.Embed(title="Zitat", colour=discord.Colour(0xff00ff), description=str(text_model.make_sentence(tries=100)), timestamp=datetime.utcfromtimestamp(random.randint(0, int(datetime.now().timestamp()))))
-            embed.set_footer(text="Schnenko")
+            quote = text_model.make_sentence(tries=100)
+            while quote == None:
+                log(f"Quote: Kein Zitat gefunden, neuer Versuch ...")
+                quote = text_model.make_sentence(tries=100)
 
+            # No Discord Quotes allowed in Quotes
+            quote.replace('>', '')
+
+            embed = discord.Embed(title="Zitat", colour=discord.Colour(0xff00ff), description=str(quote), timestamp=datetime.utcfromtimestamp(random.randint(0, int(datetime.now().timestamp()))))
+            embed.set_footer(text=quoteby)
             await ctx.send(embed=embed)
             
-            log(f"{ctx.author.name} hat ein Zitat von {quoteby} verlangt.")
-        except:
-            pass
+            log(f"Quote erfolgreich: {quote} - {quoteby}")
+        except Exception as e:
+            log(f"ERROR: {e}")
         
         # Ult & Faith
         await addUltCharge(5)
@@ -840,48 +852,57 @@ class Administration(commands.Cog, name='Administration'):
 
     @isSuperUser()
     @commands.command(
-        name='getquotes',
-        aliases=['gq'],
-        brief='Besorgt sich die nötigen Daten für den Zitategenerator. ACHTUNG: Nicht zu oft machen.'
+        name='downloadHistory',
+        aliases=['dh'],
+        brief='Besorgt sich die nötigen Daten für den Zitategenerator. ACHTUNG: Kann einige Sekunden bis Minuten dauern.'
     )
-    async def _getquotes(self, ctx, id: int, lim: int):
+    async def _downloadHistory(self, ctx, id: int, lim: int):
         global server, quoteby
 
         user = await client.fetch_user(id)
         quoteby = user.display_name
 
-        log(f"{ctx.author.name} lädt die Nachrichten von {quoteby} herunter.")
+        await ctx.send(f"History Download: Lade pro Channel maximal {lim} Nachrichten von {quoteby} herunter, Krah Krah! Das kann einen Moment dauern, Krah Krah!")
+        log(f"{ctx.author.name} lädt die Nachrichten von {quoteby} herunter, Limit: {lim}.")
         
         # Download history
         start_time = time.time()
+        numberOfChannels = 0
+        numberOfSentences = 0
         lines = [quoteby]
 
-        rammgut = client.get_guild(323922215584268290)
+        rammgut = client.get_guild(323922215584268290) # Hard coded Rammgut
         for channel in rammgut.text_channels:
+            numberOfChannels += 1
             messages = await channel.history(limit=lim).flatten()
             for m in messages:
                 if m.author.id == id:
                     sentences = m.content.split('. ')
                     for s in sentences:
                         if s != '':
+                            numberOfSentences += 1
                             lines.append(s)
 
         with open("channel_messages.txt", "w", encoding="utf-8") as f:
             print(*lines, sep='\n', file=f)
 
-        await ctx.send(f"History Update: {len(lines)} Sätze von {user.name}. Dauer: {(time.time() - start_time)}")
-        log(f"History Update: {len(lines)} Sätze von {user.name}. Dauer: {(time.time() - start_time)}")
+        await ctx.send(f"History Download abgeschlossen! {numberOfSentences} Sätze in {numberOfChannels} Channels von {quoteby} heruntergeladen. Dauer: {(time.time() - start_time)}")
+        log(f"History Download abgeschlossen! {numberOfSentences} Sätze in {numberOfChannels} Channels von {quoteby} heruntergeladen. Dauer: {(time.time() - start_time)}")
     
     @isSuperUser()
     @commands.command(
-        name='makequotes',
-        aliases=['mk'],
+        name='buildMarkov',
+        aliases=['bm'],
         brief='Generiert das Modell für zufällige Zitate.'
     )
-    async def _makequotes(self, ctx):
-        buildMarkov()
+    async def _makequotes(self, ctx, size: int = 3):
+        await ctx.send(f"Markov Update wird gestartet.")
 
-        await ctx.send(f"Markov Update.")
+        try:
+            buildMarkov(size)
+            await ctx.send(f"Markov Update abgeschlossen.")
+        except Exception as e:
+             await ctx.send(f"ERROR: {e}")
 
     @isSuperUser()
     @commands.command(
@@ -934,16 +955,23 @@ async def timeCheck():
 
         # Check for daily Stuff at 9am
         if timenow == '09:00':
-            global text_model
+            global text_model, quoteby
 
-            log(f'Daily wird abgefeuert')
+            log(f'Es ist 9 Uhr, Daily wird abgefeuert')
 
             try:
-                embed = discord.Embed(title="Zitat des Tages", colour=discord.Colour(0xff00ff), description=str(text_model.make_sentence(tries=100)), timestamp=datetime.utcfromtimestamp(random.randint(0, int(datetime.now().timestamp()))))
-                embed.set_footer(text="Schnenko")
+                quote = text_model.make_sentence(tries=100)
+                while quote == None:
+                    log(f"Quote: Kein Zitat gefunden, neuer Versuch ...")
+                    quote = text_model.make_sentence(tries=100)
 
+                # No Discord Quotes allowed in Quotes
+                quote.replace('>', '')
+
+                embed = discord.Embed(title="Zitat des Tages", colour=discord.Colour(0xff00ff), description=str(quote), timestamp=datetime.utcfromtimestamp(random.randint(0, int(datetime.now().timestamp()))))
+                embed.set_footer(text=quoteby)
                 await server.get_channel(580143021790855178).send(content="Guten Morgen, Krah Krah!", embed=embed)
-                log(f'Zitat des Tages.')
+                log(f'Zitat des Tages: {quote} - {quoteby}')
             except Exception as e:
                 log(f'ERROR: Kein Zitat des Tages: {e}')
 
