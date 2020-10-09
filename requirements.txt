@@ -2,7 +2,7 @@ aiohttp
 async-timeout
 attrs
 chardet
-discord.py==1.4.2
+discord.py
 idna
 markovify
 multidict
