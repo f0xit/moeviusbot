@@ -5,10 +5,10 @@ chardet
 discord.py
 idna
 markovify
-multidict
+multidict<5.0,>=4.5
 python-dotenv
 Unidecode
-yarl
+yarl<1.6.0,>=1.0
 autocorrect
 requests
 bs4
