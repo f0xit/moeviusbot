@@ -33,6 +33,7 @@ log('Token wurde geladen.')
 # Get the Discord Client Object
 intents = discord.Intents.default()
 intents.members = True
+intents.presences = True
 client = commands.Bot(command_prefix=('!','?'), intents=intents)
 
 # Variables for global use
@@ -1053,6 +1054,15 @@ async def on_raw_reaction_remove(payload):
 @client.event
 async def on_command_error(ctx, error):
     log(f"ERROR: {ctx.author.name} - {ctx.message.content} - {error}")
+
+@client.event
+async def on_member_update(before, after):
+    global settings
+
+    if before.guild.id == int(settings['server_id']) and before.id == 323185601631485953:
+        if before.raw_status == 'offline' and after.raw_status != 'offline':
+            await client.get_channel(580143021790855178).send('https://tenor.com/view/platypus-awkward-running-gif-4576818')
+            await client.get_channel(580143021790855178).send('Da kommt er angekrabbelt, Krah Krah!')
 
 #Connect to Discord
 client.run(TOKEN)
