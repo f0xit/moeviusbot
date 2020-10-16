@@ -615,19 +615,20 @@ class Fun(commands.Cog, name='Spaß'):
         log(f"Quote: {ctx.author.name} hat ein Zitat von {quoteby} verlangt.")
 
         try:
-            quote = text_model.make_sentence(tries=100)
-            while quote == None:
-                log(f"Quote: Kein Zitat gefunden, neuer Versuch ...")
-                quote = text_model.make_sentence(tries=100)
+            quote = text_model.make_sentence(tries=500)
 
-            # No Discord Quotes allowed in Quotes
-            quote.replace('>', '')
+            if quote == None:
+                log(f"Kein Quote gefunden.")
+                ctx.send("Ich habe wirklich alles versucht, aber ich konnte einfach kein Zitat finden, Krah Krah!")
+            else:
+                # No Discord Quotes allowed in Quotes
+                quote.replace('>', '')
 
-            embed = discord.Embed(title="Zitat", colour=discord.Colour(0xff00ff), description=str(quote), timestamp=datetime.utcfromtimestamp(random.randint(0, int(datetime.now().timestamp()))))
-            embed.set_footer(text=quoteby)
-            await ctx.send(embed=embed)
-            
-            log(f"Quote erfolgreich: {quote} - {quoteby}")
+                embed = discord.Embed(title="Zitat", colour=discord.Colour(0xff00ff), description=str(quote), timestamp=datetime.utcfromtimestamp(random.randint(0, int(datetime.now().timestamp()))))
+                embed.set_footer(text=quoteby)
+                await ctx.send(embed=embed)
+                
+                log(f"Quote erfolgreich: {quote} - {quoteby}")
         except Exception as e:
             log(f"ERROR: {e}")
         
