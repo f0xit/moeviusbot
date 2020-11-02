@@ -602,7 +602,7 @@ class Fun(commands.Cog, name='Spaß'):
             await ctx.send(embed=embed)
             log(f"{ctx.author.name} hat ein Bibel-Zitat verlangt. Es lautet: {quote}")
         except Exception as e:
-            log(f'ERROR: Keine Frage gefunden. Leere Zeile in fragen.txt?: {e}')
+            log(f'ERROR: Kein Bibel-Zitat gefunden.{e}')
     
     @commands.command(
         name='zitat',
@@ -835,7 +835,7 @@ class Overwatch(commands.Cog, name='Overwatch'):
     async def _ow(self, ctx, *args, role=None):
         log(f"{ctx.author.name} hat einen zufälligen Overwatch-Hero für {'alle' if len(args) == 0 else 'sich'} verlangt. Rolle: {role}")
 
-        output = ["Random Heros? Kein Problem, Krah Krah!"]
+        output = ["Random Heroes? Kein Problem, Krah Krah!"]
         members = [ctx.author]
 
         if role in ["Support", "Damage", "Tank"]:
@@ -857,6 +857,8 @@ class Overwatch(commands.Cog, name='Overwatch'):
         if output != []:
             await ctx.channel.send("\n".join(output))
             log(f"Heroes für diese Runde: {', '.join(output[1:])}.")
+            await addUltCharge(5)
+            await addFaith(ctx.author.id, 10)
         else:
             log("Keine Heroes gefunden. Es könnte ein Fehler vorliegen.")
         
