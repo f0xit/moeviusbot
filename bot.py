@@ -619,7 +619,7 @@ class Fun(commands.Cog, name='Spaß'):
 
             if quote == None:
                 log(f"Kein Quote gefunden.")
-                ctx.send("Ich habe wirklich alles versucht, aber ich konnte einfach kein Zitat finden, Krah Krah!")
+                await ctx.send("Ich habe wirklich alles versucht, aber ich konnte einfach kein Zitat finden, Krah Krah!")
             else:
                 # No Discord Quotes allowed in Quotes
                 quote.replace('>', '')
@@ -812,6 +812,72 @@ class Fun(commands.Cog, name='Spaß'):
         await addUltCharge(5)
         await addFaith(ctx.author.id, 1)
 
+class Overwatch(commands.Cog, name='Overwatch'):
+    '''Diese Kategorie erfordert bestimmte Berechtigungen'''
+
+    def __init__(self, bot):
+        self.bot = bot
+        self.overwatchPage = requests.get(f'https://playoverwatch.com/de-de/heroes/')
+        self.overwatchSoup = BeautifulSoup(self.overwatchPage.content, 'html.parser')
+        self.heroes = {}
+
+        cells = self.overwatchSoup.find_all('div', class_='hero-portrait-detailed-container')
+
+        for c in cells:
+            self.heroes[c.text] = c.attrs["data-groups"][2:-2].title()
+
+        log("Overwatch-Heroes geladen.")
+
+    # Commands
+    @commands.command(
+        name='ow'
+    )
+    async def _ow(self, ctx, *args, role=None):
+        log(f"{ctx.author.name} hat einen zufälligen Overwatch-Hero für {'alle' if len(args) == 0 else 'sich'} verlangt. Rolle: {role}")
+
+        output = ["Random Heros? Kein Problem, Krah Krah!"]
+        members = [ctx.author]
+
+        if role in ["Support", "Damage", "Tank"]:
+            heroes = {h: r for h, r in self.heroes.items() if r == role}
+        else:
+            heroes = self.heroes
+        
+        if len(args) > 0:
+            if args[0] != "me":
+                return
+        elif ctx.author.voice != None:
+            members = ctx.author.voice.channel.members
+
+        for m in members:
+            hero = random.choice(list(heroes.keys()))
+
+            output.append(f"{m.display_name} spielt: {hero} ({heroes.pop(hero)})")
+        
+        if output != []:
+            await ctx.channel.send("\n".join(output))
+            log(f"Heroes für diese Runde: {', '.join(output[1:])}.")
+        else:
+            log("Keine Heroes gefunden. Es könnte ein Fehler vorliegen.")
+        
+    @commands.command(
+        name='owd'
+    )
+    async def _owd(self, ctx):
+        await self._ow(ctx, "me", role="Damage")
+
+    @commands.command(
+        name='ows'
+    )
+    async def _ows(self, ctx):
+        await self._ow(ctx, "me", role="Support")
+
+    @commands.command(
+        name='owt'
+    )
+    async def _owt(self, ctx):
+        await self._ow(ctx, "me", role="Tank")
+
 class Administration(commands.Cog, name='Administration'):
     '''Diese Kategorie erfordert bestimmte Berechtigungen'''
 
@@ -934,6 +1000,7 @@ class Administration(commands.Cog, name='Administration'):
 ##### Add the cogs #####
 client.add_cog(Reminder(client))
 client.add_cog(Fun(client))
+client.add_cog(Overwatch(client))
 client.add_cog(Administration(client))
 
 @client.event
