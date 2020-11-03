@@ -867,93 +867,6 @@ class Fun(commands.Cog, name='Spaß'):
         await addUltCharge(5)
         await addFaith(ctx.author.id, 1)
 
-class Overwatch(commands.Cog, name='Overwatch'):
-    def __init__(self, bot):
-        self.bot = bot
-        self.overwatchPage = requests.get(f'https://playoverwatch.com/de-de/heroes/')
-        self.overwatchSoup = BeautifulSoup(self.overwatchPage.content, 'html.parser')
-        self.heroes = {}
-
-        cells = self.overwatchSoup.find_all('div', class_='hero-portrait-detailed-container')
-
-        for c in cells:
-            self.heroes[c.text] = c.attrs["data-groups"][2:-2].title()
-
-        log("Overwatch-Heroes geladen.")
-
-    # Commands
-    @commands.command(
-        name='ow',
-        brief='Gibt dir oder dem kompletten Voice-Channel zufällige Overwatch-Heroes.'
-    )
-    async def _ow(self, ctx, who="", role=None):
-        '''Dieses Kommando wählt für dich einen zufälligen Overwatch-Hero aus.
-
-        Solltest du dich währenddessen mit anderen Spielern im Voice befinden, bekommt jeder im Channel einen zufälligen Hero zugeteilt.
-        Wenn du das vermeiden willst und explizit nur einen Hero für dich selber brauchst, verwende bitte !ow me.
-        
-        Für eine spezifische Rolle, verwende bitte !owd, !ows oder !owt.'''
-
-        log(f"{ctx.author.name} hat einen zufälligen Overwatch-Hero für {'sich' if who == 'me' else 'alle'} verlangt. Rolle: {role}")
-
-        output = ["Random Heroes? Kein Problem, Krah Krah!"]
-
-        if who == "" and ctx.author.voice != None:
-            members = ctx.author.voice.channel.members
-        else:
-            members = [ctx.author]
-
-        if role in ["Support", "Damage", "Tank"]:
-            heroes = {h: r for h, r in self.heroes.items() if r == role}
-        else:
-            heroes = self.heroes
-        
-        for m in members:
-            hero = random.choice(list(heroes.keys()))
-
-            output.append(f"{m.display_name} spielt: {hero} ({heroes.pop(hero)})")
-        
-        if output != []:
-            await ctx.channel.send("\n".join(output))
-            log(f"Heroes für diese Runde: {', '.join(output[1:])}.")
-            await addUltCharge(5)
-            await addFaith(ctx.author.id, 10)
-        else:
-            log("Keine Heroes gefunden. Es könnte ein Fehler vorliegen.")
-        
-    @commands.command(
-        name='owd',
-        brief='Gibt dir einen zufälligen Overwatch-DPS.'
-    )
-    async def _owd(self, ctx):
-        '''Gibt dir einen zufälligen Overwatch-DPS.
-        
-        Dieses Kommando ist ein Alias für !ow me Damage.'''
-
-        await self._ow(ctx, "me", "Damage")
-
-    @commands.command(
-        name='ows',
-        brief='Gibt dir einen zufälligen Overwatch-Support.'
-    )
-    async def _ows(self, ctx):
-        '''Gibt dir einen zufälligen Overwatch-Support.
-        
-        Dieses Kommando ist ein Alias für !ow me Support.'''
-
-        await self._ow(ctx, "me", "Support")
-
-    @commands.command(
-        name='owt',
-        brief='Gibt dir einen zufälligen Overwatch-Tank.'
-    )
-    async def _owt(self, ctx):
-        '''Gibt dir einen zufälligen Overwatch-Tank.
-        
-        Dieses Kommando ist ein Alias für !ow me Tank.'''
-
-        await self._ow(ctx, "me", "Tank")
-
 class Administration(commands.Cog, name='Administration'):
     '''Diese Kategorie erfordert bestimmte Berechtigungen'''
 
@@ -972,7 +885,8 @@ class Administration(commands.Cog, name='Administration'):
     
     @_bot.command(
         name='version',
-        aliases=['-v'])
+        aliases=['-v']
+    )
     async def _version(self, ctx):
         try:
             version = subprocess.check_output('git describe --tags', shell=True).strip().decode('ascii')
@@ -985,7 +899,8 @@ class Administration(commands.Cog, name='Administration'):
 
     @_bot.command(
         name='uptime',
-        aliases=['-u'])
+        aliases=['-u']
+    )
     async def _uptime(self, ctx):
         uptime = (datetime.now() - startuptime)
         uptimestr = strfdelta(uptime, "{days} Tage {hours}:{minutes}:{seconds}")
@@ -995,23 +910,68 @@ class Administration(commands.Cog, name='Administration'):
 
     @_bot.command(
         name='reload',
-        aliases=['-r'])
+        aliases=['-r']
+    )
     async def _reload(self, ctx):
         log(f"{ctx.author.name} hat einen Reload gestartet.")
         await ctx.send("Reload wird gestartet.")
 
         startup()
 
+    @isSuperUser()
+    @commands.group(
+        name='extensions',
+        aliases=['ext'],
+        brief='Verwaltet die Extensions des Bots.'
+    )
+    async def _extensions(self, ctx):
+        if ctx.invoked_subcommand is None:
+            await ctx.send(f"Aktuell sind folgende Extensions geladen: {', '.join(client.extensions.keys())}")
+            await ctx.send("Mit !help ext siehst du, welche Optionen verfügbar sind.")
+
+    @_extensions.command(
+        name='load',
+        aliases=['-l'],
+        brief='Lädt eine Extension in den Bot.'
+    )
+    async def _load(self, ctx, extension):
+        if 'cogs.' + extension in client.extensions.keys():
+            await ctx.send("Diese Extensions ist bereits geladen.")
+        else:
+            try:
+                client.load_extension(f"cogs.{extension}")
+                await ctx.send("Die Extension wurde geladen.")
+            except Exception as e:
+                await ctx.send(f"ERROR: {e}")
+    
+    @_extensions.command(
+        name='unload',
+        aliases=['-u'],
+        brief='Entfernt eine Extension aus dem Bot.'
+    )
+    async def _unload(self, ctx, extension):
+        if 'cogs.' + extension in client.extensions.keys():
+            try:
+                client.unload_extension(f"cogs.{extension}")
+                await ctx.send("Die Extension wurde entfernt.")
+            except Exception as e:
+                await ctx.send(f"ERROR: {e}")
+        else:
+            await ctx.send("Diese Extensions ist nicht aktiv.")
+
 ##### Add the cogs #####
 client.add_cog(Administration(client))
 client.add_cog(Reminder(client))
 client.add_cog(Fun(client))
-client.add_cog(Overwatch(client))
 
 @client.event
 async def on_ready():
     # Load Settings for the first time
     startup()
+
+    for filename in os.listdir('./cogs'):
+        if filename.endswith('.py'):
+            client.load_extension(f"cogs.{filename[:-3]}")
 
     # First Ult Charge Update
     await client.change_presence(activity=discord.Game(f"Charge: {int(STATE['ultCharge'])}%"))
@@ -1138,4 +1098,5 @@ async def on_member_update(before, after):
             await client.get_channel(580143021790855178).send('Da kommt er angekrabbelt, Krah Krah!')
 
 #Connect to Discord
-client.run(TOKEN)
+if __name__ == "__main__":
+    client.run(TOKEN)
