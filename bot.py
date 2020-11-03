@@ -604,7 +604,7 @@ class Fun(commands.Cog, name='Spaß'):
         except Exception as e:
             log(f'ERROR: Kein Bibel-Zitat gefunden.{e}')
     
-    @commands.command(
+    @commands.group(
         name='zitat',
         aliases=['z'],
         brief='Zitiert eine weise Persönlichkeit.'
@@ -612,29 +612,84 @@ class Fun(commands.Cog, name='Spaß'):
     async def _quote(self, ctx):
         global text_model, quoteby
 
-        log(f"Quote: {ctx.author.name} hat ein Zitat von {quoteby} verlangt.")
+        if ctx.invoked_subcommand is None:
+            log(f"Quote: {ctx.author.name} hat ein Zitat von {quoteby} verlangt.")
+
+            try:
+                quote = text_model.make_sentence(tries=500)
+
+                if quote == None:
+                    log(f"Kein Quote gefunden.")
+                    await ctx.send("Ich habe wirklich alles versucht, aber ich konnte einfach kein Zitat finden, Krah Krah!")
+                else:
+                    # No Discord Quotes allowed in Quotes
+                    quote.replace('>', '')
+
+                    embed = discord.Embed(title="Zitat", colour=discord.Colour(0xff00ff), description=str(quote), timestamp=datetime.utcfromtimestamp(random.randint(0, int(datetime.now().timestamp()))))
+                    embed.set_footer(text=quoteby)
+                    await ctx.send(embed=embed)
+                    
+                    log(f"Quote erfolgreich: {quote} - {quoteby}")
+            except Exception as e:
+                log(f"ERROR: {e}")
+            
+            # Ult & Faith
+            await addUltCharge(5)
+            await addFaith(ctx.author.id, 1)
+    
+    @isSuperUser()
+    @_quote.command(
+        name='downloadHistory',
+        aliases=['dh'],
+        brief='Besorgt sich die nötigen Daten für den Zitategenerator. ACHTUNG: Kann je nach Limit einige Sekunden bis Minuten dauern.'
+    )
+    async def _downloadHistory(self, ctx, id: int, lim: int = 1000):
+        global server, quoteby
+
+        user = await client.fetch_user(id)
+        quoteby = user.display_name
+
+        await ctx.send(f"History Download: Lade pro Channel maximal {lim} Nachrichten von {quoteby} herunter, Krah Krah! Das kann einen Moment dauern, Krah Krah!")
+        log(f"{ctx.author.name} lädt die Nachrichten von {quoteby} herunter, Limit: {lim}.")
+        
+        # Download history
+        start_time = time.time()
+        numberOfChannels = 0
+        numberOfSentences = 0
+        lines = [quoteby]
+
+        rammgut = client.get_guild(323922215584268290) # Hard coded Rammgut
+        for channel in rammgut.text_channels:
+            numberOfChannels += 1
+            messages = await channel.history(limit=lim).flatten()
+            for m in messages:
+                if m.author.id == id:
+                    sentences = m.content.split('. ')
+                    for s in sentences:
+                        if s != '':
+                            numberOfSentences += 1
+                            lines.append(s)
+
+        with open("channel_messages.txt", "w", encoding="utf-8") as f:
+            print(*lines, sep='\n', file=f)
+
+        await ctx.send(f"History Download abgeschlossen! {numberOfSentences} Sätze in {numberOfChannels} Channels von {quoteby} heruntergeladen. Dauer: {(time.time() - start_time)}")
+        log(f"History Download abgeschlossen! {numberOfSentences} Sätze in {numberOfChannels} Channels von {quoteby} heruntergeladen. Dauer: {(time.time() - start_time)}")
+    
+    @isSuperUser()
+    @_quote.command(
+        name='buildMarkov',
+        aliases=['bm'],
+        brief='Generiert das Modell für zufällige Zitate.'
+    )
+    async def _makequotes(self, ctx, size: int = 3):
+        await ctx.send(f"Markov Update wird gestartet.")
 
         try:
-            quote = text_model.make_sentence(tries=500)
-
-            if quote == None:
-                log(f"Kein Quote gefunden.")
-                await ctx.send("Ich habe wirklich alles versucht, aber ich konnte einfach kein Zitat finden, Krah Krah!")
-            else:
-                # No Discord Quotes allowed in Quotes
-                quote.replace('>', '')
-
-                embed = discord.Embed(title="Zitat", colour=discord.Colour(0xff00ff), description=str(quote), timestamp=datetime.utcfromtimestamp(random.randint(0, int(datetime.now().timestamp()))))
-                embed.set_footer(text=quoteby)
-                await ctx.send(embed=embed)
-                
-                log(f"Quote erfolgreich: {quote} - {quoteby}")
+            buildMarkov(size)
+            await ctx.send(f"Markov Update abgeschlossen.")
         except Exception as e:
-            log(f"ERROR: {e}")
-        
-        # Ult & Faith
-        await addUltCharge(5)
-        await addFaith(ctx.author.id, 1)
+             await ctx.send(f"ERROR: {e}")
     
     @commands.command(
         name='ult',
@@ -695,9 +750,9 @@ class Fun(commands.Cog, name='Spaß'):
                     elif actionID == 3:
                         # Random bible quote
                         await Fun._bibel(self, ctx)
-                    elif actionID == 4:
-                        # Echo-Ult
-                        await Administration._avc(Administration, None)
+                    # elif actionID == 4:
+                    #     # Echo-Ult TODO: Currently not active due to reconstructions
+                    #     await Administration._avc(Administration, None)
 
                     # Reset charge
                     STATE['ultCharge'] = 0
@@ -813,8 +868,6 @@ class Fun(commands.Cog, name='Spaß'):
         await addFaith(ctx.author.id, 1)
 
 class Overwatch(commands.Cog, name='Overwatch'):
-    '''Diese Kategorie erfordert bestimmte Berechtigungen'''
-
     def __init__(self, bot):
         self.bot = bot
         self.overwatchPage = requests.get(f'https://playoverwatch.com/de-de/heroes/')
@@ -830,25 +883,31 @@ class Overwatch(commands.Cog, name='Overwatch'):
 
     # Commands
     @commands.command(
-        name='ow'
+        name='ow',
+        brief='Gibt dir oder dem kompletten Voice-Channel zufällige Overwatch-Heroes.'
     )
-    async def _ow(self, ctx, *args, role=None):
-        log(f"{ctx.author.name} hat einen zufälligen Overwatch-Hero für {'alle' if len(args) == 0 else 'sich'} verlangt. Rolle: {role}")
+    async def _ow(self, ctx, who="", role=None):
+        '''Dieses Kommando wählt für dich einen zufälligen Overwatch-Hero aus.
+
+        Solltest du dich währenddessen mit anderen Spielern im Voice befinden, bekommt jeder im Channel einen zufälligen Hero zugeteilt.
+        Wenn du das vermeiden willst und explizit nur einen Hero für dich selber brauchst, verwende bitte !ow me.
+        
+        Für eine spezifische Rolle, verwende bitte !owd, !ows oder !owt.'''
+
+        log(f"{ctx.author.name} hat einen zufälligen Overwatch-Hero für {'sich' if who == 'me' else 'alle'} verlangt. Rolle: {role}")
 
         output = ["Random Heroes? Kein Problem, Krah Krah!"]
-        members = [ctx.author]
+
+        if who == "" and ctx.author.voice != None:
+            members = ctx.author.voice.channel.members
+        else:
+            members = [ctx.author]
 
         if role in ["Support", "Damage", "Tank"]:
             heroes = {h: r for h, r in self.heroes.items() if r == role}
         else:
             heroes = self.heroes
         
-        if len(args) > 0:
-            if args[0] != "me":
-                return
-        elif ctx.author.voice != None:
-            members = ctx.author.voice.channel.members
-
         for m in members:
             hero = random.choice(list(heroes.keys()))
 
@@ -863,22 +922,37 @@ class Overwatch(commands.Cog, name='Overwatch'):
             log("Keine Heroes gefunden. Es könnte ein Fehler vorliegen.")
         
     @commands.command(
-        name='owd'
+        name='owd',
+        brief='Gibt dir einen zufälligen Overwatch-DPS.'
     )
     async def _owd(self, ctx):
-        await self._ow(ctx, "me", role="Damage")
+        '''Gibt dir einen zufälligen Overwatch-DPS.
+        
+        Dieses Kommando ist ein Alias für !ow me Damage.'''
+
+        await self._ow(ctx, "me", "Damage")
 
     @commands.command(
-        name='ows'
+        name='ows',
+        brief='Gibt dir einen zufälligen Overwatch-Support.'
     )
     async def _ows(self, ctx):
-        await self._ow(ctx, "me", role="Support")
+        '''Gibt dir einen zufälligen Overwatch-Support.
+        
+        Dieses Kommando ist ein Alias für !ow me Support.'''
+
+        await self._ow(ctx, "me", "Support")
 
     @commands.command(
-        name='owt'
+        name='owt',
+        brief='Gibt dir einen zufälligen Overwatch-Tank.'
     )
     async def _owt(self, ctx):
-        await self._ow(ctx, "me", role="Tank")
+        '''Gibt dir einen zufälligen Overwatch-Tank.
+        
+        Dieses Kommando ist ein Alias für !ow me Tank.'''
+
+        await self._ow(ctx, "me", "Tank")
 
 class Administration(commands.Cog, name='Administration'):
     '''Diese Kategorie erfordert bestimmte Berechtigungen'''
@@ -886,124 +960,53 @@ class Administration(commands.Cog, name='Administration'):
     def __init__(self, bot):
         self.bot = bot
 
-    # Commands
     @isSuperUser()
-    @commands.command(
-        name='av'
-    )
-    async def _av(self, ctx):
-        await server.me.edit(nick=None)
-
-        with open('Inhaling-Seagull.jpg', 'rb') as f:
-            ava = f.read()
-            try:
-                await client.user.edit(avatar=ava)
-            except:
-                pass
-
-    @isSuperUser()
-    @commands.command(
-        name='avc'
-    )
-    async def _avc(self, ctx):
-        global server
-        clone = random.choice(server.members)
-
-        await server.me.edit(nick=clone.display_name)
-
-        await clone.avatar_url_as(format='jpg').save('clone.jpg')
-
-        with open('clone.jpg', 'rb') as f:
-            ava = f.read()
-            try:
-                await client.user.edit(avatar=ava)
-            except:
-                pass
-
-    @isSuperUser()
-    @commands.command(
-        name='downloadHistory',
-        aliases=['dh'],
-        brief='Besorgt sich die nötigen Daten für den Zitategenerator. ACHTUNG: Kann einige Sekunden bis Minuten dauern.'
-    )
-    async def _downloadHistory(self, ctx, id: int, lim: int):
-        global server, quoteby
-
-        user = await client.fetch_user(id)
-        quoteby = user.display_name
-
-        await ctx.send(f"History Download: Lade pro Channel maximal {lim} Nachrichten von {quoteby} herunter, Krah Krah! Das kann einen Moment dauern, Krah Krah!")
-        log(f"{ctx.author.name} lädt die Nachrichten von {quoteby} herunter, Limit: {lim}.")
-        
-        # Download history
-        start_time = time.time()
-        numberOfChannels = 0
-        numberOfSentences = 0
-        lines = [quoteby]
-
-        rammgut = client.get_guild(323922215584268290) # Hard coded Rammgut
-        for channel in rammgut.text_channels:
-            numberOfChannels += 1
-            messages = await channel.history(limit=lim).flatten()
-            for m in messages:
-                if m.author.id == id:
-                    sentences = m.content.split('. ')
-                    for s in sentences:
-                        if s != '':
-                            numberOfSentences += 1
-                            lines.append(s)
-
-        with open("channel_messages.txt", "w", encoding="utf-8") as f:
-            print(*lines, sep='\n', file=f)
-
-        await ctx.send(f"History Download abgeschlossen! {numberOfSentences} Sätze in {numberOfChannels} Channels von {quoteby} heruntergeladen. Dauer: {(time.time() - start_time)}")
-        log(f"History Download abgeschlossen! {numberOfSentences} Sätze in {numberOfChannels} Channels von {quoteby} heruntergeladen. Dauer: {(time.time() - start_time)}")
-    
-    @isSuperUser()
-    @commands.command(
-        name='buildMarkov',
-        aliases=['bm'],
-        brief='Generiert das Modell für zufällige Zitate.'
-    )
-    async def _makequotes(self, ctx, size: int = 3):
-        await ctx.send(f"Markov Update wird gestartet.")
-
-        try:
-            buildMarkov(size)
-            await ctx.send(f"Markov Update abgeschlossen.")
-        except Exception as e:
-             await ctx.send(f"ERROR: {e}")
-
-    @isSuperUser()
-    @commands.command(
+    @commands.group(
         name='bot',
         aliases=['b'],
         brief='Kann den Bot steuern.'
     )
-    async def _bot(self, ctx, cmd, *args):
-        if cmd in ['version', '-v']:
-            try:
-                version = subprocess.check_output('git describe --tags', shell=True).strip().decode('ascii')
+    async def _bot(self, ctx):
+        if ctx.invoked_subcommand is None:
+            await ctx.send("Was möchtest du mit dem Bot anfangen? Mit !help bot siehst du, welche Optionen verfügbar sind.")
+    
+    @_bot.command(
+        name='version',
+        aliases=['-v'])
+    async def _version(self, ctx):
+        try:
+            version = subprocess.check_output('git describe --tags', shell=True).strip().decode('ascii')
 
-                await ctx.send(f"Bot läuft auf Version {version}")
-                log(f'Version {version}')
-            except Exception as e:
-                log(f'ERROR: Version konnte nicht erkannt werden: {e}')
-        elif cmd in ['reload', '-r']:
-            log(f"{ctx.author.name} hat einen Reload gestartet.")
-            startup()
-        elif cmd in ['uptime', '-u']:
-            uptime = (datetime.now() - startuptime)
-            uptimestr = strfdelta(uptime, "{days} Tage {hours}:{minutes}:{seconds}")
+            await ctx.send(f"Bot läuft auf Version {version}")
+            log(f'Version {version}')
+        except Exception as e:
+            await ctx.send(f'ERROR: Version konnte nicht erkannt werden: {e}')
+            log(f'ERROR: Version konnte nicht erkannt werden: {e}')
 
-            await ctx.send(f"Uptime: {uptimestr} seit {startuptime.strftime('%Y.%m.%d %H:%M:%S')}")
-            log(f"Uptime: {uptimestr} seit {startuptime.strftime('%Y.%m.%d %H:%M:%S')}")
+    @_bot.command(
+        name='uptime',
+        aliases=['-u'])
+    async def _uptime(self, ctx):
+        uptime = (datetime.now() - startuptime)
+        uptimestr = strfdelta(uptime, "{days} Tage {hours}:{minutes}:{seconds}")
+
+        await ctx.send(f"Uptime: {uptimestr} seit {startuptime.strftime('%Y.%m.%d %H:%M:%S')}")
+        log(f"Uptime: {uptimestr} seit {startuptime.strftime('%Y.%m.%d %H:%M:%S')}")
+
+    @_bot.command(
+        name='reload',
+        aliases=['-r'])
+    async def _reload(self, ctx):
+        log(f"{ctx.author.name} hat einen Reload gestartet.")
+        await ctx.send("Reload wird gestartet.")
+
+        startup()
 
 ##### Add the cogs #####
+client.add_cog(Administration(client))
 client.add_cog(Reminder(client))
 client.add_cog(Fun(client))
 client.add_cog(Overwatch(client))
-client.add_cog(Administration(client))
 
 @client.event
 async def on_ready():
@@ -1046,7 +1049,7 @@ async def timeCheck():
             except Exception as e:
                 log(f'ERROR: Kein Zitat des Tages: {e}')
 
-            await Administration._av(Administration, None)
+            # await Administration._av(Administration, None)
         
         # Check for events now
         for e in events.values():
