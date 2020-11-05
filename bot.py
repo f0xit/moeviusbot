@@ -866,6 +866,10 @@ class Fun(commands.Cog, name='Spaß'):
         # Ult & Faith
         await addUltCharge(5)
         await addFaith(ctx.author.id, 1)
+    
+    # @commands.Cog.listener()
+    # async def on_command(self, ctx):
+    #     print(ctx)
 
 class Administration(commands.Cog, name='Administration'):
     '''Diese Kategorie erfordert bestimmte Berechtigungen'''
@@ -1088,14 +1092,14 @@ async def on_raw_reaction_remove(payload):
 async def on_command_error(ctx, error):
     log(f"ERROR: {ctx.author.name} - {ctx.message.content} - {error}")
 
-@client.event
-async def on_member_update(before, after):
-    global settings
+# @client.event
+# async def on_member_update(before, after):
+#     global settings
 
-    if before.guild.id == int(settings['server_id']) and before.id == 323185601631485953:
-        if before.raw_status == 'offline' and after.raw_status != 'offline':
-            await client.get_channel(580143021790855178).send('https://tenor.com/view/platypus-awkward-running-gif-4576818')
-            await client.get_channel(580143021790855178).send('Da kommt er angekrabbelt, Krah Krah!')
+#     if before.guild.id == int(settings['server_id']) and before.id == 323185601631485953:
+#         if before.raw_status == 'offline' and after.raw_status != 'offline':
+#             await client.get_channel(580143021790855178).send('https://tenor.com/view/platypus-awkward-running-gif-4576818')
+#             await client.get_channel(580143021790855178).send('Da kommt er angekrabbelt, Krah Krah!')
 
 #Connect to Discord
 if __name__ == "__main__":
