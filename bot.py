@@ -1,5 +1,4 @@
 #!/usr/bin/env python3
-#bot.py
 
 ##### Imports #####
 import discord
@@ -34,7 +33,7 @@ log('Token wurde geladen.')
 intents = discord.Intents.default()
 intents.members = True
 intents.presences = True
-client = commands.Bot(command_prefix=('!','?'), intents=intents)
+client = commands.Bot(command_prefix=('!', '?'), intents=intents)
 
 # Variables for global use
 quoteby = ''
@@ -74,7 +73,7 @@ def startup():
         if c.name == settings['channels']['stream']:
             channels['stream'] = c
             log(f"Channel für Stream gefunden: {c.name.replace('-',' ').title()} [{c.id}]")
-        elif c.category != None:
+        elif c.category is not None:
             if c.category.name == 'Spiele':
                 channels[c.name] = c
                 log(f"Spiel gefunden: {c.name.replace('-',' ').title()} [{c.id}]")
@@ -83,9 +82,9 @@ def startup():
                     log(f"Leeres Squad erstellt!")
                 else:
                     log(f"Squad gefunden: {','.join(squads[c.name].keys())}")
-    
+
     log(f"Channel-Suche abgeschlossen.")
-    
+
     # 500 Fragen
     with open('fragen.txt', 'r') as f:
         fragen = f.readlines()
@@ -94,7 +93,7 @@ def startup():
     with open('moevius-bibel.txt', 'r') as f:
         bibel = f.readlines()
         log('Die Bibel wurde geladen.')
-    
+
     buildMarkov()
 
     log("Startup complete!")
@@ -161,10 +160,10 @@ class Reminder(commands.Cog, name='Events'):
     '''Diese Kommandos dienen dazu, Reminder für Streams oder Coop-Sessions einzurichten, beizutreten oder deren Status abzufragen.
     
     Bestimmte Kommandos benötigen bestimmte Berechtigungen. Kontaktiere HansEichLP, wenn du mehr darüber wissen willst.'''
-    
+
     def __init__(self, bot):
         self.bot = bot
-    
+
     # Process an Event-Command (Stream, Game, ...)
     async def processEventCommand(self, eventType: str, ctx, args, ult=False):
         global channels, events, squads
@@ -177,7 +176,7 @@ class Reminder(commands.Cog, name='Events'):
             # Charge!
             await addUltCharge(1)
             return
-        
+
         # Charge!
         await addUltCharge(5)
         await addFaith(ctx.author.id, 10)
@@ -210,7 +209,7 @@ class Reminder(commands.Cog, name='Events'):
                     if ctx.channel.name in channels.keys():
                         # Save the channel for later posts
                         channels['game'] = ctx.channel
-                        game = ctx.channel.name.replace('-',' ').title()
+                        game = ctx.channel.name.replace('-', ' ').title()
                         gameStr = f". Gespielt wird: {game}"
                     else:
                         await ctx.send('Hey, das ist kein Spiele-Channel, Krah Krah!')
@@ -230,13 +229,13 @@ class Reminder(commands.Cog, name='Events'):
             # Add creator to the watchlist
             log(f"{ctx.author.name} wurde zum Event {eventType} hinzugefügt.")
             events[eventType].addMember(ctx.author)
-            
+
             # Direct feedback for the creator
             # Stream
             if eventType == 'stream':
                 if ctx.channel != channels['stream']:
                     await ctx.send(f"Ich habe einen Stream-Reminder für {time} Uhr eingerichtet, Krah Krah!")
-                
+
                 if ult:
                     a = random.choice(['geile', 'saftige', 'knackige', 'wohlgeformte', 'kleine aber feine', 'prall gefüllte'])
                     o = random.choice(['Möhren', 'Pflaumen', 'Melonen', 'Oliven', 'Nüsse', 'Schinken'])
@@ -258,7 +257,7 @@ class Reminder(commands.Cog, name='Events'):
                             members += f'<@{m}> '
                     await ctx.send(f"Das gilt insbesondere für das Squad, Krah Krah!\n{members}")
             log(f"Event-Info wurde mitgeteilt, das Squad wurde benachrichtigt.")
-    
+
     # Process the Request for Event-Info
     async def processEventInfo(self, eventType: str, ctx):
         global events
@@ -274,7 +273,7 @@ class Reminder(commands.Cog, name='Events'):
             else:
                 await ctx.send(f"Es wurde noch keine Coop-Runde angekündigt, Krah Krah!")
             log(f"ERROR: {ctx.author.name} hat nach einem Event {eventType} gefragt, dass es nicht gibt.")
-        
+
         # There is an event
         else:
             # Get the right words
@@ -282,13 +281,13 @@ class Reminder(commands.Cog, name='Events'):
                 beginStr = "Der nächste Stream"
             else:
                 beginStr = "Die nächste Coop-Runde"
-            
+
             # Check for game
             if events[eventType].eventGame == '':
                 gameStr = ""
             else:
                 gameStr = f"Gespielt wird: {events[eventType].eventGame}. "
-            
+
             # Get the members
             members = ", ".join(events[eventType].eventMembers.values())
 
@@ -315,7 +314,7 @@ class Reminder(commands.Cog, name='Events'):
                 events[eventType].addMember(ctx.author)
                 await ctx.send(f"Alles klar, ich packe dich auf die Teilnehmerliste, Krah Krah!")
                 log(f"{ctx.author.name} wurde auf die Teilnehmerliste von Event {eventType} hinzugefügt.")
-    
+
     # Commands
     @commands.command(
         name='stream',
@@ -335,11 +334,11 @@ class Reminder(commands.Cog, name='Events'):
         # Stream command
         if ctx.prefix == '!':
             await self.processEventCommand('stream', ctx, args)
-        
+
         # Stream info
         elif ctx.prefix == '?':
             await self.processEventInfo('stream', ctx)
-    
+
     @commands.command(
         name='game',
         aliases=['g'],
@@ -423,14 +422,14 @@ class Reminder(commands.Cog, name='Events'):
         
         global squads
 
-        if ctx.channel.category != None and ctx.channel.category.name == "Spiele":
+        if ctx.channel.category is not None and ctx.channel.category.name == "Spiele":
             # Ult & Faith
             await addUltCharge(5)
             await addFaith(ctx.author.id, 5)
 
             if len(args) == 0:
                 if len(squads[ctx.channel.name]) > 0:
-                    game = ctx.channel.name.replace('-',' ').title()
+                    game = ctx.channel.name.replace('-', ' ').title()
                     members = ", ".join(squads[ctx.channel.name].keys())
                     await ctx.send(f"Das sind die Mitglieder im {game}-Squad, Krah Krah!\n{members}")
                     log(f"{ctx.author.name} hat das Squad in {ctx.channel.name} angezeigt: {members}.")
@@ -505,7 +504,7 @@ class Fun(commands.Cog, name='Spaß'):
         history = await ctx.channel.history(limit=2).flatten()
         message = history[1].content
         
-        number = float(re.search(r"\d+(,\d+)?", message).group(0).replace(',','.'))
+        number = float(re.search(r"\d+(,\d+)?", message).group(0).replace(',', '.'))
 
         quotPS5 = number / PS5_PRICE
 
@@ -618,7 +617,7 @@ class Fun(commands.Cog, name='Spaß'):
             try:
                 quote = text_model.make_sentence(tries=500)
 
-                if quote == None:
+                if quote is None:
                     log(f"Kein Quote gefunden.")
                     await ctx.send("Ich habe wirklich alles versucht, aber ich konnte einfach kein Zitat finden, Krah Krah!")
                 else:
@@ -658,7 +657,7 @@ class Fun(commands.Cog, name='Spaß'):
         numberOfSentences = 0
         lines = [quoteby]
 
-        rammgut = client.get_guild(323922215584268290) # Hard coded Rammgut
+        rammgut = client.get_guild(323922215584268290)  # Hard coded Rammgut
         for channel in rammgut.text_channels:
             numberOfChannels += 1
             messages = await channel.history(limit=lim).flatten()
@@ -689,11 +688,11 @@ class Fun(commands.Cog, name='Spaß'):
             buildMarkov(size)
             await ctx.send(f"Markov Update abgeschlossen.")
         except Exception as e:
-             await ctx.send(f"ERROR: {e}")
+            await ctx.send(f"ERROR: {e}")
     
     @commands.command(
         name='ult',
-        aliases=['Q','q'],
+        aliases=['Q', 'q'],
         brief='Die ultimative Fähigkeit von Mövius dem Krächzer.'
     )
     async def _ult(self, ctx, *args):
@@ -741,7 +740,7 @@ class Fun(commands.Cog, name='Spaß'):
                         gameType = random.choice(['stream', 'game'])
                         time = f'{str(random.randint(0, 23)).zfill(2)}:{str(random.randint(0, 59)).zfill(2)}'
                         games = list(channels.keys())[1:]
-                        game = random.choice(games).replace('-',' ').title()
+                        game = random.choice(games).replace('-', ' ').title()
 
                         await Reminder.processEventCommand(self, gameType, ctx, (time, game), ult=True)
                     elif actionID == 2:
@@ -823,7 +822,7 @@ class Fun(commands.Cog, name='Spaß'):
                 try:
                     id = int(args[1])
                     user = client.get_user(id)
-                    if user == None:
+                    if user is None:
                         raise Exception
                     amount = int(args[2])
                 except Exception as e:
@@ -974,7 +973,7 @@ async def on_ready():
     startup()
 
     for filename in os.listdir('./cogs'):
-        if filename.endswith('.py'):
+        if filename.endswith('.py') and not filename.startswith('__'):
             client.load_extension(f"cogs.{filename[:-3]}")
 
     # First Ult Charge Update
@@ -1060,7 +1059,7 @@ async def on_message(message):
                     await message.channel.send(content=r.format(**locals(), **globals()), tts=False)
                 log(response['log'].format(**locals(), **globals()))
 
-    #Important for processing commands
+    # Important for processing commands
     await client.process_commands(message)
 
 async def faithOnReact(payload, operation='add'):
@@ -1101,6 +1100,6 @@ async def on_command_error(ctx, error):
 #             await client.get_channel(580143021790855178).send('https://tenor.com/view/platypus-awkward-running-gif-4576818')
 #             await client.get_channel(580143021790855178).send('Da kommt er angekrabbelt, Krah Krah!')
 
-#Connect to Discord
+# Connect to Discord
 if __name__ == "__main__":
     client.run(TOKEN)

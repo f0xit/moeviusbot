@@ -5,12 +5,11 @@ from bs4 import BeautifulSoup
 import random
 
 from myfunc import log
-# from bot import addUltCharge, addFaith
-# TODO: Fix linter
 # TODO: Fix Ult & Faith in general
 
 def setup(bot):
     bot.add_cog(Overwatch(bot))
+    log("Cog: Overwatch geladen.")
 
 class Overwatch(commands.Cog, name='Overwatch'):
     def __init__(self, bot):
