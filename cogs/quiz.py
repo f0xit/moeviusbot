@@ -95,8 +95,8 @@ class Quiz(commands.Cog, name='Quiz'):
     )
     async def _stopQuiz(self, ctx):
         if self.player is not None:
-            await self.stopQuiz()
             await ctx.send(f"Das laufende Quiz wurde abgebrochen. {self.player.display_name} geht leider leer aus, Krah Krah!")
+            await self.stopQuiz()
         else:
             await ctx.send("Bist du sicher? Aktuell läuft gar kein Quiz, Krah Krah!")
 
