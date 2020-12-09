@@ -73,7 +73,7 @@ class Quiz(commands.Cog, name='Quiz'):
 
     @commands.Cog.listener()
     async def on_message(self, message):
-        if self.player is not None and message.channel == self.channel:
+        if self.player == message.author and message.channel == self.channel:
             userAnswer = message.content.title()
 
             if userAnswer in ['A', 'B', 'C', 'D']:

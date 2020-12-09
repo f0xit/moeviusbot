@@ -1,6 +1,7 @@
 .env
 .python-version
 .DS_Store
+.vscode
 __pycache__
 *.json
 *.jpg
