@@ -4,17 +4,23 @@ import json
 import random
 import asyncio
 
-from myfunc import log
+from myfunc import load_file, log
 
 def setup(bot):
     bot.add_cog(Quiz(bot))
     log("Cog: Quiz geladen.")
 
+# Check for user is Super User
+def isSuperUser():
+    settings = load_file('settings')
+
+    async def wrapper(ctx):
+        return ctx.author.name in settings['super-users']
+    return commands.check(wrapper)
+
 class Quiz(commands.Cog, name='Quiz'):
     def __init__(self, bot):
-        self.bot = bot
-        self.player = None
-        self.question = None
+        await self.stopQuiz()
 
         self.stages = [50, 100, 200, 300, 500,
                 1000, 2000, 4000, 8000, 16000,
@@ -50,26 +56,46 @@ class Quiz(commands.Cog, name='Quiz'):
                 "embed": embed
             })
 
+    async def stopQuiz(self):
+        self.player = None
+        self.channel = None
+        self.gameStage = 0
+        self.question = None
+
     # Commands
-    @commands.command(
+    @commands.group(
         name='quiz',
         brief='Startet eine Quiz Runde'
     )
     async def _quiz(self, ctx):
+        if ctx.invoked_subcommand is None:
+            if self.player is not None:
+                await ctx.send(f"Aktuell läuft bereits ein Spiel mit {self.player.display_name}. Ein Super-User kann das laufende Spiel mit !quiz stop beenden.")
+            else:
+                self.player = ctx.author
+                self.channel = ctx.channel
+                self.gameStage = 0
+
+                with open(f'quiz.json', 'r') as f:
+                    self.quiz = json.load(f)
+
+                await ctx.send(f"Hallo und herzlich Willkommen zu Wer Wird Mövionär! Heute mit dabei: {self.player.display_name}. Los geht's, Krah Krah!")
+                await self.getRandomQuestion()
+                output = await self.getQuestionOutput()
+                await ctx.send(content=output['content'], embed=output['embed'])
+    
+    @isSuperUser()
+    @_quiz.command(
+        name='stop',
+        aliases=['-s'],
+        brief='Beendet das laufende Quiz.'
+    )
+    async def _stopQuiz(self, ctx):
         if self.player is not None:
-            await ctx.send(f"Aktuell läuft bereits ein Spiel mit {self.player.display_name}. Ein Super-User kann das laufende Spiel mit !quiz stop beenden.")
+            await self.stopQuiz()
+            await ctx.send(f"Das laufende Quiz wurde abgebrochen. {self.player.display_name} geht leider leer aus, Krah Krah!")
         else:
-            self.player = ctx.author
-            self.channel = ctx.channel
-            self.gameStage = 0
-
-            with open(f'quiz.json', 'r') as f:
-                self.quiz = json.load(f)
-
-            await ctx.send(f"Hallo und herzlich Willkommen zu Wer Wird Mövionär! Heute mit dabei: {self.player.display_name}. Los geht's, Krah Krah!")
-            await self.getRandomQuestion()
-            output = await self.getQuestionOutput()
-            await ctx.send(content=output['content'], embed=output['embed'])
+            await ctx.send("Bist du sicher? Aktuell läuft gar kein Quiz, Krah Krah!")
 
     @commands.Cog.listener()
     async def on_message(self, message):
@@ -83,10 +109,7 @@ class Quiz(commands.Cog, name='Quiz'):
                     if self.gameStage == 15:
                         await self.channel.send(f"Du hast {self.stages[15]}🕊 gewonnen!!!")
 
-                        self.player = None
-                        self.channel = None
-                        self.gameStage = 0
-                        self.question = None
+                        await self.stopQuiz()
                     else:
                         if self.gameStage == 4:
                             await self.channel.send(f"❗️ Checkpoint erreicht: {self.stages[4]}🕊.")
@@ -112,17 +135,11 @@ class Quiz(commands.Cog, name='Quiz'):
                     elif self.gameStage > 4:
                         await self.channel.send(f"Du verlässt das Spiel mit {self.stages[4]}🕊.")
 
-                    self.player = None
-                    self.channel = None
-                    self.gameStage = 0
-                    self.question = None
+                    await self.stopQuiz()
             elif userAnswer == "Q":
                 if self.gameStage == 0:
                     await self.channel.send("Du verlässt das Spiel ohne Gewinn.")
                 else:
                     await self.channel.send(f"Du verlässt das Spiel freiwillig mit {self.stages[self.gameStage - 1]}🕊.")
                     
-                self.player = None
-                self.channel = None
-                self.gameStage = 0
-                self.question = None
+                await self.stopQuiz()
