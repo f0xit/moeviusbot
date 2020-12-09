@@ -20,7 +20,10 @@ def isSuperUser():
 
 class Quiz(commands.Cog, name='Quiz'):
     def __init__(self, bot):
-        await self.stopQuiz()
+        self.player = None
+        self.channel = None
+        self.gameStage = 0
+        self.question = None
 
         self.stages = [50, 100, 200, 300, 500,
                 1000, 2000, 4000, 8000, 16000,
