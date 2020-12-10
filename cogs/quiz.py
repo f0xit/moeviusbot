@@ -65,7 +65,6 @@ class Quiz(commands.Cog, name='Quiz'):
         self.player = None
         self.channel = None
         self.gameStage = 0
-        self.question = None
 
     async def updateRanking(self, amount):
         ranking = {}
@@ -131,12 +130,12 @@ class Quiz(commands.Cog, name='Quiz'):
         usage='report <Grund>'
     )
     async def _report(self, ctx, *args):
-        if self.player is not None:
-            with open(f'logs/quiz_report.log', 'a+') as f:
-                f.write(f"[{gcts()}] {ctx.author.name}: Grund: {' '.join(args)} - Frage: {self.question['question']}\n")
-            
-            await ctx.send("Deine Meldung wurde abgeschickt.")
+        with open(f'logs/quiz_report.log', 'a+') as f:
+            f.write(f"[{gcts()}] {ctx.author.name}: Grund: {' '.join(args)} - Frage: {self.question['question']}\n")
 
+        await ctx.send("Deine Meldung wurde abgeschickt.")
+
+        if self.player is not None:
             await self.getRandomQuestion()
             output = await self.getQuestionOutput()
             await self.channel.send(content=output['content'], embed=output['embed'])
