@@ -217,4 +217,8 @@ class Quiz(commands.Cog, name='Quiz'):
                     await self.channel.send(f"Du verlässt das Spiel freiwillig mit {self.stages[self.gameStage - 1]}🕊.")
                     await self.updateRanking(self.stages[self.gameStage - 1])
                     
+                for a in self.question['answers'].items():
+                    if a[1]['correct']:
+                        await self.channel.send(f"Die richtige Antwort ist {a[0]}: {a[1]['text']}")
+                        
                 await self.stopQuiz()
