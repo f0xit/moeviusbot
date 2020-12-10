@@ -154,7 +154,7 @@ class Quiz(commands.Cog, name='Quiz'):
                 title="Punktetabelle Quiz", 
                 colour=discord.Colour(0xff00ff), 
                 description="\n".join([
-                        *map(lambda a: f"{self.bot.get_user(int(a[0])).display_name}: {a[1]['points']} ({a[1]['tries']} Versuch{'e' if a[1]['tries'] == 1 else ''})", 
+                        *map(lambda a: f"{self.bot.get_user(int(a[0])).display_name}: {a[1]['points']} ({a[1]['tries']} Versuch{'' if a[1]['tries'] == 1 else 'e'})", 
                         sortedRanking.items())
                     ])
             )
