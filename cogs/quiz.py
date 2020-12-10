@@ -195,6 +195,7 @@ class Quiz(commands.Cog, name='Quiz'):
 
                     if self.gameStage <= 4:
                         await self.channel.send("Du verlässt das Spiel ohne Gewinn.")
+                        await self.updateRanking(0)
                     elif self.gameStage > 9:
                         await self.channel.send(f"Du verlässt das Spiel mit {self.stages[9]}🕊.")
                         await self.updateRanking(self.stages[9])
@@ -206,6 +207,7 @@ class Quiz(commands.Cog, name='Quiz'):
             elif userAnswer == "Q":
                 if self.gameStage == 0:
                     await self.channel.send("Du verlässt das Spiel ohne Gewinn.")
+                    await self.updateRanking(0)
                 else:
                     await self.channel.send(f"Du verlässt das Spiel freiwillig mit {self.stages[self.gameStage - 1]}🕊.")
                     await self.updateRanking(self.stages[self.gameStage - 1])
