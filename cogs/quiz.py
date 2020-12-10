@@ -148,15 +148,21 @@ class Quiz(commands.Cog, name='Quiz'):
     async def _rank(self, ctx):
         with open(f'quiz_ranking.json', 'r') as f:
             ranking = json.load(f)
-            sortedRanking = {k: v for k, v in sorted(ranking.items(), key=lambda item: item[1]['points'], reverse=True)}
+            sortedRanking = {k: v for k, v in sorted(
+                ranking.items(), key=lambda item: item[1]['points'], reverse=True
+            )}
 
             embed = discord.Embed(
                 title="Punktetabelle Quiz", 
                 colour=discord.Colour(0xff00ff), 
                 description="\n".join([
-                        *map(lambda a: f"{self.bot.get_user(int(a[0])).display_name}: {a[1]['points']} ({a[1]['tries']} Versuch{'' if a[1]['tries'] == 1 else 'e'})", 
-                        sortedRanking.items())
-                    ])
+                    *map(lambda a: (
+                        f"{self.bot.get_user(int(a[0])).display_name}: "
+                        f"{format(a[1]['points'],',d').replace(',','.')}🕊 "
+                        f"({a[1]['tries']} Versuch{'' if a[1]['tries'] == 1 else 'e'})"), 
+                    sortedRanking.items()
+                    )
+                ])
             )
 
             await ctx.send(embed=embed)
