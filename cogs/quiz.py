@@ -151,17 +151,29 @@ class Quiz(commands.Cog, name='Quiz'):
                 ranking.items(), key=lambda item: item[1]['points'], reverse=True
             )}
 
+            maxlength = {"name": 0, "points": 0}
+            for item in sortedRanking.items():
+                name = len(self.bot.get_user(int(item[0])).display_name)
+                points = len(format(item[1]['points'],',d'))
+
+                if maxlength['name'] < name:
+                    maxlength['name'] = name
+
+                if maxlength['points'] < points:
+                    maxlength['points'] = points
+
             embed = discord.Embed(
                 title="Punktetabelle Quiz", 
                 colour=discord.Colour(0xff00ff), 
-                description="\n".join([
-                    *map(lambda a: (
-                        f"{self.bot.get_user(int(a[0])).display_name}: "
-                        f"{format(a[1]['points'],',d').replace(',','.')}🕊 "
-                        f"({a[1]['tries']} Versuch{'' if a[1]['tries'] == 1 else 'e'})"), 
-                    sortedRanking.items()
+                description="```" + "\n".join([
+                    *map(
+                        lambda a: (
+                            f"{self.bot.get_user(int(a[0])).display_name}".ljust(maxlength['name'] + 4, ' ')
+                            + f"{format(a[1]['points'],',d').replace(',','.')}🕊 ".rjust(maxlength['points'] + 4, ' ')
+                            + f"{a[1]['tries']} Versuch{'' if a[1]['tries'] == 1 else 'e'}".rjust(14, ' ')
+                        ), sortedRanking.items()
                     )
-                ])
+                ]) + "```"
             )
 
             await ctx.send(embed=embed)
