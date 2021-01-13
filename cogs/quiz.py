@@ -166,13 +166,15 @@ class Quiz(commands.Cog, name='Quiz'):
                 title="Punktetabelle Quiz", 
                 colour=discord.Colour(0xff00ff), 
                 description="```" + "\n".join([
-                    *map(
-                        lambda a: (
-                            f"{self.bot.get_user(int(a[0])).display_name}".ljust(maxlength['name'] + 4, ' ')
-                            + f"{format(a[1]['points'],',d').replace(',','.')}🕊 ".rjust(maxlength['points'] + 4, ' ')
-                            + f"{a[1]['tries']} Versuch{'' if a[1]['tries'] == 1 else 'e'}".rjust(14, ' ')
-                        ), sortedRanking.items()
-                    )
+                    *map(lambda a: (
+                        f"{self.bot.get_user(int(a[0])).display_name}"
+                            .ljust(maxlength['name'] + 4, ' ')
+                        + f"{format(a[1]['points'],',d').replace(',','.')}🕊 "
+                            .rjust(maxlength['points'] + 4, ' ')
+                        + f"{a[1]['tries']} Versuch"
+                            .rjust(14, ' ')
+                        + f"{'' if a[1]['tries'] == 1 else 'e'}"
+                    ), sortedRanking.items())
                 ]) + "```"
             )
 

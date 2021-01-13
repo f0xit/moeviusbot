@@ -28,6 +28,70 @@ class Overwatch(commands.Cog, name='Overwatch'):
 
     # Commands
     @commands.command(
+        name='owpatchnotes',
+        aliases=['owpn'],
+        brief='Liefert dir, falls vorhanden, die neusten Änderungen bei Helden aus den Patchnotes'
+    )
+    async def _owpn(self, ctx):
+        patchNotesPage = requests.get(f'https://playoverwatch.com/de-de/news/patch-notes/live')
+        patchNotesSoup = BeautifulSoup(patchNotesPage.content, 'html.parser')
+        patch = patchNotesSoup.find_all('div', class_='PatchNotes-patch')[0].contents
+
+        outputArray = []
+
+        for heroes in patch:
+            if 'PatchNotes-labels' in heroes.attrs['class']:
+                if 'PatchNotes-date' in heroes.contents[0].attrs['class']:
+                    # Patch Date
+                    outputArray.append(heroes.text)
+
+                    continue
+            
+            if 'PatchNotes-section-hero_update' not in heroes.attrs['class']:
+                continue
+
+            for h in heroes:
+                if h.name != 'div' or h.contents == []:
+                    continue
+
+                # Hero name
+                outputArray.append(f"**{h.contents[0].text}**")
+
+                # Hero abilities
+                for field in h.contents[1].contents:
+                    if 'PatchNotesHeroUpdate-generalUpdates' in field.attrs['class']:
+                        if len(field.contents) == 2:
+                            outputArray.append("Allgemein")
+                            outputArray += ["- " + i for i in field.contents[0].text.split('\n') if i != '']
+                        else:
+                            outputArray.append(field.contents[0].text)
+                            outputArray += ["- " + i for i in field.contents[2].text.split('\n') if i != '']
+
+                    elif 'PatchNotesHeroUpdate-abilitiesList' in field.attrs['class']:
+                        heroAbilities = field.contents
+
+                        for a in heroAbilities:
+                            outputArray.append(a.contents[1].contents[0].text)
+                            outputArray += ["- " + i for i in a.contents[1].contents[1].text.split('\n') if i != '']
+
+                outputArray.append('')
+
+            break
+
+        if len(outputArray) <= 1:
+            await ctx.send("Im letzten Patch gab es anscheinend keine Heldenupdates, Krah Krah!")
+
+        else:
+            embed = discord.Embed(
+                title=f"Heldenupdates vom {outputArray[0]}, Krah Krah!",
+                colour=discord.Colour(0xff00ff),
+                description='\n'.join(outputArray[1:-1])
+            )
+
+            await ctx.send(embed=embed)
+
+
+    @commands.command(
         name='ow',
         brief='Gibt dir oder dem kompletten Voice-Channel zufällige Overwatch-Heroes.'
     )
