@@ -1,5 +1,4 @@
 #!/usr/bin/env python3
-#bot.py
 
 ##### Imports #####
 import discord
@@ -16,7 +15,10 @@ import json
 import markovify
 from urllib.request import urlopen
 from urllib.parse import quote as urlquote
+import requests
+from bs4 import BeautifulSoup
 from autocorrect import Speller
+import math
 
 # Import Custom Stuff
 from event import Event
@@ -28,13 +30,15 @@ TOKEN = os.getenv('DISCORD_TOKEN')
 log('Token wurde geladen.')
 
 # Get the Discord Client Object
-client = commands.Bot(command_prefix=('!','?'))
+intents = discord.Intents.default()
+intents.members = True
+intents.presences = True
+client = commands.Bot(command_prefix=('!', '?'), intents=intents)
 
 # Variables for global use
 quoteby = ''
 timenow = ''
 channels = {}
-ultCharge = 0
 latestmsg = []
 
 startuptime = datetime.now()
@@ -49,9 +53,10 @@ events = {
 
 # Set up everything when load or reload
 def startup():
-    global fragen, bibel, settings, responses, channels, server, squads, faith
+    global fragen, bibel, settings, STATE, responses, channels, server, squads, faith
 
     settings = load_file('settings')
+    STATE = load_file('state')
     responses = load_file('responses')
     squads = load_file('squads')
     faith = load_file('faith')
@@ -68,7 +73,7 @@ def startup():
         if c.name == settings['channels']['stream']:
             channels['stream'] = c
             log(f"Channel für Stream gefunden: {c.name.replace('-',' ').title()} [{c.id}]")
-        elif c.category != None:
+        elif c.category is not None:
             if c.category.name == 'Spiele':
                 channels[c.name] = c
                 log(f"Spiel gefunden: {c.name.replace('-',' ').title()} [{c.id}]")
@@ -77,9 +82,9 @@ def startup():
                     log(f"Leeres Squad erstellt!")
                 else:
                     log(f"Squad gefunden: {','.join(squads[c.name].keys())}")
-    
+
     log(f"Channel-Suche abgeschlossen.")
-    
+
     # 500 Fragen
     with open('fragen.txt', 'r') as f:
         fragen = f.readlines()
@@ -88,7 +93,7 @@ def startup():
     with open('moevius-bibel.txt', 'r') as f:
         bibel = f.readlines()
         log('Die Bibel wurde geladen.')
-    
+
     buildMarkov()
 
     log("Startup complete!")
@@ -101,16 +106,20 @@ def isSuperUser():
 
 # Ult charge
 async def addUltCharge(amount):
-    global ultCharge
+    global STATE
 
-    if ultCharge < 100:
-        ultCharge = min(ultCharge + amount, 100)
-        if amount > 1:
+    if amount > 1:
+        if STATE['ultCharge'] < 100:
+            STATE['ultCharge'] = min(STATE['ultCharge'] + amount, 100)
+
+            await client.change_presence(activity=discord.Game(f"Charge: {int(STATE['ultCharge'])}%"))
+
+            with open('state.json', 'w') as f:
+                json.dump(STATE, f)
+
             log(f'Ult-Charge hinzugefügt: {amount}')
-    else:
-        log(f'Ult-Charge bereit.')
-    
-    await client.change_presence(activity=discord.Game(f"Charge: {int(ultCharge)}%"))
+        else:
+            log(f'Ult-Charge bereit.')
 
 # Faith
 async def addFaith(id, amount):
@@ -124,32 +133,37 @@ async def addFaith(id, amount):
     with open('faith.json', 'w') as f:
         json.dump(faith, f)
 
+    log(f'Faith wurde hinzugefügt: {id}, {amount}')
+
 # Markov
-def buildMarkov():
+def buildMarkov(size: int = 3):
     global text_model, quoteby
+
+    log(f"Markov Update gestartet, Size: {size}")
+    start_time = time.time()
 
     try:
         # Build Markov Chain
-        start_time = time.time()
         with open("channel_messages.txt") as f:
             quoteby = f.readline()[:-1]
             text = f.read()
 
         # Build the model.
-        text_model = markovify.NewlineText(text)
-        log(f"Markov Update. Dauer: {(time.time() - start_time)}")
+        text_model = markovify.NewlineText(text, state_size=size)
+
+        log(f"Markov Update abgeschlossen. Size: {size}, Dauer: {(time.time() - start_time)}")
     except:
-        log(f"ERROR: Markov fehlgeschlagen. Dauer: {(time.time() - start_time)}")
+        log(f"ERROR: Markov fehlgeschlagen. Size: {size}, Dauer: {(time.time() - start_time)}")
 
 ##### Cogs #####
 class Reminder(commands.Cog, name='Events'):
     '''Diese Kommandos dienen dazu, Reminder für Streams oder Coop-Sessions einzurichten, beizutreten oder deren Status abzufragen.
     
     Bestimmte Kommandos benötigen bestimmte Berechtigungen. Kontaktiere HansEichLP, wenn du mehr darüber wissen willst.'''
-    
+
     def __init__(self, bot):
         self.bot = bot
-    
+
     # Process an Event-Command (Stream, Game, ...)
     async def processEventCommand(self, eventType: str, ctx, args, ult=False):
         global channels, events, squads
@@ -162,7 +176,7 @@ class Reminder(commands.Cog, name='Events'):
             # Charge!
             await addUltCharge(1)
             return
-        
+
         # Charge!
         await addUltCharge(5)
         await addFaith(ctx.author.id, 10)
@@ -195,7 +209,7 @@ class Reminder(commands.Cog, name='Events'):
                     if ctx.channel.name in channels.keys():
                         # Save the channel for later posts
                         channels['game'] = ctx.channel
-                        game = ctx.channel.name.replace('-',' ').title()
+                        game = ctx.channel.name.replace('-', ' ').title()
                         gameStr = f". Gespielt wird: {game}"
                     else:
                         await ctx.send('Hey, das ist kein Spiele-Channel, Krah Krah!')
@@ -215,13 +229,13 @@ class Reminder(commands.Cog, name='Events'):
             # Add creator to the watchlist
             log(f"{ctx.author.name} wurde zum Event {eventType} hinzugefügt.")
             events[eventType].addMember(ctx.author)
-            
+
             # Direct feedback for the creator
             # Stream
             if eventType == 'stream':
                 if ctx.channel != channels['stream']:
                     await ctx.send(f"Ich habe einen Stream-Reminder für {time} Uhr eingerichtet, Krah Krah!")
-                
+
                 if ult:
                     a = random.choice(['geile', 'saftige', 'knackige', 'wohlgeformte', 'kleine aber feine', 'prall gefüllte'])
                     o = random.choice(['Möhren', 'Pflaumen', 'Melonen', 'Oliven', 'Nüsse', 'Schinken'])
@@ -229,7 +243,10 @@ class Reminder(commands.Cog, name='Events'):
                     guest = f'<@{ctx.author.id}>'
                     gameStr = f". Heute werden {a} {o} {v}, mit dabei als Special-Guest: {guest}"
                 # Announce the event in the right channel
-                await channels['stream'].send(f"{'Kochstudio! ' if ult else ''}Macht euch bereit für einen Stream, um {time} Uhr{gameStr}, Krah Krah!")
+                if game == 'bot':
+                    await client.get_channel(580143021790855178).send(f"Macht euch bereit für einen Stream, um {time} Uhr wird am Bot gebastelt, Krah Krah!")
+                else:
+                    await channels['stream'].send(f"{'Kochstudio! ' if ult else ''}Macht euch bereit für einen Stream, um {time} Uhr{gameStr}, Krah Krah!")
             # Game
             else:
                 await ctx.send(f"Macht euch bereit für ein Ründchen Coop um {time} Uhr{gameStr}, Krah Krah!")
@@ -240,7 +257,7 @@ class Reminder(commands.Cog, name='Events'):
                             members += f'<@{m}> '
                     await ctx.send(f"Das gilt insbesondere für das Squad, Krah Krah!\n{members}")
             log(f"Event-Info wurde mitgeteilt, das Squad wurde benachrichtigt.")
-    
+
     # Process the Request for Event-Info
     async def processEventInfo(self, eventType: str, ctx):
         global events
@@ -256,7 +273,7 @@ class Reminder(commands.Cog, name='Events'):
             else:
                 await ctx.send(f"Es wurde noch keine Coop-Runde angekündigt, Krah Krah!")
             log(f"ERROR: {ctx.author.name} hat nach einem Event {eventType} gefragt, dass es nicht gibt.")
-        
+
         # There is an event
         else:
             # Get the right words
@@ -264,13 +281,13 @@ class Reminder(commands.Cog, name='Events'):
                 beginStr = "Der nächste Stream"
             else:
                 beginStr = "Die nächste Coop-Runde"
-            
+
             # Check for game
             if events[eventType].eventGame == '':
                 gameStr = ""
             else:
                 gameStr = f"Gespielt wird: {events[eventType].eventGame}. "
-            
+
             # Get the members
             members = ", ".join(events[eventType].eventMembers.values())
 
@@ -297,7 +314,7 @@ class Reminder(commands.Cog, name='Events'):
                 events[eventType].addMember(ctx.author)
                 await ctx.send(f"Alles klar, ich packe dich auf die Teilnehmerliste, Krah Krah!")
                 log(f"{ctx.author.name} wurde auf die Teilnehmerliste von Event {eventType} hinzugefügt.")
-    
+
     # Commands
     @commands.command(
         name='stream',
@@ -317,11 +334,11 @@ class Reminder(commands.Cog, name='Events'):
         # Stream command
         if ctx.prefix == '!':
             await self.processEventCommand('stream', ctx, args)
-        
+
         # Stream info
         elif ctx.prefix == '?':
             await self.processEventInfo('stream', ctx)
-    
+
     @commands.command(
         name='game',
         aliases=['g'],
@@ -405,14 +422,14 @@ class Reminder(commands.Cog, name='Events'):
         
         global squads
 
-        if ctx.channel.category != None and ctx.channel.category.name == "Spiele":
+        if ctx.channel.category is not None and ctx.channel.category.name == "Spiele":
             # Ult & Faith
             await addUltCharge(5)
             await addFaith(ctx.author.id, 5)
 
             if len(args) == 0:
                 if len(squads[ctx.channel.name]) > 0:
-                    game = ctx.channel.name.replace('-',' ').title()
+                    game = ctx.channel.name.replace('-', ' ').title()
                     members = ", ".join(squads[ctx.channel.name].keys())
                     await ctx.send(f"Das sind die Mitglieder im {game}-Squad, Krah Krah!\n{members}")
                     log(f"{ctx.author.name} hat das Squad in {ctx.channel.name} angezeigt: {members}.")
@@ -475,7 +492,28 @@ class Fun(commands.Cog, name='Spaß'):
     
     def __init__(self, bot):
         self.bot = bot
-        self.spell = Speller()
+        self.speller = Speller()
+
+    @commands.command(
+        name='ps5',
+        brief='Vergleicht die erste Zahl aus der vorherigen Nachricht mit dem  Preis einer PS5.'
+    )
+    async def _ps5(self, ctx):
+        PS5_PRICE = 499
+
+        history = await ctx.channel.history(limit=2).flatten()
+        message = history[1].content
+        
+        number = float(re.search(r"\d+(,\d+)?", message).group(0).replace(',', '.'))
+
+        quotPS5 = number / PS5_PRICE
+
+        if quotPS5 < 1:
+            output = f"Wow, das reicht ja gerade mal für {round(quotPS5*100)}% einer PS5."
+        else:
+            output = f"Wow, das reicht ja gerade mal für {math.floor(quotPS5)} {'PS5' if math.floor(quotPS5) == 1 else 'PS5en'}."
+
+        await ctx.send(output)
 
     @commands.command(
         name='urbandict',
@@ -491,12 +529,32 @@ class Fun(commands.Cog, name='Spaß'):
 
         with urlopen(f'http://api.urbandictionary.com/v0/define?term={urlquote(term.replace(" ", "+"))}') as f:
             data = json.loads(f.read().decode('utf-8'))
-            definition = data['list'][0]['definition'].translate({ord(c): None for c in '[]'})
-            example = data['list'][0]['example'].translate({ord(c): None for c in '[]'})
-        
-        embed = discord.Embed(title=f"{term}", colour=discord.Colour(0xff00ff), url=f'https://www.urbandictionary.com/define.php?term={term.replace(" ", "+")}', description=f"{definition}\n\n*{example}*")
-        await ctx.send(embed=embed)
-        log(f"{ctx.author.name} hat {term} im Urban Dictionary recherchiert.")
+            try:
+                # Case: Definition found
+                definition = data['list'][0]['definition'].translate({ord(c): None for c in '[]'})
+                example = data['list'][0]['example'].translate({ord(c): None for c in '[]'})
+
+                embed = discord.Embed(title=f"{term.title()}", colour=discord.Colour(0xff00ff), url=f'https://www.urbandictionary.com/define.php?term={term.replace(" ", "+")}', description=f"{definition}\n\n*{example}*")
+                await ctx.send(embed=embed)
+                log(f"{ctx.author.name} hat {term} im Urban Dictionary recherchiert.")
+            except IndexError:
+                # Case: No Definition => Try These
+                page = requests.get(f'https://www.urbandictionary.com/define.php?term={urlquote(term.replace(" ", "+"))}')
+                soup = BeautifulSoup(page.content, 'html.parser')
+
+                try:
+                    items = soup.find('div', class_='try-these').find_all('li')[:10]
+
+                    listitems = [*map(lambda i: i.text, items)]
+
+                    output = "\n".join(listitems)
+                    
+                    embed = discord.Embed(title=f"Suchvorschläge für {term.title()}", colour=discord.Colour(0xff00ff), description=output)
+                    await ctx.send(content="Hey, ich habe habe dazu nichts gefunden, aber versuch's doch mal hiermit:", embed=embed)
+                except Exception as e:
+                    # Nothing found, not even try these
+                    await ctx.send(f"Dazu kann ich nun wirklich gar nichts sagen, Krah Krah!")
+                    log(f"{ctx.author.name} hat {term} im Urban Dictionary recherchiert. ERROR: {e}")
 
     # Commands
     @commands.command(
@@ -543,33 +601,98 @@ class Fun(commands.Cog, name='Spaß'):
             await ctx.send(embed=embed)
             log(f"{ctx.author.name} hat ein Bibel-Zitat verlangt. Es lautet: {quote}")
         except Exception as e:
-            log(f'ERROR: Keine Frage gefunden. Leere Zeile in fragen.txt?: {e}')
+            log(f'ERROR: Kein Bibel-Zitat gefunden.{e}')
     
-    @commands.command(
+    @commands.group(
         name='zitat',
         aliases=['z'],
         brief='Zitiert eine weise Persönlichkeit.'
     )
     async def _quote(self, ctx):
-        global text_model
+        global text_model, quoteby
+
+        if ctx.invoked_subcommand is None:
+            log(f"Quote: {ctx.author.name} hat ein Zitat von {quoteby} verlangt.")
+
+            try:
+                quote = text_model.make_sentence(tries=500)
+
+                if quote is None:
+                    log(f"Kein Quote gefunden.")
+                    await ctx.send("Ich habe wirklich alles versucht, aber ich konnte einfach kein Zitat finden, Krah Krah!")
+                else:
+                    # No Discord Quotes allowed in Quotes
+                    quote.replace('>', '')
+
+                    embed = discord.Embed(title="Zitat", colour=discord.Colour(0xff00ff), description=str(quote), timestamp=datetime.utcfromtimestamp(random.randint(0, int(datetime.now().timestamp()))))
+                    embed.set_footer(text=quoteby)
+                    await ctx.send(embed=embed)
+                    
+                    log(f"Quote erfolgreich: {quote} - {quoteby}")
+            except Exception as e:
+                log(f"ERROR: {e}")
+            
+            # Ult & Faith
+            await addUltCharge(5)
+            await addFaith(ctx.author.id, 1)
+    
+    @isSuperUser()
+    @_quote.command(
+        name='downloadHistory',
+        aliases=['dh'],
+        brief='Besorgt sich die nötigen Daten für den Zitategenerator. ACHTUNG: Kann je nach Limit einige Sekunden bis Minuten dauern.'
+    )
+    async def _downloadHistory(self, ctx, id: int, lim: int = 1000):
+        global server, quoteby
+
+        user = await client.fetch_user(id)
+        quoteby = user.display_name
+
+        await ctx.send(f"History Download: Lade pro Channel maximal {lim} Nachrichten von {quoteby} herunter, Krah Krah! Das kann einen Moment dauern, Krah Krah!")
+        log(f"{ctx.author.name} lädt die Nachrichten von {quoteby} herunter, Limit: {lim}.")
+        
+        # Download history
+        start_time = time.time()
+        numberOfChannels = 0
+        numberOfSentences = 0
+        lines = [quoteby]
+
+        rammgut = client.get_guild(323922215584268290)  # Hard coded Rammgut
+        for channel in rammgut.text_channels:
+            numberOfChannels += 1
+            messages = await channel.history(limit=lim).flatten()
+            for m in messages:
+                if m.author.id == id:
+                    sentences = m.content.split('. ')
+                    for s in sentences:
+                        if s != '':
+                            numberOfSentences += 1
+                            lines.append(s)
+
+        with open("channel_messages.txt", "w", encoding="utf-8") as f:
+            print(*lines, sep='\n', file=f)
+
+        await ctx.send(f"History Download abgeschlossen! {numberOfSentences} Sätze in {numberOfChannels} Channels von {quoteby} heruntergeladen. Dauer: {(time.time() - start_time)}")
+        log(f"History Download abgeschlossen! {numberOfSentences} Sätze in {numberOfChannels} Channels von {quoteby} heruntergeladen. Dauer: {(time.time() - start_time)}")
+    
+    @isSuperUser()
+    @_quote.command(
+        name='buildMarkov',
+        aliases=['bm'],
+        brief='Generiert das Modell für zufällige Zitate.'
+    )
+    async def _makequotes(self, ctx, size: int = 3):
+        await ctx.send(f"Markov Update wird gestartet.")
 
         try:
-            embed = discord.Embed(title="Zitat", colour=discord.Colour(0xff00ff), description=str(text_model.make_sentence(tries=100)), timestamp=datetime.utcfromtimestamp(random.randint(0, int(datetime.now().timestamp()))))
-            embed.set_footer(text="Schnenko")
-
-            await ctx.send(embed=embed)
-            
-            log(f"{ctx.author.name} hat ein Zitat von {quoteby} verlangt.")
-        except:
-            pass
-        
-        # Ult & Faith
-        await addUltCharge(5)
-        await addFaith(ctx.author.id, 1)
+            buildMarkov(size)
+            await ctx.send(f"Markov Update abgeschlossen.")
+        except Exception as e:
+            await ctx.send(f"ERROR: {e}")
     
     @commands.command(
         name='ult',
-        aliases=['Q','q'],
+        aliases=['Q', 'q'],
         brief='Die ultimative Fähigkeit von Mövius dem Krächzer.'
     )
     async def _ult(self, ctx, *args):
@@ -583,28 +706,28 @@ class Fun(commands.Cog, name='Spaß'):
         !ult [add, -a, +] <n: int>  Fügt der Charge n Prozent hinzu.
         !ult [set, -s, =] <n: int>  Setzt die Charge auf n Prozent.'''
 
-        global ultCharge, channels
+        global STATE, channels
 
         if ctx.prefix == '?':
             # Output charge
-            if ultCharge < 90:
-                await ctx.send(f"Meine ultimative Fähigkeit lädt sich auf, Krah Krah! [{int(ultCharge)}%]")
-            elif ultCharge < 100:
-                await ctx.send(f"Meine ultimative Fähigkeit ist fast bereit, Krah Krah! [{int(ultCharge)}%]")
+            if STATE['ultCharge'] < 90:
+                await ctx.send(f"Meine ultimative Fähigkeit lädt sich auf, Krah Krah! [{int(STATE['ultCharge'])}%]")
+            elif STATE['ultCharge'] < 100:
+                await ctx.send(f"Meine ultimative Fähigkeit ist fast bereit, Krah Krah! [{int(STATE['ultCharge'])}%]")
             else:
-                await ctx.send(f"Meine ultimative Fähigkeit ist bereit, Krah Krah! [{int(ultCharge)}%]")
+                await ctx.send(f"Meine ultimative Fähigkeit ist bereit, Krah Krah! [{int(STATE['ultCharge'])}%]")
             
             await addFaith(ctx.author.id, 1)
-            log(f"{ctx.author.name} hat nach meiner Ult-Charge gefragt: {ultCharge}%")
+            log(f"{ctx.author.name} hat nach meiner Ult-Charge gefragt: {STATE['ultCharge']}%")
         elif ctx.prefix == '!':
             # Do something
             if len(args) == 0:
                 # Ultimate is triggered
 
-                if ultCharge < 100:
+                if STATE['ultCharge'] < 100:
                     # Not enough charge
-                    await ctx.send(f"Meine ultimative Fähigkeit ist noch nicht bereit, Krah Krah! [{int(ultCharge)}%]")
-                    log(f"{ctx.author.name} wollte meine Ult aktivieren. Charge: {ultCharge}%")
+                    await ctx.send(f"Meine ultimative Fähigkeit ist noch nicht bereit, Krah Krah! [{int(STATE['ultCharge'])}%]")
+                    log(f"{ctx.author.name} wollte meine Ult aktivieren. Charge: {STATE['ultCharge']}%")
                 else:
                     # Ult is ready
 
@@ -617,7 +740,7 @@ class Fun(commands.Cog, name='Spaß'):
                         gameType = random.choice(['stream', 'game'])
                         time = f'{str(random.randint(0, 23)).zfill(2)}:{str(random.randint(0, 59)).zfill(2)}'
                         games = list(channels.keys())[1:]
-                        game = random.choice(games).replace('-',' ').title()
+                        game = random.choice(games).replace('-', ' ').title()
 
                         await Reminder.processEventCommand(self, gameType, ctx, (time, game), ult=True)
                     elif actionID == 2:
@@ -626,13 +749,17 @@ class Fun(commands.Cog, name='Spaß'):
                     elif actionID == 3:
                         # Random bible quote
                         await Fun._bibel(self, ctx)
-                    elif actionID == 4:
-                        # Echo-Ult
-                        await Administration._avc(Administration, None)
+                    # elif actionID == 4:
+                    #     # Echo-Ult TODO: Currently not active due to reconstructions
+                    #     await Administration._avc(Administration, None)
 
                     # Reset charge
-                    ultCharge = 0
-                    await client.change_presence(activity=discord.Game(f"Charge: {int(ultCharge)}%"))
+                    STATE['ultCharge'] = 0
+
+                    with open('state.json', 'w') as f:
+                        json.dump(STATE, f)
+
+                    await client.change_presence(activity=discord.Game(f"Charge: {int(STATE['ultCharge'])}%"))
             else:
                 # Charge is manipulated by a user
                 if ctx.author.name in settings['super-users']:
@@ -646,8 +773,12 @@ class Fun(commands.Cog, name='Spaß'):
                     elif args[0] in ['set', '-s', '=']:
                         # Set charge
                         try:
-                            ultCharge = max(min(int(args[1]), 100), 0)
-                            await client.change_presence(activity=discord.Game(f"Charge: {int(ultCharge)}%"))
+                            STATE['ultCharge'] = max(min(int(args[1]), 100), 0)
+                            
+                            with open('state.json', 'w') as f:
+                                json.dump(STATE, f)
+
+                            await client.change_presence(activity=discord.Game(f"Charge: {int(STATE['ultCharge'])}%"))
                         except:
                             await ctx.send('Nanana, so geht das nicht, Krah Krah!')
                 else:
@@ -675,18 +806,23 @@ class Fun(commands.Cog, name='Spaß'):
             # Output faith per user
             output = ""
             for user, amount in sortedFaith.items():
-                output += f"{client.get_user(int(user)).display_name}: {format(amount,',d').replace(',','.')}🕊\n"
+                try:
+                    output += f"{client.get_user(int(user)).display_name}: {format(amount,',d').replace(',','.')}🕊\n"
+                except:
+                    log(f"ERROR: Ich konnte den User mit der ID {user} nicht finden.")
             
             if output != "":
                 embed = discord.Embed(title="Die treuen Jünger des Mövius und ihre Punkte", colour=discord.Colour(0xff00ff), description=output)
 
                 await ctx.send(embed=embed)
+            
+            log('Faith wurde angezeigt')
         elif ctx.prefix == '!' and ctx.author.name in settings['super-users']:
             if len(args) == 3:
                 try:
                     id = int(args[1])
                     user = client.get_user(id)
-                    if user == None:
+                    if user is None:
                         raise Exception
                     amount = int(args[2])
                 except Exception as e:
@@ -716,13 +852,23 @@ class Fun(commands.Cog, name='Spaß'):
         name='wurstfinger'
     )
     async def _wurstfinger(self, ctx):
-        global latestmsg
+        start_time = time.time()
+
+        history = await ctx.channel.history(limit=2).flatten()
+        message = history[1].content
+        correction = self.speller(message)
+
+        log(f'Wurstfinger: "{message}" → "{correction}", Dauer: {(time.time() - start_time)}')
+
+        await ctx.send(f"Meintest du vielleicht: {correction}")
 
         # Ult & Faith
         await addUltCharge(5)
         await addFaith(ctx.author.id, 1)
-
-        await ctx.send(f"Meintest du vielleicht: {self.spell(latestmsg[0])}")
+    
+    # @commands.Cog.listener()
+    # async def on_command(self, ctx):
+    #     print(ctx)
 
 class Administration(commands.Cog, name='Administration'):
     '''Diese Kategorie erfordert bestimmte Berechtigungen'''
@@ -730,133 +876,108 @@ class Administration(commands.Cog, name='Administration'):
     def __init__(self, bot):
         self.bot = bot
 
-    # Commands
     @isSuperUser()
-    @commands.command(
-        name='av'
-    )
-    async def _av(self, ctx):
-        await server.me.edit(nick=None)
-
-        with open('Inhaling-Seagull.jpg', 'rb') as f:
-            ava = f.read()
-            try:
-                await client.user.edit(avatar=ava)
-            except:
-                pass
-
-    @isSuperUser()
-    @commands.command(
-        name='avc'
-    )
-    async def _avc(self, ctx):
-        global server
-        clone = random.choice(server.members)
-
-        await server.me.edit(nick=clone.display_name)
-
-        await clone.avatar_url_as(format='jpg').save('clone.jpg')
-
-        with open('clone.jpg', 'rb') as f:
-            ava = f.read()
-            try:
-                await client.user.edit(avatar=ava)
-            except:
-                pass
-
-    @isSuperUser()
-    @commands.command(
-        name='getquotes',
-        aliases=['gq'],
-        brief='Besorgt sich die nötigen Daten für den Zitategenerator. ACHTUNG: Nicht zu oft machen.'
-    )
-    async def _getquotes(self, ctx, id: int, lim: int):
-        global server, quoteby
-
-        user = await client.fetch_user(id)
-        quoteby = user.display_name
-
-        log(f"{ctx.author.name} lädt die Nachrichten von {quoteby} herunter.")
-        
-        # Download history
-        start_time = time.time()
-        lines = [quoteby]
-
-        rammgut = client.get_guild(323922215584268290)
-        for channel in rammgut.text_channels:
-            messages = await channel.history(limit=lim).flatten()
-            for m in messages:
-                if m.author.id == id:
-                    sentences = m.content.split('. ')
-                    for s in sentences:
-                        if s != '':
-                            lines.append(s)
-
-        with open("channel_messages.txt", "w", encoding="utf-8") as f:
-            print(*lines, sep='\n', file=f)
-
-        await ctx.send(f"History Update: {len(lines)} Sätze von {user.name}. Dauer: {(time.time() - start_time)}")
-        log(f"History Update: {len(lines)} Sätze von {user.name}. Dauer: {(time.time() - start_time)}")
-    
-    @isSuperUser()
-    @commands.command(
-        name='makequotes',
-        aliases=['mk'],
-        brief='Generiert das Modell für zufällige Zitate.'
-    )
-    async def _makequotes(self, ctx):
-        buildMarkov()
-
-        await ctx.send(f"Markov Update.")
-    
-    @isSuperUser()
-    @commands.command(
-        name='addcharge',
-        aliases=['ac'],
-        brief='Ändert die Ult-Charge.'
-    )
-    async def _charge(self, ctx, charge: int):
-        global ultCharge
-        ultCharge = min(int(charge),100)
-        await client.change_presence(activity=discord.Game(f"Charge: {int(ultCharge)}%"))
-
-    @isSuperUser()
-    @commands.command(
+    @commands.group(
         name='bot',
         aliases=['b'],
         brief='Kann den Bot steuern.'
     )
-    async def _bot(self, ctx, cmd, *args):
-        if cmd in ['version', '-v']:
+    async def _bot(self, ctx):
+        if ctx.invoked_subcommand is None:
+            await ctx.send("Was möchtest du mit dem Bot anfangen? Mit !help bot siehst du, welche Optionen verfügbar sind.")
+    
+    @_bot.command(
+        name='version',
+        aliases=['-v']
+    )
+    async def _version(self, ctx):
+        try:
+            version = subprocess.check_output('git describe --tags', shell=True).strip().decode('ascii')
+
+            await ctx.send(f"Bot läuft auf Version {version}")
+            log(f'Version {version}')
+        except Exception as e:
+            await ctx.send(f'ERROR: Version konnte nicht erkannt werden: {e}')
+            log(f'ERROR: Version konnte nicht erkannt werden: {e}')
+
+    @_bot.command(
+        name='uptime',
+        aliases=['-u']
+    )
+    async def _uptime(self, ctx):
+        uptime = (datetime.now() - startuptime)
+        uptimestr = strfdelta(uptime, "{days} Tage {hours}:{minutes}:{seconds}")
+
+        await ctx.send(f"Uptime: {uptimestr} seit {startuptime.strftime('%Y.%m.%d %H:%M:%S')}")
+        log(f"Uptime: {uptimestr} seit {startuptime.strftime('%Y.%m.%d %H:%M:%S')}")
+
+    @_bot.command(
+        name='reload',
+        aliases=['-r']
+    )
+    async def _reload(self, ctx):
+        log(f"{ctx.author.name} hat einen Reload gestartet.")
+        await ctx.send("Reload wird gestartet.")
+
+        startup()
+
+    @isSuperUser()
+    @commands.group(
+        name='extensions',
+        aliases=['ext'],
+        brief='Verwaltet die Extensions des Bots.'
+    )
+    async def _extensions(self, ctx):
+        if ctx.invoked_subcommand is None:
+            await ctx.send(f"Aktuell sind folgende Extensions geladen: {', '.join(client.extensions.keys())}")
+            await ctx.send("Mit !help ext siehst du, welche Optionen verfügbar sind.")
+
+    @_extensions.command(
+        name='load',
+        aliases=['-l'],
+        brief='Lädt eine Extension in den Bot.'
+    )
+    async def _load(self, ctx, extension):
+        if 'cogs.' + extension in client.extensions.keys():
+            await ctx.send("Diese Extensions ist bereits geladen.")
+        else:
             try:
-                version = subprocess.check_output('git describe --tags', shell=True).strip().decode('ascii')
-
-                await ctx.send(f"Bot läuft auf Version {version}")
-                log(f'Version {version}')
+                client.load_extension(f"cogs.{extension}")
+                await ctx.send("Die Extension wurde geladen.")
             except Exception as e:
-                log(f'ERROR: Version konnte nicht erkannt werden: {e}')
-        elif cmd in ['reload', '-r']:
-            log(f"{ctx.author.name} hat einen Reload gestartet.")
-            startup()
-        elif cmd in ['uptime', '-u']:
-            uptime = (datetime.now() - startuptime)
-            uptimestr = strfdelta(uptime, "{days} Tage {hours}:{minutes}:{seconds}")
-
-            await ctx.send(f"Uptime: {uptimestr} seit {startuptime.strftime('%Y.%m.%d %H:%M:%S')}")
-            log(f"Uptime: {uptimestr} seit {startuptime.strftime('%Y.%m.%d %H:%M:%S')}")
+                await ctx.send(f"ERROR: {e}")
+    
+    @_extensions.command(
+        name='unload',
+        aliases=['-u'],
+        brief='Entfernt eine Extension aus dem Bot.'
+    )
+    async def _unload(self, ctx, extension):
+        if 'cogs.' + extension in client.extensions.keys():
+            try:
+                client.unload_extension(f"cogs.{extension}")
+                await ctx.send("Die Extension wurde entfernt.")
+            except Exception as e:
+                await ctx.send(f"ERROR: {e}")
+        else:
+            await ctx.send("Diese Extensions ist nicht aktiv.")
 
 ##### Add the cogs #####
+client.add_cog(Administration(client))
 client.add_cog(Reminder(client))
 client.add_cog(Fun(client))
-client.add_cog(Administration(client))
 
 @client.event
 async def on_ready():
     # Load Settings for the first time
     startup()
 
+    for filename in os.listdir('./cogs'):
+        if filename.endswith('.py') and not filename.startswith('__'):
+            client.load_extension(f"cogs.{filename[:-3]}")
+
     # First Ult Charge Update
-    await client.change_presence(activity=discord.Game(f"Charge: {int(ultCharge)}%"))
+    await client.change_presence(activity=discord.Game(f"Charge: {int(STATE['ultCharge'])}%"))
 
     # Start Loop
     await timeCheck.start()
@@ -871,20 +992,27 @@ async def timeCheck():
 
         # Check for daily Stuff at 9am
         if timenow == '09:00':
-            global text_model
+            global text_model, quoteby
 
-            log(f'Daily wird abgefeuert')
+            log(f'Es ist 9 Uhr, Daily wird abgefeuert')
 
             try:
-                embed = discord.Embed(title="Zitat des Tages", colour=discord.Colour(0xff00ff), description=str(text_model.make_sentence(tries=100)), timestamp=datetime.utcfromtimestamp(random.randint(0, int(datetime.now().timestamp()))))
-                embed.set_footer(text="Schnenko")
+                quote = text_model.make_sentence(tries=100)
+                while quote == None:
+                    log(f"Quote: Kein Zitat gefunden, neuer Versuch ...")
+                    quote = text_model.make_sentence(tries=100)
 
+                # No Discord Quotes allowed in Quotes
+                quote.replace('>', '')
+
+                embed = discord.Embed(title="Zitat des Tages", colour=discord.Colour(0xff00ff), description=str(quote), timestamp=datetime.utcfromtimestamp(random.randint(0, int(datetime.now().timestamp()))))
+                embed.set_footer(text=quoteby)
                 await server.get_channel(580143021790855178).send(content="Guten Morgen, Krah Krah!", embed=embed)
-                log(f'Zitat des Tages.')
+                log(f'Zitat des Tages: {quote} - {quoteby}')
             except Exception as e:
                 log(f'ERROR: Kein Zitat des Tages: {e}')
 
-            await Administration._av(Administration, None)
+            # await Administration._av(Administration, None)
         
         # Check for events now
         for e in events.values():
@@ -896,9 +1024,12 @@ async def timeCheck():
                     members += f"<@{m}> "
 
                 if e.eventType == 'stream':
-                    await channels['stream'].send(content=f"Oh, ist es denn schon {e.eventTime} Uhr? Dann ab auf https://www.twitch.tv/schnenko/ ... der Stream fängt an, Krah Krah! Heute mit von der Partie: {members}", tts=False)
+                    if e.eventGame == 'bot':
+                        await client.get_channel(580143021790855178).send(f"Oh, ist es denn schon {e.eventTime} Uhr? Dann ab auf https://www.twitch.tv/hanseichlp ... es wird endlich wieder am Bot gebastelt, Krah Krah! Heute mit von der Partie: {members}", tts=False)
+                    else:
+                        await channels['stream'].send(f"Oh, ist es denn schon {e.eventTime} Uhr? Dann ab auf https://www.twitch.tv/schnenko/ ... der Stream fängt an, Krah Krah! Heute mit von der Partie: {members}", tts=False)
                 else:
-                    await channels['game'].send(content=f"Oh, ist es denn schon {e.eventTime} Uhr? Dann ab in den Voice-Chat, {e.eventGame} fängt an, Krah Krah! Heute mit von der Partie: {members}", tts=False)
+                    await channels['game'].send(f"Oh, ist es denn schon {e.eventTime} Uhr? Dann ab in den Voice-Chat, {e.eventGame} fängt an, Krah Krah! Heute mit von der Partie: {members}", tts=False)
                 
                 e.reset()
                 log('Event-Post abgesetzt, Timer resettet.')
@@ -911,11 +1042,6 @@ async def on_message(message):
 
     # Add a little charge
     await addUltCharge(0.1)
-
-    global latestmsg
-    latestmsg.append(message.content)
-    if len(latestmsg) > 2:
-        latestmsg.pop(0)
     
     # Requests from file
     if message.content[1:] in responses['req'].keys():
@@ -933,12 +1059,47 @@ async def on_message(message):
                     await message.channel.send(content=r.format(**locals(), **globals()), tts=False)
                 log(response['log'].format(**locals(), **globals()))
 
-    #Important for processing commands
+    # Important for processing commands
     await client.process_commands(message)
+
+async def faithOnReact(payload, operation='add'):
+    reactionFaith = 10
+
+    if payload.emoji.name == 'Moevius':
+        textChannel = client.get_channel(payload.channel_id)
+        # Who received the faith
+        author = (await textChannel.fetch_message(payload.message_id)).author
+        # Who gave the faith
+        giver = client.get_user(payload.user_id)
+
+        # Add/Remove Faith, giver always gets 1
+        await addFaith(author.id, reactionFaith*(-1 if operation == 'remove' else 1))
+        await addFaith(giver.id, 1)
+
+        # Log
+        log(f"FaithAdd-Reaction: {giver.display_name} {'nimmt' if operation == 'remove' else 'gibt'} {author.display_name} {reactionFaith}🕊")
+
+@client.event
+async def on_raw_reaction_add(payload):
+    await faithOnReact(payload)
+
+@client.event
+async def on_raw_reaction_remove(payload):
+    await faithOnReact(payload, operation='remove')
 
 @client.event
 async def on_command_error(ctx, error):
     log(f"ERROR: {ctx.author.name} - {ctx.message.content} - {error}")
 
-#Connect to Discord
-client.run(TOKEN)
+# @client.event
+# async def on_member_update(before, after):
+#     global settings
+
+#     if before.guild.id == int(settings['server_id']) and before.id == 323185601631485953:
+#         if before.raw_status == 'offline' and after.raw_status != 'offline':
+#             await client.get_channel(580143021790855178).send('https://tenor.com/view/platypus-awkward-running-gif-4576818')
+#             await client.get_channel(580143021790855178).send('Da kommt er angekrabbelt, Krah Krah!')
+
+# Connect to Discord
+if __name__ == "__main__":
+    client.run(TOKEN)

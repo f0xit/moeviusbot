@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.7 - Quality of Life
+### Added
+- !ps5 is a fun command to compare a given number to the price of a PS5
+### Fixed 
+- !wurstfinger now applies to the last message in a given channel
+- !urbandictionary is now more respeonsive
+    - When your search doesn't give a result, the bot presents you alternative search terms
+    - If there are not even alternative terms, the bot will tell you
+
 ## 0.6
 ### Faith-Points
 - Everybody get's points for using the bot!
