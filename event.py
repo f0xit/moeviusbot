@@ -42,9 +42,9 @@ class Event:
             with open(self.event_type + '.json', 'r') as file:
                 data = file.read()
 
-                self.event_time = json.loads(data)['eventTime']
-                self.event_game = json.loads(data)['eventGame']
-                self.event_members = json.loads(data)['eventMembers']
+                self.event_time = json.loads(data)['event_time']
+                self.event_game = json.loads(data)['event_game']
+                self.event_members = json.loads(data)['event_members']
 
                 log(f'Event wurde geladen: {self.event_type} - {self.event_game} - '
                     + f'{",".join(self.event_members.values())} - {self.event_time}')

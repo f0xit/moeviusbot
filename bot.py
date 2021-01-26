@@ -884,6 +884,10 @@ class Administration(commands.Cog, name='Administration'):
             if c.name == 'ow':
                 await c.__call__(ctx)
 
+    @commands.Cog.listener()
+    async def on_command_completion(self, ctx):
+        print("Command: " + ctx.command.name)
+
     @isSuperUser()
     @commands.group(
         name='bot',

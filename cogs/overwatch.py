@@ -97,26 +97,12 @@ class Overwatch(commands.Cog, name='Overwatch'):
 
             await ctx.send(embed=embed)
 
-
-    @commands.command(
-        name='ow',
-        brief='Gibt dir oder dem kompletten Voice-Channel zufällige Overwatch-Heroes.'
-    )
-    async def _ow(self, ctx, who="", role=None):
-        '''Dieses Kommando wählt für dich einen zufälligen Overwatch-Hero aus.
-
-        Solltest du dich währenddessen mit anderen Spielern im Voice befinden,
-        bekommt jeder im Channel einen zufälligen Hero zugeteilt.
-        Wenn du das vermeiden willst und explizit nur einen Hero für dich selber brauchst,
-        verwende bitte !ow me.
-
-        Für eine spezifische Rolle, verwende bitte !owd, !ows oder !owt.'''
-
+    async def random_hero(self, ctx, who="", role=None):
         log(ctx.author.name
             + "hat einen zufälligen Overwatch-Hero für "
-            + 'sich' if who == 'me' else 'alle'
+            + ('sich ' if who == 'me' else 'alle ')
             + "verlangt. Rolle: "
-            + role
+            + str(role)
         )
 
         output = ["Random Heroes? Kein Problem, Krah Krah!"]
@@ -145,34 +131,46 @@ class Overwatch(commands.Cog, name='Overwatch'):
             log("Keine Heroes gefunden. Es könnte ein Fehler vorliegen.")
 
     @commands.command(
-        name='owd',
+        brief='Gibt dir oder dem kompletten Voice-Channel zufällige Overwatch-Heroes.'
+    )
+    async def ow(self, ctx, who=""):
+        '''Dieses Kommando wählt für dich einen zufälligen Overwatch-Hero aus.
+
+        Solltest du dich währenddessen mit anderen Spielern im Voice befinden,
+        bekommt jeder im Channel einen zufälligen Hero zugeteilt.
+        Wenn du das vermeiden willst und explizit nur einen Hero für dich selber brauchst,
+        verwende bitte !ow me.
+
+        Für eine spezifische Rolle, verwende bitte !owd, !ows oder !owt.'''
+
+        await self.random_hero(ctx, who)
+
+    @commands.command(
         brief='Gibt dir einen zufälligen Overwatch-DPS.'
     )
-    async def _owd(self, ctx):
+    async def owd(self, ctx):
         '''Gibt dir einen zufälligen Overwatch-DPS.
 
         Dieses Kommando ist ein Alias für !ow me Damage.'''
 
-        await self._ow(ctx, "me", "Damage")
+        await self.random_hero(ctx, "me", "Damage")
 
     @commands.command(
-        name='ows',
         brief='Gibt dir einen zufälligen Overwatch-Support.'
     )
-    async def _ows(self, ctx):
+    async def ows(self, ctx):
         '''Gibt dir einen zufälligen Overwatch-Support.
 
         Dieses Kommando ist ein Alias für !ow me Support.'''
 
-        await self._ow(ctx, "me", "Support")
+        await self.random_hero(ctx, "me", "Support")
 
     @commands.command(
-        name='owt',
         brief='Gibt dir einen zufälligen Overwatch-Tank.'
     )
-    async def _owt(self, ctx):
+    async def owt(self, ctx):
         '''Gibt dir einen zufälligen Overwatch-Tank.
 
         Dieses Kommando ist ein Alias für !ow me Tank.'''
 
-        await self._ow(ctx, "me", "Tank")
+        await self.random_hero(ctx, "me", "Tank")
