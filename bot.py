@@ -112,7 +112,9 @@ async def addUltCharge(amount):
         if STATE['ultCharge'] < 100:
             STATE['ultCharge'] = min(STATE['ultCharge'] + amount, 100)
 
-            await client.change_presence(activity=discord.Game(f"Charge: {int(STATE['ultCharge'])}%"))
+            await client.change_presence(
+                activity = discord.Game(f"Charge: {int(STATE['ultCharge'])}%")
+            )
 
             with open('state.json', 'w') as f:
                 json.dump(STATE, f)
@@ -157,9 +159,11 @@ def buildMarkov(size: int = 3):
 
 ##### Cogs #####
 class Reminder(commands.Cog, name='Events'):
-    '''Diese Kommandos dienen dazu, Reminder für Streams oder Coop-Sessions einzurichten, beizutreten oder deren Status abzufragen.
-    
-    Bestimmte Kommandos benötigen bestimmte Berechtigungen. Kontaktiere HansEichLP, wenn du mehr darüber wissen willst.'''
+    '''Diese Kommandos dienen dazu, Reminder für Streams oder Coop-Sessions einzurichten,
+    beizutreten oder deren Status abzufragen.
+
+    Bestimmte Kommandos benötigen bestimmte Berechtigungen. Kontaktiere HansEichLP,
+    wenn du mehr darüber wissen willst.'''
 
     def __init__(self, bot):
         self.bot = bot
@@ -187,7 +191,11 @@ class Reminder(commands.Cog, name='Events'):
 
             # Feedback
             # TODO: Wenn wir schon einen Reminder hatten und er wird resettet, lass es alle im richtigen Channel wissen
-            await ctx.send(f"Danke, {ctx.author.display_name}, ich habe den Reminder zurückgesetzt, Krah Krah!")
+            await ctx.send(
+                "Danke, "
+                + ctx.author.display_name
+                + ", ich habe den Reminder zurückgesetzt, Krah Krah!"
+            )
 
             log(f"Event resettet: {ctx.author.name} - {event_type}")
 
@@ -213,7 +221,13 @@ class Reminder(commands.Cog, name='Events'):
                         gameStr = f". Gespielt wird: {game}"
                     else:
                         await ctx.send('Hey, das ist kein Spiele-Channel, Krah Krah!')
-                        log(f"ERROR: {ctx.author.name} wollte einen Game-Reminder im Channel {ctx.channel.name} erstellen.")
+                        log(
+                            "ERROR: "
+                            + ctx.author.name 
+                            + "wollte einen Game-Reminder im Channel "
+                            + ctx.channel.name
+                            + "erstellen."
+                        )
                         return
             # More than one argument
             else:
@@ -234,22 +248,55 @@ class Reminder(commands.Cog, name='Events'):
             # Stream
             if event_type == 'stream':
                 if ctx.channel != channels['stream']:
-                    await ctx.send(f"Ich habe einen Stream-Reminder für {time} Uhr eingerichtet, Krah Krah!")
+                    await ctx.send(
+                        f"Ich habe einen Stream-Reminder für {time} Uhr eingerichtet, Krah Krah!"
+                    )
 
                 if ult:
-                    a = random.choice(['geile', 'saftige', 'knackige', 'wohlgeformte', 'kleine aber feine', 'prall gefüllte'])
-                    o = random.choice(['Möhren', 'Pflaumen', 'Melonen', 'Oliven', 'Nüsse', 'Schinken'])
-                    v = random.choice(['mit Öl bepinselt und massiert', 'vernascht', 'gebürstet', 'gefüllt', 'gebuttert', 'geknetet'])
+                    a = random.choice([
+                        'geile',
+                        'saftige',
+                        'knackige',
+                        'wohlgeformte',
+                        'kleine aber feine',
+                        'prall gefüllte'
+                    ])
+                    o = random.choice([
+                        'Möhren',
+                        'Pflaumen',
+                        'Melonen',
+                        'Oliven',
+                        'Nüsse',
+                        'Schinken'
+                    ])
+                    v = random.choice([
+                        'mit Öl bepinselt und massiert',
+                        'vernascht',
+                        'gebürstet',
+                        'gefüllt',
+                        'gebuttert',
+                        'geknetet'
+                    ])
                     guest = f'<@{ctx.author.id}>'
                     gameStr = f". Heute werden {a} {o} {v}, mit dabei als Special-Guest: {guest}"
+
                 # Announce the event in the right channel
                 if game == 'bot':
-                    await client.get_channel(580143021790855178).send(f"Macht euch bereit für einen Stream, um {time} Uhr wird am Bot gebastelt, Krah Krah!")
+                    await client.get_channel(580143021790855178).send(
+                        "Macht euch bereit für einen Stream, "
+                        + f"um {time} Uhr wird am Bot gebastelt, Krah Krah!"
+                    )
                 else:
-                    await channels['stream'].send(f"{'Kochstudio! ' if ult else ''}Macht euch bereit für einen Stream, um {time} Uhr{gameStr}, Krah Krah!")
+                    await channels['stream'].send(
+                        'Kochstudio! ' if ult else ''
+                        + "Macht euch bereit für einen Stream, "
+                        + f"um {time} Uhr{gameStr}, Krah Krah!"
+                    )
             # Game
             else:
-                await ctx.send(f"Macht euch bereit für ein Ründchen Coop um {time} Uhr{gameStr}, Krah Krah!")
+                await ctx.send(
+                    f"Macht euch bereit für ein Ründchen Coop um {time} Uhr{gameStr}, Krah Krah!"
+                )
                 if ctx.channel.name in squads.keys():
                     members = ''
                     for m in squads[ctx.channel.name].values():
@@ -272,7 +319,9 @@ class Reminder(commands.Cog, name='Events'):
                 await ctx.send(f"Es wurde noch kein Stream angekündigt, Krah Krah!")
             else:
                 await ctx.send(f"Es wurde noch keine Coop-Runde angekündigt, Krah Krah!")
-            log(f"ERROR: {ctx.author.name} hat nach einem Event {event_type} gefragt, dass es nicht gibt.")
+            log(
+                f"ERROR: {ctx.author.name} hat nach einem Event "
+                + f"{event_type} gefragt, das es nicht gibt.")
 
         # There is an event
         else:
@@ -292,8 +341,14 @@ class Reminder(commands.Cog, name='Events'):
             members = ", ".join(events[event_type].event_members.values())
 
             # Post the info
-            await ctx.send(f"{beginStr} beginnt um {events[event_type].event_time} Uhr. {game_str}Mit dabei sind bisher: {members}, Krah Krah!")
-            log(f"{ctx.author.name} hat nach einem Event {event_type} gefragt. Die Infos dazu wurden rausgehauen.")
+            await ctx.send(
+                f"{beginStr} beginnt um {events[event_type].event_time} Uhr. "
+                + f"{game_str}Mit dabei sind bisher: {members}, Krah Krah!"
+            )
+            log(
+                f"{ctx.author.name} hat nach einem Event {event_type} gefragt. "
+                + "Die Infos dazu wurden rausgehauen."
+            )
 
     # Join an event
     async def joinEvent(self, event_type: str, ctx):
@@ -301,7 +356,10 @@ class Reminder(commands.Cog, name='Events'):
 
         if events[event_type].event_time == '':
             await ctx.send(f"Nanu, anscheinend gibt es nichts zum Beitreten, Krah Krah!")
-            log(f"ERROR: {ctx.author.name} wollte einem Event {event_type} beitreten, dass es nicht gibt.")
+            log(
+                f"ERROR: {ctx.author.name} wollte einem Event "
+                + f"{event_type} beitreten, dass es nicht gibt."
+            )
         else:
             # Charge!
             await addUltCharge(5)
