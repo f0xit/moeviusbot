@@ -26,8 +26,11 @@ class Gartic(commands.Cog, name='Gartic'):
         rounds = os.listdir("gartic")
 
         for round in rounds:
-            if not re.match(r"\d{3}", round):
-                rounds.remove(round)
+            try:
+                if not re.match(r"\d{3}", round):
+                    rounds.remove(round)
+            except:
+                pass
 
         round = random.choice(rounds)
 
@@ -35,8 +38,11 @@ class Gartic(commands.Cog, name='Gartic'):
         stories = os.listdir(f"gartic/{round}")
 
         for story in stories:
-            if not re.match(r"album_\w*.gif", story):
-                rounds.remove(story)
+            try:
+                if not re.match(r"album_\w*.gif", story):
+                    rounds.remove(story)
+            except:
+                pass
 
         story = random.choice(stories)
 
