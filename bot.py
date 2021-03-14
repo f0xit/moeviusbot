@@ -1082,6 +1082,14 @@ async def timeCheck():
             except Exception as e:
                 log(f'ERROR: Kein Zitat des Tages: {e}')
 
+        if timenow == '19:30':
+            try:
+                for c in client.commands:
+                    if c.name == 'gartic':
+                        await c.__call__(None, channel = client.get_channel(815702384688234538))
+            except Exception as e:
+                log(f'ERROR: Kein Gartic-Image des Tages: {e}')
+
             # await Administration._av(Administration, None)
         
         # Check for events now
