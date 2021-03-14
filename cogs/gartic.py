@@ -23,26 +23,22 @@ class Gartic(commands.Cog, name='Gartic'):
         brief='Zeigt ein zufälliges Gartic-Gemälde aus dem Archiv.'
     )
     async def generate_random_painting(self, ctx, channel = None):
-        rounds = os.listdir("gartic")
+        raw_rounds = os.listdir("gartic")
+        rounds = []
 
-        for round in rounds:
-            try:
-                if not re.match(r"\d{3}", round):
-                    rounds.remove(round)
-            except:
-                pass
+        for round in raw_rounds:
+            if re.match(r"^\d{3}$", round):
+                rounds.append(round)
 
         round = random.choice(rounds)
 
 
-        stories = os.listdir(f"gartic/{round}")
+        raw_stories = os.listdir(f"gartic/{round}")
+        stories = []
 
-        for story in stories:
-            try:
-                if not re.match(r"album_\w*.gif", story):
-                    rounds.remove(story)
-            except:
-                pass
+        for story in raw_stories:
+            if re.match(r"^album_\w*.gif$", story):
+                rounds.append(story)
 
         story = random.choice(stories)
 
