@@ -38,7 +38,7 @@ class Gartic(commands.Cog, name='Gartic'):
 
         for story in raw_stories:
             if re.match(r"^album_\w*.gif$", story):
-                rounds.append(story)
+                stories.append(story)
 
         story = random.choice(stories)
 
