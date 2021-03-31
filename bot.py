@@ -11,6 +11,7 @@ import json
 from urllib.request import urlopen
 from urllib.parse import quote as urlquote
 import math
+
 from dotenv import load_dotenv
 import markovify
 import requests

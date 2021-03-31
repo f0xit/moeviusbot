@@ -2,11 +2,12 @@ import os
 import re
 import random
 import math
+
 from PIL import Image
 import discord
 from discord.ext import commands
 
-from myfunc import log, load_file, gcts
+from myfunc import log
 
 CHANNEL = 815702384688234538
 
@@ -62,12 +63,13 @@ class Gartic(commands.Cog, name='Gartic'):
 
         output_image.save("gartic_output.png")
 
-        if channel == None:
+        if channel is None:
             await ctx.send(
                 file=discord.File('gartic_output.png')
             )
         else:
             await channel.send(
-                "Guten Abend, Krah Krah! Hier kommt das tägliche Highlight aus dem Gartic Phone-Archiv, Krah Krah!",
+                    "Guten Abend, Krah Krah! Hier kommt das tägliche "
+                +   "Highlight aus dem Gartic Phone-Archiv, Krah Krah!",
                 file=discord.File('gartic_output.png')
             )
