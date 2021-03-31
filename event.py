@@ -3,46 +3,50 @@
 import json
 from myfunc import log
 
-class Event:    
-    def __init__ (self, eventType):
-        self.eventType = eventType
-        self.eventTime = ''
-        self.eventGame = ''
-        self.eventMembers = {}
+class Event:
+    def __init__ (self, event_type):
+        self.event_type = event_type
+        self.event_time = ''
+        self.event_game = ''
+        self.event_members = {}
 
         self.load()
-        
-    def updateEvent(self, eventTime, eventGame):
-        self.eventTime = eventTime
-        self.eventGame = eventGame
+
+    def update_event(self, event_time, event_game):
+        self.event_time = event_time
+        self.event_game = event_game
+
         self.save()
 
-    def addMember(self, newMember):
-        if newMember.id not in self.eventMembers.keys():
-            self.eventMembers[newMember.id] = newMember.display_name
+    def add_member(self, new_member):
+        if new_member.id not in self.event_members.keys():
+            self.event_members[new_member.id] = new_member.display_name
             self.save()
-        
+
     def reset(self):
-        self.eventTime = ''
-        self.eventGame = ''
-        self.eventMembers = {}
-        
+        self.event_time = ''
+        self.event_game = ''
+        self.event_members = {}
+
         self.save()
-            
+
     def save(self):
-        log(f'Event wurde gespeichert: {self.eventType} - {self.eventGame} - {",".join(self.eventMembers.values())} - {self.eventTime}')
-        with open(self.eventType + '.json', 'w') as f:
-            json.dump(self.__dict__, f)
-            
+        with open(self.event_type + '.json', 'w') as file:
+            json.dump(self.__dict__, file)
+
+        log(f'Event wurde gespeichert: {self.event_type} - {self.event_game} - '
+            + f'{",".join(self.event_members.values())} - {self.event_time}')
+
     def load(self):
         try:
-            with open(self.eventType + '.json', 'r') as f:
-                data = f.read()
+            with open(self.event_type + '.json', 'r') as file:
+                data = file.read()
 
-                self.eventTime = json.loads(data)['eventTime']
-                self.eventGame = json.loads(data)['eventGame']
-                self.eventMembers = json.loads(data)['eventMembers']
-                log(f'Event wurde geladen: {self.eventType} - {self.eventGame} - {",".join(self.eventMembers.values())} - {self.eventTime}')
-        except:
-            pass
-            log(f'Event {self.eventType} konnte nicht geladen werden!')
+                self.event_time = json.loads(data)['event_time']
+                self.event_game = json.loads(data)['event_game']
+                self.event_members = json.loads(data)['event_members']
+
+                log(f'Event wurde geladen: {self.event_type} - {self.event_game} - '
+                    + f'{",".join(self.event_members.values())} - {self.event_time}')
+        except IOError:
+            log(f'Event {self.event_type} konnte nicht geladen werden!')

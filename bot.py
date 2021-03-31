@@ -1,24 +1,25 @@
 #!/usr/bin/env python3
 
 ##### Imports #####
-import discord
-from discord.ext import commands, tasks
 import os
 import subprocess
-from dotenv import load_dotenv
-import asyncio
 import random
 import re
 from datetime import datetime
 import time
 import json
-import markovify
 from urllib.request import urlopen
 from urllib.parse import quote as urlquote
+import math
+
+from dotenv import load_dotenv
+import markovify
 import requests
 from bs4 import BeautifulSoup
 from autocorrect import Speller
-import math
+
+import discord
+from discord.ext import commands, tasks
 
 # Import Custom Stuff
 from event import Event
@@ -112,7 +113,9 @@ async def addUltCharge(amount):
         if STATE['ultCharge'] < 100:
             STATE['ultCharge'] = min(STATE['ultCharge'] + amount, 100)
 
-            await client.change_presence(activity=discord.Game(f"Charge: {int(STATE['ultCharge'])}%"))
+            await client.change_presence(
+                activity = discord.Game(f"Charge: {int(STATE['ultCharge'])}%")
+            )
 
             with open('state.json', 'w') as f:
                 json.dump(STATE, f)
@@ -157,19 +160,21 @@ def buildMarkov(size: int = 3):
 
 ##### Cogs #####
 class Reminder(commands.Cog, name='Events'):
-    '''Diese Kommandos dienen dazu, Reminder für Streams oder Coop-Sessions einzurichten, beizutreten oder deren Status abzufragen.
-    
-    Bestimmte Kommandos benötigen bestimmte Berechtigungen. Kontaktiere HansEichLP, wenn du mehr darüber wissen willst.'''
+    '''Diese Kommandos dienen dazu, Reminder für Streams oder Coop-Sessions einzurichten,
+    beizutreten oder deren Status abzufragen.
+
+    Bestimmte Kommandos benötigen bestimmte Berechtigungen. Kontaktiere HansEichLP,
+    wenn du mehr darüber wissen willst.'''
 
     def __init__(self, bot):
         self.bot = bot
 
     # Process an Event-Command (Stream, Game, ...)
-    async def processEventCommand(self, eventType: str, ctx, args, ult=False):
+    async def processEventCommand(self, event_type: str, ctx, args, ult=False):
         global channels, events, squads
 
         # Check for super-user
-        if eventType == 'stream' and ctx.author.name not in settings['super-users'] and not ult:
+        if event_type == 'stream' and ctx.author.name not in settings['super-users'] and not ult:
             await ctx.send('Nanana, das darfst du nicht, Krah Krah!')
             log(f'ERROR: {ctx.author.name} wollte den Stream-Reminder einstellen.')
 
@@ -183,13 +188,17 @@ class Reminder(commands.Cog, name='Events'):
 
         # No argument => Reset stream
         if len(args) == 0:
-            events[eventType].reset()
+            events[event_type].reset()
 
             # Feedback
             # TODO: Wenn wir schon einen Reminder hatten und er wird resettet, lass es alle im richtigen Channel wissen
-            await ctx.send(f"Danke, {ctx.author.display_name}, ich habe den Reminder zurückgesetzt, Krah Krah!")
+            await ctx.send(
+                "Danke, "
+                + ctx.author.display_name
+                + ", ich habe den Reminder zurückgesetzt, Krah Krah!"
+            )
 
-            log(f"Event resettet: {ctx.author.name} - {eventType}")
+            log(f"Event resettet: {ctx.author.name} - {event_type}")
 
         # One or more arguments => Set or update stream
         else:
@@ -204,7 +213,7 @@ class Reminder(commands.Cog, name='Events'):
             # Check for second argument
             if len(args) == 1:
                 # In case of a game, check for the channel
-                if eventType == 'game':
+                if event_type == 'game':
                     # Is the channel a game channel?
                     if ctx.channel.name in channels.keys():
                         # Save the channel for later posts
@@ -213,43 +222,82 @@ class Reminder(commands.Cog, name='Events'):
                         gameStr = f". Gespielt wird: {game}"
                     else:
                         await ctx.send('Hey, das ist kein Spiele-Channel, Krah Krah!')
-                        log(f"ERROR: {ctx.author.name} wollte einen Game-Reminder im Channel {ctx.channel.name} erstellen.")
+                        log(
+                            "ERROR: "
+                            + ctx.author.name 
+                            + "wollte einen Game-Reminder im Channel "
+                            + ctx.channel.name
+                            + "erstellen."
+                        )
                         return
             # More than one argument
             else:
                 game = ' '.join(args[1:])
                 gameStr = f". Gespielt wird: {game}"
-                if eventType == 'game':
+                if event_type == 'game':
                     channels['game'] = server.get_channel(379345471719604236)
 
             # Update event
-            log(f"{ctx.author.name} hat das Event {eventType} geupdatet.")
-            events[eventType].updateEvent('25:00' if ult else time, game)
+            log(f"{ctx.author.name} hat das Event {event_type} geupdatet.")
+            events[event_type].update_event('25:00' if ult else time, game)
 
             # Add creator to the watchlist
-            log(f"{ctx.author.name} wurde zum Event {eventType} hinzugefügt.")
-            events[eventType].addMember(ctx.author)
+            log(f"{ctx.author.name} wurde zum Event {event_type} hinzugefügt.")
+            events[event_type].add_member(ctx.author)
 
             # Direct feedback for the creator
             # Stream
-            if eventType == 'stream':
+            if event_type == 'stream':
                 if ctx.channel != channels['stream']:
-                    await ctx.send(f"Ich habe einen Stream-Reminder für {time} Uhr eingerichtet, Krah Krah!")
+                    await ctx.send(
+                        f"Ich habe einen Stream-Reminder für {time} Uhr eingerichtet, Krah Krah!"
+                    )
 
                 if ult:
-                    a = random.choice(['geile', 'saftige', 'knackige', 'wohlgeformte', 'kleine aber feine', 'prall gefüllte'])
-                    o = random.choice(['Möhren', 'Pflaumen', 'Melonen', 'Oliven', 'Nüsse', 'Schinken'])
-                    v = random.choice(['mit Öl bepinselt und massiert', 'vernascht', 'gebürstet', 'gefüllt', 'gebuttert', 'geknetet'])
+                    a = random.choice([
+                        'geile',
+                        'saftige',
+                        'knackige',
+                        'wohlgeformte',
+                        'kleine aber feine',
+                        'prall gefüllte'
+                    ])
+                    o = random.choice([
+                        'Möhren',
+                        'Pflaumen',
+                        'Melonen',
+                        'Oliven',
+                        'Nüsse',
+                        'Schinken'
+                    ])
+                    v = random.choice([
+                        'mit Öl bepinselt und massiert',
+                        'vernascht',
+                        'gebürstet',
+                        'gefüllt',
+                        'gebuttert',
+                        'geknetet'
+                    ])
                     guest = f'<@{ctx.author.id}>'
                     gameStr = f". Heute werden {a} {o} {v}, mit dabei als Special-Guest: {guest}"
+
                 # Announce the event in the right channel
                 if game == 'bot':
-                    await client.get_channel(580143021790855178).send(f"Macht euch bereit für einen Stream, um {time} Uhr wird am Bot gebastelt, Krah Krah!")
+                    await client.get_channel(580143021790855178).send(
+                        "Macht euch bereit für einen Stream, "
+                        + f"um {time} Uhr wird am Bot gebastelt, Krah Krah!"
+                    )
                 else:
-                    await channels['stream'].send(f"{'Kochstudio! ' if ult else ''}Macht euch bereit für einen Stream, um {time} Uhr{gameStr}, Krah Krah!")
+                    await channels['stream'].send(
+                        'Kochstudio! ' if ult else ''
+                        + "Macht euch bereit für einen Stream, "
+                        + f"um {time} Uhr{gameStr}, Krah Krah!"
+                    )
             # Game
             else:
-                await ctx.send(f"Macht euch bereit für ein Ründchen Coop um {time} Uhr{gameStr}, Krah Krah!")
+                await ctx.send(
+                    f"Macht euch bereit für ein Ründchen Coop um {time} Uhr{gameStr}, Krah Krah!"
+                )
                 if ctx.channel.name in squads.keys():
                     members = ''
                     for m in squads[ctx.channel.name].values():
@@ -259,7 +307,7 @@ class Reminder(commands.Cog, name='Events'):
             log(f"Event-Info wurde mitgeteilt, das Squad wurde benachrichtigt.")
 
     # Process the Request for Event-Info
-    async def processEventInfo(self, eventType: str, ctx):
+    async def processEventInfo(self, event_type: str, ctx):
         global events
 
         # Charge!
@@ -267,53 +315,64 @@ class Reminder(commands.Cog, name='Events'):
         await addFaith(ctx.author.id, 5)
 
         # There is no event
-        if events[eventType].eventTime == '':
-            if eventType == 'stream':
+        if events[event_type].event_time == '':
+            if event_type == 'stream':
                 await ctx.send(f"Es wurde noch kein Stream angekündigt, Krah Krah!")
             else:
                 await ctx.send(f"Es wurde noch keine Coop-Runde angekündigt, Krah Krah!")
-            log(f"ERROR: {ctx.author.name} hat nach einem Event {eventType} gefragt, dass es nicht gibt.")
+            log(
+                f"ERROR: {ctx.author.name} hat nach einem Event "
+                + f"{event_type} gefragt, das es nicht gibt.")
 
         # There is an event
         else:
             # Get the right words
-            if eventType == 'stream':
+            if event_type == 'stream':
                 beginStr = "Der nächste Stream"
             else:
                 beginStr = "Die nächste Coop-Runde"
 
             # Check for game
-            if events[eventType].eventGame == '':
-                gameStr = ""
+            if events[event_type].event_game == '':
+                game_str = ""
             else:
-                gameStr = f"Gespielt wird: {events[eventType].eventGame}. "
+                game_str = f"Gespielt wird: {events[event_type].event_game}. "
 
             # Get the members
-            members = ", ".join(events[eventType].eventMembers.values())
+            members = ", ".join(events[event_type].event_members.values())
 
             # Post the info
-            await ctx.send(f"{beginStr} beginnt um {events[eventType].eventTime} Uhr. {gameStr}Mit dabei sind bisher: {members}, Krah Krah!")
-            log(f"{ctx.author.name} hat nach einem Event {eventType} gefragt. Die Infos dazu wurden rausgehauen.")
+            await ctx.send(
+                f"{beginStr} beginnt um {events[event_type].event_time} Uhr. "
+                + f"{game_str}Mit dabei sind bisher: {members}, Krah Krah!"
+            )
+            log(
+                f"{ctx.author.name} hat nach einem Event {event_type} gefragt. "
+                + "Die Infos dazu wurden rausgehauen."
+            )
 
     # Join an event
-    async def joinEvent(self, eventType: str, ctx):
+    async def joinEvent(self, event_type: str, ctx):
         global events
 
-        if events[eventType].eventTime == '':
+        if events[event_type].event_time == '':
             await ctx.send(f"Nanu, anscheinend gibt es nichts zum Beitreten, Krah Krah!")
-            log(f"ERROR: {ctx.author.name} wollte einem Event {eventType} beitreten, dass es nicht gibt.")
+            log(
+                f"ERROR: {ctx.author.name} wollte einem Event "
+                + f"{event_type} beitreten, dass es nicht gibt."
+            )
         else:
             # Charge!
             await addUltCharge(5)
             await addFaith(ctx.author.id, 5)
 
-            if ctx.author.display_name in events[eventType].eventMembers.values():
+            if ctx.author.display_name in events[event_type].event_members.values():
                 await ctx.send(f"Hey du Vogel, du stehst bereits auf der Teilnehmerliste, Krah Krah!")
-                log(f"ERROR: {ctx.author.name} steht bereits auf der Teilnehmerliste von Event {eventType}.")
+                log(f"ERROR: {ctx.author.name} steht bereits auf der Teilnehmerliste von Event {event_type}.")
             else:
-                events[eventType].addMember(ctx.author)
+                events[event_type].add_member(ctx.author)
                 await ctx.send(f"Alles klar, ich packe dich auf die Teilnehmerliste, Krah Krah!")
-                log(f"{ctx.author.name} wurde auf die Teilnehmerliste von Event {eventType} hinzugefügt.")
+                log(f"{ctx.author.name} wurde auf die Teilnehmerliste von Event {event_type} hinzugefügt.")
 
     # Commands
     @commands.command(
@@ -876,6 +935,18 @@ class Administration(commands.Cog, name='Administration'):
     def __init__(self, bot):
         self.bot = bot
 
+    @commands.command()
+    async def commandlist(self, ctx):
+        commands = self.bot.commands
+
+        for c in commands:
+            if c.name == 'ow':
+                await c.__call__(ctx)
+
+    @commands.Cog.listener()
+    async def on_command_completion(self, ctx):
+        print("Command: " + ctx.command.name)
+
     @isSuperUser()
     @commands.group(
         name='bot',
@@ -980,7 +1051,7 @@ async def on_ready():
     await client.change_presence(activity=discord.Game(f"Charge: {int(STATE['ultCharge'])}%"))
 
     # Start Loop
-    await timeCheck.start()
+    timeCheck.start()
 
 ##### Tasks #####
 @tasks.loop(seconds=5)
@@ -999,7 +1070,7 @@ async def timeCheck():
             try:
                 quote = text_model.make_sentence(tries=100)
                 while quote == None:
-                    log(f"Quote: Kein Zitat gefunden, neuer Versuch ...")
+                    log("Quote: Kein Zitat gefunden, neuer Versuch ...")
                     quote = text_model.make_sentence(tries=100)
 
                 # No Discord Quotes allowed in Quotes
@@ -1012,24 +1083,32 @@ async def timeCheck():
             except Exception as e:
                 log(f'ERROR: Kein Zitat des Tages: {e}')
 
+        if timenow == '19:30':
+            try:
+                for c in client.commands:
+                    if c.name == 'gartic':
+                        await c.__call__(None, channel = client.get_channel(815702384688234538))
+            except Exception as e:
+                log(f'ERROR: Kein Gartic-Image des Tages: {e}')
+
             # await Administration._av(Administration, None)
         
         # Check for events now
         for e in events.values():
-            if e.eventTime == timenow:
-                log(f"Ein Event beginnt: {e.eventType}!")
+            if e.event_time == timenow:
+                log(f"Ein Event beginnt: {e.event_type}!")
                 
                 members = ""
-                for m in e.eventMembers.keys():
+                for m in e.event_members.keys():
                     members += f"<@{m}> "
 
-                if e.eventType == 'stream':
-                    if e.eventGame == 'bot':
-                        await client.get_channel(580143021790855178).send(f"Oh, ist es denn schon {e.eventTime} Uhr? Dann ab auf https://www.twitch.tv/hanseichlp ... es wird endlich wieder am Bot gebastelt, Krah Krah! Heute mit von der Partie: {members}", tts=False)
+                if e.event_type == 'stream':
+                    if e.event_game == 'bot':
+                        await client.get_channel(580143021790855178).send(f"Oh, ist es denn schon {e.event_time} Uhr? Dann ab auf https://www.twitch.tv/hanseichlp ... es wird endlich wieder am Bot gebastelt, Krah Krah! Heute mit von der Partie: {members}", tts=False)
                     else:
-                        await channels['stream'].send(f"Oh, ist es denn schon {e.eventTime} Uhr? Dann ab auf https://www.twitch.tv/schnenko/ ... der Stream fängt an, Krah Krah! Heute mit von der Partie: {members}", tts=False)
+                        await channels['stream'].send(f"Oh, ist es denn schon {e.event_time} Uhr? Dann ab auf https://www.twitch.tv/schnenko/ ... der Stream fängt an, Krah Krah! Heute mit von der Partie: {members}", tts=False)
                 else:
-                    await channels['game'].send(f"Oh, ist es denn schon {e.eventTime} Uhr? Dann ab in den Voice-Chat, {e.eventGame} fängt an, Krah Krah! Heute mit von der Partie: {members}", tts=False)
+                    await channels['game'].send(f"Oh, ist es denn schon {e.event_time} Uhr? Dann ab in den Voice-Chat, {e.event_game} fängt an, Krah Krah! Heute mit von der Partie: {members}", tts=False)
                 
                 e.reset()
                 log('Event-Post abgesetzt, Timer resettet.')

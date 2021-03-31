@@ -5,6 +5,7 @@
 __pycache__
 *.json
 *.jpg
+*.png
 channel_messages.txt
 logs
-testfiles
+gartic
