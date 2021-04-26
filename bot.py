@@ -11,6 +11,7 @@ import json
 from urllib.request import urlopen
 from urllib.parse import quote as urlquote
 import math
+from discord.ext.commands.bot import Bot
 
 from dotenv import load_dotenv
 import markovify
@@ -1044,7 +1045,9 @@ async def on_ready():
     startup()
 
     for filename in os.listdir('./cogs'):
-        if filename.endswith('.py') and not filename.startswith('__'):
+        if (filename.endswith('.py') 
+                and not filename.startswith('__')
+                and f"cogs.{filename[:-3]}" not in client.extensions.keys()):
             client.load_extension(f"cogs.{filename[:-3]}")
 
     # First Ult Charge Update
