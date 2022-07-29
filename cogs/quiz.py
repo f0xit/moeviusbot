@@ -196,14 +196,15 @@ class Quiz(commands.Cog, name='Quiz'):
                 reverse=True
             ))
 
+            broken_users = []
             max_length = {"name": 0, "points": 0}
             for user_id, user_data in sorted_ranking.items():
                 if (user := self.bot.get_user(int(user_id))) is None:
-                    sorted_ranking.pop(user_id)
+                    broken_users.append(user_id)
                     continue
 
                 if (user_name := user.display_name) is None:
-                    sorted_ranking.pop(user_id)
+                    broken_users.append(user_id)
                     continue
 
                 name_length = len(user_name)
@@ -214,6 +215,9 @@ class Quiz(commands.Cog, name='Quiz'):
 
                 if max_length['points'] < points:
                     max_length['points'] = points
+
+            for user_id in broken_users:
+                sorted_ranking.pop(user_id)
 
             embed = discord.Embed(
                 title="Punktetabelle Quiz",
