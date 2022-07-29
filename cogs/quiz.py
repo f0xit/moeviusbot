@@ -61,19 +61,19 @@ class Quiz(commands.Cog, name='Quiz'):
 
     async def get_question_output(self):
         embed = discord.Embed(
-                title=self.question['question'],
-                colour=discord.Colour(0xff00ff),
-                description="\n".join([*map(
-                    lambda a: f"{a[0]}: {a[1]['text']}",
-                    self.question['answers'].items()
-                )])
-            )
+            title=self.question['question'],
+            colour=discord.Colour(0xff00ff),
+            description="\n".join([*map(
+                lambda a: f"{a[0]}: {a[1]['text']}",
+                self.question['answers'].items()
+            )])
+        )
         return({
-                "content": f"**Frage {self.game_stage + 1} - "
-                + f"{self.stages[self.game_stage]}🕊**\n"
-                + f"Kategorie: {self.question['category']}",
-                "embed": embed
-            })
+            "content": f"**Frage {self.game_stage + 1} - "
+            + f"{self.stages[self.game_stage]}🕊**\n"
+            + f"Kategorie: {self.question['category']}",
+            "embed": embed
+        })
 
     async def stop_quiz(self):
         self.player = None
@@ -87,13 +87,15 @@ class Quiz(commands.Cog, name='Quiz'):
         try:
             with open('quiz_ranking.json', 'r') as file:
                 ranking = json.load(file)
+        except OSError as err:
+            log("OS error: {0}".format(err))
         finally:
             with open('quiz_ranking.json', 'w') as file:
-                try:
+                if player_id in ranking.keys():
                     ranking[player_id]['name'] = self.player.display_name
                     ranking[player_id]['points'] += amount
                     ranking[player_id]['tries'] += 1
-                except KeyError:
+                else:
                     ranking[player_id] = {
                         "name": self.player.display_name,
                         "points": amount,
@@ -103,6 +105,7 @@ class Quiz(commands.Cog, name='Quiz'):
                 json.dump(ranking, file)
 
     # Commands
+
     @commands.group(
         name='quiz',
         brief='Startet eine Quiz Runde'
@@ -193,29 +196,37 @@ class Quiz(commands.Cog, name='Quiz'):
                 reverse=True
             ))
 
-            maxlength = {"name": 0, "points": 0}
-            for item in sorted_ranking.items():
-                name = len(self.bot.get_user(int(item[0])).display_name)
-                points = len(format(item[1]['points'], ',d'))
+            max_length = {"name": 0, "points": 0}
+            for user_id, user_data in sorted_ranking.items():
+                if (user := self.bot.get_user(int(user_id))) is None:
+                    sorted_ranking.pop(user_id)
+                    continue
 
-                if maxlength['name'] < name:
-                    maxlength['name'] = name
+                if (user_name := user.display_name) is None:
+                    sorted_ranking.pop(user_id)
+                    continue
 
-                if maxlength['points'] < points:
-                    maxlength['points'] = points
+                name_length = len(user_name)
+                points = len(format(user_data['points'], ',d'))
+
+                if max_length['name'] < name_length:
+                    max_length['name'] = name_length
+
+                if max_length['points'] < points:
+                    max_length['points'] = points
 
             embed = discord.Embed(
                 title="Punktetabelle Quiz",
                 colour=discord.Colour(0xff00ff),
                 description="```" + "\n".join([
-                    *map(lambda a: (
-                        f"{self.bot.get_user(int(a[0])).display_name}"
-                            .ljust(maxlength['name'] + 4, ' ')
-                        + f"{format(a[1]['points'],',d').replace(',','.')}🕊 "
-                            .rjust(maxlength['points'] + 4, ' ')
-                        + f"{a[1]['tries']} Versuch"
+                    *map(lambda item: (
+                        f"{self.bot.get_user(int(item[0])).display_name}"
+                            .ljust(max_length['name'] + 4, ' ')
+                        + f"{format(item[1]['points'],',d').replace(',','.')}🕊 "
+                            .rjust(max_length['points'] + 4, ' ')
+                        + f"{item[1]['tries']} Versuch"
                             .rjust(14, ' ')
-                        + f"{'' if a[1]['tries'] == 1 else 'e'}"
+                        + f"{'' if item[1]['tries'] == 1 else 'e'}"
                     ), sorted_ranking.items())
                 ]) + "```"
             )
