@@ -751,7 +751,7 @@ class Fun(commands.Cog, name='Spaß'):
                 messages = await channel.history(limit=lim).flatten()
             except discord.Forbidden as err:
                 log(f"Fehler beim Lesen der History in channel {channel.name}")
-                log(err)
+                log(str(err))
                 continue
 
             for message in messages:
