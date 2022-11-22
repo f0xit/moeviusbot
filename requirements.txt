@@ -2,7 +2,7 @@ autocorrect==2.6.1
 beautifulsoup4==4.10.0
 discord.py==1.7.3
 markovify==0.9.4
-Pillow==9.0.1
+Pillow==9.3.0
 python-dotenv==0.19.2
 PyYAML==6.0
 requests==2.27.1
