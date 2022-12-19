@@ -6,9 +6,11 @@ from discord.ext import commands
 
 from myfunc import log
 
-def setup(bot):
-    bot.add_cog(Wurstfinger(bot))
+
+async def setup(bot):
+    await bot.add_cog(Wurstfinger(bot))
     log("Cog: Wurstfinger geladen.")
+
 
 class Wurstfinger(commands.Cog, name='Wurstfinger'):
     def __init__(self, bot):
@@ -69,13 +71,14 @@ class Wurstfinger(commands.Cog, name='Wurstfinger'):
                 continue
 
             try:
-                if random.randint(1,round(100/max(min(percent,100),1))) == 1:
-                    character = random.choice(self.substitute[character.lower()])
+                if random.randint(1, round(100/max(min(percent, 100), 1))) == 1:
+                    character = random.choice(
+                        self.substitute[character.lower()])
                     if uppercase:
                         character = character.upper()
             except KeyError:
                 pass
             finally:
                 output += character
-            
+
         await ctx.send(f"Oder wie Schnenk, es sagen würde:\n{output} Krah Krah!")

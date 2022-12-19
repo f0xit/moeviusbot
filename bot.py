@@ -11,7 +11,7 @@ import json
 from urllib.request import urlopen
 from urllib.parse import quote as urlquote
 import math
-from discord.ext.commands.bot import Bot
+import asyncio
 
 from dotenv import load_dotenv
 import markovify
@@ -32,9 +32,7 @@ TOKEN = os.getenv('DISCORD_TOKEN')
 log('Token wurde geladen.')
 
 # Get the Discord Client Object
-intents = discord.Intents.default()
-intents.members = True
-intents.presences = True
+intents = discord.Intents.all()
 client = commands.Bot(command_prefix=('!', '?'), intents=intents)
 
 # Variables for global use
@@ -519,7 +517,7 @@ class Reminder(commands.Cog, name='Events'):
                             member = ctx.author
                         else:
                             try:
-                                member = client.get_user(int(arg[3:-1]))
+                                member = client.get_user(int(arg[2:-1]))
                             except:
                                 member = None
 
@@ -964,10 +962,6 @@ class Fun(commands.Cog, name='Spaß'):
         await addUltCharge(5)
         await addFaith(ctx.author.id, 1)
 
-    # @commands.Cog.listener()
-    # async def on_command(self, ctx):
-    #     print(ctx)
-
 
 class Administration(commands.Cog, name='Administration'):
     '''Diese Kategorie erfordert bestimmte Berechtigungen'''
@@ -982,10 +976,6 @@ class Administration(commands.Cog, name='Administration'):
         for c in commands:
             if c.name == 'ow':
                 await c.__call__(ctx)
-
-    @commands.Cog.listener()
-    async def on_command_completion(self, ctx):
-        print("Command: " + ctx.command.name)
 
     @isSuperUser()
     @commands.group(
@@ -1076,12 +1066,6 @@ class Administration(commands.Cog, name='Administration'):
             await ctx.send("Diese Extensions ist nicht aktiv.")
 
 
-##### Add the cogs #####
-client.add_cog(Administration(client))
-client.add_cog(Reminder(client))
-client.add_cog(Fun(client))
-
-
 @client.event
 async def on_ready():
     # Load Settings for the first time
@@ -1091,7 +1075,7 @@ async def on_ready():
         if (filename.endswith('.py')
                 and not filename.startswith('__')
                 and f"cogs.{filename[:-3]}" not in client.extensions.keys()):
-            client.load_extension(f"cogs.{filename[:-3]}")
+            await client.load_extension(f"cogs.{filename[:-3]}")
 
     # First Ult Charge Update
     await client.change_presence(activity=discord.Game(f"Charge: {int(STATE['ultCharge'])}%"))
@@ -1165,7 +1149,6 @@ async def timeCheck():
 
 @client.event
 async def on_message(message):
-    # Somehow has to be there
     if message.author == client.user:
         return
 
@@ -1224,15 +1207,16 @@ async def on_raw_reaction_remove(payload):
 async def on_command_error(ctx, error):
     log(f"ERROR: {ctx.author.name} - {ctx.message.content} - {error}")
 
-# @client.event
-# async def on_member_update(before, after):
-#     global settings
 
-#     if before.guild.id == int(settings['server_id']) and before.id == 323185601631485953:
-#         if before.raw_status == 'offline' and after.raw_status != 'offline':
-#             await client.get_channel(580143021790855178).send('https://tenor.com/view/platypus-awkward-running-gif-4576818')
-#             await client.get_channel(580143021790855178).send('Da kommt er angekrabbelt, Krah Krah!')
+async def add_cogs():
+    ##### Add the cogs #####
+    await client.add_cog(Administration(client))
+    await client.add_cog(Reminder(client))
+    await client.add_cog(Fun(client))
+
 
 # Connect to Discord
 if __name__ == "__main__":
+    asyncio.run(add_cogs())
+
     client.run(TOKEN)

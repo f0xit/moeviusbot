@@ -6,8 +6,8 @@ from discord.ext import commands
 from myfunc import log, load_file, gcts
 
 
-def setup(bot):
-    bot.add_cog(Quiz(bot))
+async def setup(bot):
+    await bot.add_cog(Quiz(bot))
     log("Cog: Quiz geladen.")
 
 

@@ -6,22 +6,28 @@ from bs4 import BeautifulSoup
 
 from myfunc import log
 
-def setup(bot):
-    bot.add_cog(Overwatch(bot))
+
+async def setup(bot):
+    await bot.add_cog(Overwatch(bot))
     log("Cog: Overwatch geladen.")
+
 
 def append_to_output(input_string: str):
     return ["- " + i for i in input_string.split('\n') if i != '']
+
 
 class Overwatch(commands.Cog, name='Overwatch'):
     def __init__(self, bot):
         self.bot = bot
 
-        self.overwatch_page = requests.get('https://playoverwatch.com/de-de/heroes/')
-        self.overwatch_soup = BeautifulSoup(self.overwatch_page.content, 'html.parser')
+        self.overwatch_page = requests.get(
+            'https://playoverwatch.com/de-de/heroes/')
+        self.overwatch_soup = BeautifulSoup(
+            self.overwatch_page.content, 'html.parser')
         self.heroes = {}
 
-        cells = self.overwatch_soup.find_all('div', class_='hero-portrait-detailed-container')
+        cells = self.overwatch_soup.find_all(
+            'div', class_='hero-portrait-detailed-container')
 
         for cell in cells:
             self.heroes[cell.text] = cell.attrs["data-groups"][2:-2].title()
@@ -35,9 +41,12 @@ class Overwatch(commands.Cog, name='Overwatch'):
         brief='Liefert dir, falls vorhanden, die neusten Änderungen bei Helden aus den Patchnotes'
     )
     async def _owpn(self, ctx):
-        patch_notes_page = requests.get('https://playoverwatch.com/de-de/news/patch-notes/live')
-        patch_notes_soup = BeautifulSoup(patch_notes_page.content, 'html.parser')
-        patch = patch_notes_soup.find_all('div', class_='PatchNotes-patch')[0].contents
+        patch_notes_page = requests.get(
+            'https://playoverwatch.com/de-de/news/patch-notes/live')
+        patch_notes_soup = BeautifulSoup(
+            patch_notes_page.content, 'html.parser')
+        patch = patch_notes_soup.find_all(
+            'div', class_='PatchNotes-patch')[0].contents
 
         output_array = []
 
@@ -76,7 +85,8 @@ class Overwatch(commands.Cog, name='Overwatch'):
                         hero_abilities = field.contents
 
                         for ability in hero_abilities:
-                            output_array.append(ability.contents[1].contents[0].text)
+                            output_array.append(
+                                ability.contents[1].contents[0].text)
                             output_array += append_to_output(
                                 ability.contents[1].contents[1].text
                             )
@@ -103,7 +113,7 @@ class Overwatch(commands.Cog, name='Overwatch'):
             + ('sich ' if who == 'me' else 'alle ')
             + "verlangt. Rolle: "
             + str(role)
-        )
+            )
 
         output = ["Random Heroes? Kein Problem, Krah Krah!"]
 
@@ -120,7 +130,8 @@ class Overwatch(commands.Cog, name='Overwatch'):
         for member in members:
             hero = random.choice(list(heroes.keys()))
 
-            output.append(f"{member.display_name} spielt: {hero} ({heroes.pop(hero)})")
+            output.append(
+                f"{member.display_name} spielt: {hero} ({heroes.pop(hero)})")
 
         if output != []:
             await ctx.channel.send("\n".join(output))

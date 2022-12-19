@@ -11,9 +11,11 @@ from myfunc import log
 
 CHANNEL = 815702384688234538
 
-def setup(bot):
-    bot.add_cog(Gartic(bot))
+
+async def setup(bot):
+    await bot.add_cog(Gartic(bot))
     log("Cog: Gartic geladen.")
+
 
 class Gartic(commands.Cog, name='Gartic'):
     def __init__(self, bot):
@@ -23,7 +25,7 @@ class Gartic(commands.Cog, name='Gartic'):
         name='gartic',
         brief='Zeigt ein zufälliges Gartic-Gemälde aus dem Archiv.'
     )
-    async def generate_random_painting(self, ctx, channel = None):
+    async def generate_random_painting(self, ctx, channel=None):
 
         try:
             raw_rounds = os.listdir("gartic")
@@ -62,7 +64,8 @@ class Gartic(commands.Cog, name='Gartic'):
             story_gif.seek(2*position + 1)
             story_gif.save("gartic_image.png")
 
-            output_image = Image.new('RGB', (story_gif.width, 2*story_gif.height))
+            output_image = Image.new(
+                'RGB', (story_gif.width, 2*story_gif.height))
 
             image_top = Image.open("gartic_text.png")
             image_bottom = Image.open("gartic_image.png")
@@ -78,11 +81,11 @@ class Gartic(commands.Cog, name='Gartic'):
                 )
             else:
                 await channel.send(
-                        "Guten Abend, Krah Krah! Hier kommt das tägliche "
-                    +   "Highlight aus dem Gartic Phone-Archiv, Krah Krah!",
+                    "Guten Abend, Krah Krah! Hier kommt das tägliche "
+                    + "Highlight aus dem Gartic Phone-Archiv, Krah Krah!",
                     file=discord.File('gartic_output.png')
                 )
-            
+
         except Exception as e:
             print(e)
 
