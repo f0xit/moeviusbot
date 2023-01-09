@@ -462,24 +462,32 @@ class Reminder(commands.Cog, name='Events'):
     async def _hey(self, ctx):
         global squads, events
 
-        if ctx.channel.category == "Spiele":
+        if ctx.channel.category.name != "Spiele":
             await ctx.send('Hey, das ist kein Spiele-Channel, Krah Krah!')
             log(f"ERROR: {ctx.author.name} hat das Squad außerhalb eines Spiele-Channels gerufen.")
-        else:
-            # Ult & Faith
-            await addUltCharge(5)
-            await addFaith(ctx.author.id, 5)
+            return
 
-            members = ''
-            for m in squads[ctx.channel.name].values():
-                if m != ctx.author.id and str(m) not in events['game'].eventMembers.keys():
-                    members += f'<@{m}> '
-            if members != '':
-                await ctx.send(f"Hey Squad! Ja, genau ihr seid gemeint, Krah Krah!\n{members}")
-                log(f"{ctx.author.name} hat das Squad in {ctx.channel.name} gerufen.")
-            else:
-                await ctx.send(f"Entweder gibt es hier kein Squad oder alle wissen schon bescheid, Krah Krah!")
-                log(f"ERROR: {ctx.author.name} hat das Squad in {ctx.channel.name} gerufen aber es gibt keins.")
+        if len(squads[ctx.channel.name]) == 0:
+            await ctx.send('Hey, hier gibt es kein Squad, Krah Krah!')
+            log(f"ERROR: {ctx.author.name} hat ein leeres Squad in {ctx.channel.name} gerufen.")
+            return
+
+        # Ult & Faith
+        await addUltCharge(5)
+        await addFaith(ctx.author.id, 5)
+
+        members = []
+        for member in squads[ctx.channel.name].values():
+            if member != ctx.author.id and str(member) not in events['game'].event_members.keys():
+                members.append(f'<@{member}>')
+
+        if len(members) == 0:
+            await ctx.send(f"Hey, es wissen schon alle bescheid, Krah Krah!")
+            log(f"ERROR: {ctx.author.name} hat das Squad in {ctx.channel.name} gerufen aber es sind schon alle gejoint.")
+            return
+
+        await ctx.send(f"Hey Squad! Ja, genau ihr seid gemeint, Krah Krah!\n{' '.join(members)}")
+        log(f"{ctx.author.name} hat das Squad in {ctx.channel.name} gerufen.")
 
     @commands.command(
         name='squad',
