@@ -277,7 +277,6 @@ class Reminder(commands.Cog, name='Events'):
 
             # Second argument: Game
             game = ''
-            game_string = ''
 
             # Check for second argument
             if len(args) == 1:
@@ -288,7 +287,6 @@ class Reminder(commands.Cog, name='Events'):
                         # Save the channel for later posts
                         CHANNELS['game'] = ctx.channel
                         game = ctx.channel.name.replace('-', ' ').title()
-                        game_string = f". Gespielt wird: {game}"
                     else:
                         await ctx.send('Hey, das ist kein Spiele-Channel, Krah Krah!')
                         logging.warning(
@@ -300,7 +298,6 @@ class Reminder(commands.Cog, name='Events'):
             # More than one argument
             else:
                 game = ' '.join(args[1:])
-                game_string = f". Gespielt wird: {game}"
                 if event_type == 'game':
                     CHANNELS['game'] = SERVER.get_channel(379345471719604236)
 
@@ -353,7 +350,7 @@ class Reminder(commands.Cog, name='Events'):
                         'geknetet'
                     ])
                     guest = f'<@{ctx.author.id}>'
-                    game_string = f". Heute werden {adj} {obj} {vrb}, mit dabei als " \
+                    game = f". Heute werden {adj} {obj} {vrb}, mit dabei als " \
                         f"Special-Guest: {guest}"
 
                 # Announce the event in the right channel
@@ -364,22 +361,31 @@ class Reminder(commands.Cog, name='Events'):
                     )
                 else:
                     await CHANNELS['stream'].send(
-                        'Kochstudio! ' if ult else ''
-                        + "Macht euch bereit für einen Stream, "
-                        + f"um {event_time} Uhr{game_string}, Krah Krah!"
+                        '**Kochstudio!**\n' if ult else ''
+                        + '**Macht euch bereit für einen Stream!**\n'
+                        + f'Wann? {event_time} Uhr\n'
+                        + f'Was? {game}\n'
+                        + 'Gebt mir ein !join, Krah Krah!'
                     )
             # Game
             else:
                 await ctx.send(
-                    f"Macht euch bereit für ein Ründchen Coop um {event_time} "
-                    f"Uhr{game_string}, Krah Krah!"
+                    '**Macht euch bereit für ein Ründchen Coop!**\n'
+                    + f'Wann? {event_time} Uhr\n'
+                    + f'Was? {game}\n'
+                    + 'Gebt mir ein !join, Krah Krah!'
                 )
                 if ctx.channel.name in SQUADS.keys():
-                    members = ''
-                    for member in SQUADS[ctx.channel.name].values():
-                        if member != ctx.author.id:
-                            members += f'<@{member}> '
-                    await ctx.send(f"Das gilt insbesondere für das Squad, Krah Krah!\n{members}")
+                    members = [
+                        f'<@{member}> '
+                        if member != ctx.author.id else None
+                        for member in SQUADS[ctx.channel.name].values()
+                    ]
+                    if members:
+                        await ctx.send(
+                            "Das gilt insbesondere für das Squad, Krah Krah!\n"
+                            + " ".join(members)
+                        )
 
             logging.info(
                 "Event-Info wurde mitgeteilt, das Squad wurde benachrichtigt."
