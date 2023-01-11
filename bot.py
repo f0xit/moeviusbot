@@ -754,10 +754,10 @@ class Fun(commands.Cog, name='Spaß'):
         name='ps5',
         brief='Vergleicht die erste Zahl aus der vorherigen Nachricht mit dem  Preis einer PS5.'
     )
-    async def _ps5(self, ctx):
+    async def _ps5(self, ctx: commands.Context):
         ps5_price = 499
 
-        history = await ctx.channel.history(limit=2).flatten()
+        history = [msg async for msg in ctx.channel.history(limit=2)]
         message = history[1].content
 
         number = float(
@@ -984,7 +984,7 @@ class Fun(commands.Cog, name='Spaß'):
         for channel in rammgut.text_channels:
             number_of_channels += 1
             try:
-                messages = await channel.history(limit=lim).flatten()
+                messages = [msg async for msg in channel.history(limit=lim)]
             except discord.Forbidden as exc_msg:
                 logging.error(
                     "Fehler beim Lesen der History in channel %s: %s",
@@ -1219,10 +1219,10 @@ class Fun(commands.Cog, name='Spaß'):
     @commands.command(
         name='wurstfinger'
     )
-    async def _wurstfinger(self, ctx):
+    async def _wurstfinger(self, ctx: commands.Context):
         start_time = time.time()
 
-        history = await ctx.channel.history(limit=2).flatten()
+        history = [msg async for msg in ctx.channel.history(limit=2)]
         message = history[1].content
         correction = self.speller(message)
 

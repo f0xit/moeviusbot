@@ -50,13 +50,26 @@ class CustomFormatter(logging.Formatter):
 
     FORMATS = {
         level: logging.Formatter(
-            f'\x1b[30;1m%(asctime)s\x1b[0m {colour}%(levelname)-8s\x1b[0m \x1b[35m%(name)s\x1b[0m %(message)s',
+            f'\x1b[30;1m%(asctime)s\x1b[0m {colour}%(levelname)-8s'
+            '\x1b[0m \x1b[35m%(name)s\x1b[0m %(message)s',
             '%Y-%m-%d %H:%M:%S',
         )
         for level, colour in LEVEL_COLOURS
     }
 
     def format(self, record) -> str:
+        '''Dangerously like String? Well, only in that the two functions appear to use the same
+        underlying infrastructure, namely Unicode, in a similar way. They both essentially convert
+        a string literal (which comes with a certain intrinsic complexity) to a Unicode string with
+        a given format. This means that they share some built-in rules for Unicode strings, and
+        they use some of the Unicode structuring of strings. They differ in their methods of
+        encoding strings to the underlying storage, though. The compact representation uses an
+        encoding/decoding object: [U]array = [U]Array[UTF8String]; The encoding/decoding object
+        takes a slice (representing a Unicode string slice) as argument. It takes this slice and
+        converts it into an appropriate ASCII text. For UTF8String this would mean to convert it
+        to [StringBuffer] and back. The compact representation does not use the parsing routines
+        for Unicode strings - they are expensive - to convert string'''
+
         formatter = self.FORMATS.get(record.levelno)
         if formatter is None:
             formatter = self.FORMATS[logging.DEBUG]
