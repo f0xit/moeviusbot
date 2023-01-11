@@ -1,14 +1,18 @@
 # Helper Functions
 from datetime import datetime
 import json
-import os
+import logging
 
 # Timestamps for loggin
-def gcts():
+
+
+def gcts() -> str:
     return datetime.now().strftime("%Y.%m.%d %H:%M:%S")
 
 # Format time delta for uptime
-def strfdelta(tdelta, fmt):
+
+
+def strfdelta(tdelta, fmt: str) -> str:
     delta = {"days": tdelta.days}
     delta["hours"], rem = divmod(tdelta.seconds, 3600)
     delta["minutes"], delta["seconds"] = divmod(rem, 60)
@@ -16,26 +20,21 @@ def strfdelta(tdelta, fmt):
     delta["seconds"] = str(delta["seconds"]).zfill(2)
     return fmt.format(**delta)
 
-# A tiny custom logger for console output and log-files
-def log(inputstr):
-    print('[' + gcts() + '] ' + inputstr)
-    if not os.path.exists('logs'):
-        os.makedirs('logs')
-    with open('logs/' + datetime.now().strftime('%Y-%m-%d') + '_moevius.log', 'a+') as file:
-        file.write('[' + gcts() + '] ' + inputstr + '\n')
-
 # A quick and dirty load function for .json-files
-def load_file(name):
+
+
+def load_file(name) -> dict:
     try:
-        with open(f'{name}.json', 'r') as file:
+        with open(f'{name}.json', 'r', encoding="utf-8") as file:
             return json.load(file)
     except IOError:
-        log(f'File {name} konnte nicht geladen werden!')
+        logging.error('File %s konnte nicht geladen werden!', name)
         return {}
 
-def save_file(name, content):
+
+def save_file(name, content) -> None:
     try:
-        with open(f'{name}.json', 'w') as file:
+        with open(f'{name}.json', 'w', encoding="utf-8") as file:
             json.dump(content, file)
     except IOError:
-        log(f'File {name} konnte nicht gespeichert werden!')
+        logging.error('File %s konnte nicht gespeichert werden!', name)
