@@ -2,6 +2,9 @@
 
 ##### Imports #####
 import os
+import sys
+import getopt
+import logging
 import subprocess
 import random
 import re
@@ -24,12 +27,36 @@ from discord.ext import commands, tasks
 
 # Import Custom Stuff
 from event import Event
-from myfunc import log, load_file, save_file, strfdelta
+from myfunc import load_file, save_file, strfdelta
+
+# Import Tools
+from tools.logger_tools import LoggerTools
+
+# Check Python version
+major_version, minor_version, micro_version, _, _ = sys.version_info
+if (major_version, minor_version) < (3, 11):
+    sys.exit("Wrong Python version. Please use at least 3.11.")
 
 ##### First Setup #####
+LOG_TOOL = LoggerTools(level="DEBUG")
+
+# Get options from CLI
+try:
+    options, arguments = getopt.getopt(sys.argv[1:], "l:", ["loglevel="])
+except getopt.GetoptError:
+    sys.exit("Option error.")
+for option, argument in options:
+    match option:
+        case['-l' | '--loglevel']:
+            LOG_TOOL.set_log_level(argument)
+
 load_dotenv()
-TOKEN = os.getenv('DISCORD_TOKEN')
-log('Token wurde geladen.')
+DISCORD_TOKEN = os.getenv('DISCORD_TOKEN')
+
+if DISCORD_TOKEN is None:
+    sys.exit('Discord token not found! Please check your .env file!')
+else:
+    logging.info('Discord token loaded successfully.')
 
 # Get the Discord Client Object
 intents = discord.Intents.all()
@@ -65,42 +92,46 @@ def startup():
 
     # Get Discord objects after settings are loaded
     # Get guild = server
-    log(f"Server-Suche startet.")
+    logging.info(f"Server-Suche startet.")
     server = client.get_guild(int(settings['server_id']))
-    log(f"Server-Suche abgeschlossen: {server.name} [{server.id}]")
+    logging.info(f"Server-Suche abgeschlossen: {server.name} [{server.id}]")
 
     # Get channel for stream and games
-    log(f"Channel-Suche startet.")
+    logging.info(f"Channel-Suche startet.")
     for c in server.text_channels:
         if c.name == settings['channels']['stream']:
             channels['stream'] = c
-            log(
-                f"Channel für Stream gefunden: {c.name.replace('-',' ').title()} [{c.id}]")
+            logging.debug(
+                f"Channel für Stream gefunden: {c.name.replace('-',' ').title()} [{c.id}]"
+            )
         elif c.category is not None:
             if c.category.name == 'Spiele':
                 channels[c.name] = c
-                log(
-                    f"Spiel gefunden: {c.name.replace('-',' ').title()} [{c.id}]")
+                logging.debug(
+                    f"Spiel gefunden: {c.name.replace('-',' ').title()} [{c.id}]"
+                )
                 if c.name not in squads.keys():
                     squads[c.name] = {}
-                    log(f"Leeres Squad erstellt!")
+                    logging.debug(f"Leeres Squad erstellt!")
                 else:
-                    log(f"Squad gefunden: {','.join(squads[c.name].keys())}")
+                    logging.debug(
+                        f"Squad gefunden: {','.join(squads[c.name].keys())}"
+                    )
 
-    log(f"Channel-Suche abgeschlossen.")
+    logging.info(f"Channel-Suche abgeschlossen.")
 
     # 500 Fragen
     with open('fragen.txt', 'r') as f:
         fragen = f.readlines()
-        log('Die Fragen wurden geladen.')
+        logging.info('Die Fragen wurden geladen.')
 
     with open('moevius-bibel.txt', 'r') as f:
         bibel = f.readlines()
-        log('Die Bibel wurde geladen.')
+        logging.info('Die Bibel wurde geladen.')
 
     buildMarkov()
 
-    log("Startup complete!")
+    logging.info("Startup complete!")
 
 # Check for user is Super User
 
@@ -127,9 +158,9 @@ async def addUltCharge(amount):
             with open('state.json', 'w') as f:
                 json.dump(STATE, f)
 
-            log(f'Ult-Charge hinzugefügt: {amount}')
+            logging.debug(f'Ult-Charge hinzugefügt: {amount}')
         else:
-            log(f'Ult-Charge bereit.')
+            logging.info(f'Ult-Charge bereit.')
 
 # Faith
 
@@ -145,7 +176,7 @@ async def addFaith(id, amount):
     with open('faith.json', 'w') as f:
         json.dump(faith, f)
 
-    log(f'Faith wurde hinzugefügt: {id}, {amount}')
+    logging.debug(f'Faith wurde hinzugefügt: {id}, {amount}')
 
 # Markov
 
@@ -153,7 +184,7 @@ async def addFaith(id, amount):
 def buildMarkov(size: int = 3):
     global text_model, quoteby
 
-    log(f"Markov Update gestartet, Size: {size}")
+    logging.info(f"Markov Update gestartet, Size: {size}")
     start_time = time.time()
 
     try:
@@ -165,11 +196,13 @@ def buildMarkov(size: int = 3):
         # Build the model.
         text_model = markovify.NewlineText(text, state_size=size)
 
-        log(
-            f"Markov Update abgeschlossen. Size: {size}, Dauer: {(time.time() - start_time)}")
+        logging.info(
+            f"Markov Update abgeschlossen. Size: {size}, Dauer: {(time.time() - start_time)}"
+        )
     except:
-        log(
-            f"ERROR: Markov fehlgeschlagen. Size: {size}, Dauer: {(time.time() - start_time)}")
+        logging.info(
+            f"ERROR: Markov fehlgeschlagen. Size: {size}, Dauer: {(time.time() - start_time)}"
+        )
 
 ##### Cogs #####
 
@@ -191,7 +224,9 @@ class Reminder(commands.Cog, name='Events'):
         # Check for super-user
         if event_type == 'stream' and ctx.author.name not in settings['super-users'] and not ult:
             await ctx.send('Nanana, das darfst du nicht, Krah Krah!')
-            log(f'ERROR: {ctx.author.name} wollte den Stream-Reminder einstellen.')
+            logging.warning(
+                f'{ctx.author.name} wollte den Stream-Reminder einstellen.'
+            )
 
             # Charge!
             await addUltCharge(1)
@@ -213,7 +248,7 @@ class Reminder(commands.Cog, name='Events'):
                 + ", ich habe den Reminder zurückgesetzt, Krah Krah!"
             )
 
-            log(f"Event resettet: {ctx.author.name} - {event_type}")
+            logging.info(f"Event resettet: {ctx.author.name} - {event_type}")
 
         # One or more arguments => Set or update stream
         else:
@@ -237,12 +272,8 @@ class Reminder(commands.Cog, name='Events'):
                         gameStr = f". Gespielt wird: {game}"
                     else:
                         await ctx.send('Hey, das ist kein Spiele-Channel, Krah Krah!')
-                        log(
-                            "ERROR: "
-                            + ctx.author.name
-                            + "wollte einen Game-Reminder im Channel "
-                            + ctx.channel.name
-                            + "erstellen."
+                        logging.warning(
+                            f'{ctx.author.name} wollte einen Game-Reminder im Channel {ctx.channel.name} erstellen.'
                         )
                         return
             # More than one argument
@@ -253,11 +284,15 @@ class Reminder(commands.Cog, name='Events'):
                     channels['game'] = server.get_channel(379345471719604236)
 
             # Update event
-            log(f"{ctx.author.name} hat das Event {event_type} geupdatet.")
+            logging.info(
+                f"{ctx.author.name} hat das Event {event_type} geupdatet."
+            )
             events[event_type].update_event('25:00' if ult else time, game)
 
             # Add creator to the watchlist
-            log(f"{ctx.author.name} wurde zum Event {event_type} hinzugefügt.")
+            logging.debug(
+                f"{ctx.author.name} wurde zum Event {event_type} hinzugefügt."
+            )
             events[event_type].add_member(ctx.author)
 
             # Direct feedback for the creator
@@ -319,7 +354,10 @@ class Reminder(commands.Cog, name='Events'):
                         if m != ctx.author.id:
                             members += f'<@{m}> '
                     await ctx.send(f"Das gilt insbesondere für das Squad, Krah Krah!\n{members}")
-            log(f"Event-Info wurde mitgeteilt, das Squad wurde benachrichtigt.")
+
+            logging.info(
+                f"Event-Info wurde mitgeteilt, das Squad wurde benachrichtigt."
+            )
 
     # Process the Request for Event-Info
     async def processEventInfo(self, event_type: str, ctx):
@@ -335,9 +373,9 @@ class Reminder(commands.Cog, name='Events'):
                 await ctx.send(f"Es wurde noch kein Stream angekündigt, Krah Krah!")
             else:
                 await ctx.send(f"Es wurde noch keine Coop-Runde angekündigt, Krah Krah!")
-            log(
-                f"ERROR: {ctx.author.name} hat nach einem Event "
-                + f"{event_type} gefragt, das es nicht gibt.")
+            logging.warning(
+                f"{ctx.author.name} hat nach einem Event {event_type} gefragt, das es nicht gibt."
+            )
 
         # There is an event
         else:
@@ -361,9 +399,8 @@ class Reminder(commands.Cog, name='Events'):
                 f"{beginStr} beginnt um {events[event_type].event_time} Uhr. "
                 + f"{game_str}Mit dabei sind bisher: {members}, Krah Krah!"
             )
-            log(
-                f"{ctx.author.name} hat nach einem Event {event_type} gefragt. "
-                + "Die Infos dazu wurden rausgehauen."
+            logging.info(
+                f"{ctx.author.name} hat nach einem Event {event_type} gefragt. Die Infos dazu wurden rausgehauen."
             )
 
     # Join an event
@@ -372,9 +409,8 @@ class Reminder(commands.Cog, name='Events'):
 
         if events[event_type].event_time == '':
             await ctx.send(f"Nanu, anscheinend gibt es nichts zum Beitreten, Krah Krah!")
-            log(
-                f"ERROR: {ctx.author.name} wollte einem Event "
-                + f"{event_type} beitreten, dass es nicht gibt."
+            logging.warning(
+                f"{ctx.author.name} wollte einem Event {event_type} beitreten, dass es nicht gibt."
             )
         else:
             # Charge!
@@ -383,11 +419,15 @@ class Reminder(commands.Cog, name='Events'):
 
             if ctx.author.display_name in events[event_type].event_members.values():
                 await ctx.send(f"Hey du Vogel, du stehst bereits auf der Teilnehmerliste, Krah Krah!")
-                log(f"ERROR: {ctx.author.name} steht bereits auf der Teilnehmerliste von Event {event_type}.")
+                logging.warning(
+                    f"{ctx.author.name} steht bereits auf der Teilnehmerliste von Event {event_type}."
+                )
             else:
                 events[event_type].add_member(ctx.author)
                 await ctx.send(f"Alles klar, ich packe dich auf die Teilnehmerliste, Krah Krah!")
-                log(f"{ctx.author.name} wurde auf die Teilnehmerliste von Event {event_type} hinzugefügt.")
+                logging.info(
+                    f"{ctx.author.name} wurde auf die Teilnehmerliste von Event {event_type} hinzugefügt."
+                )
 
     # Commands
     @commands.command(
@@ -464,12 +504,16 @@ class Reminder(commands.Cog, name='Events'):
 
         if ctx.channel.category.name != "Spiele":
             await ctx.send('Hey, das ist kein Spiele-Channel, Krah Krah!')
-            log(f"ERROR: {ctx.author.name} hat das Squad außerhalb eines Spiele-Channels gerufen.")
+            logging.warning(
+                f"{ctx.author.name} hat das Squad außerhalb eines Spiele-Channels gerufen."
+            )
             return
 
         if len(squads[ctx.channel.name]) == 0:
             await ctx.send('Hey, hier gibt es kein Squad, Krah Krah!')
-            log(f"ERROR: {ctx.author.name} hat ein leeres Squad in {ctx.channel.name} gerufen.")
+            logging.warning(
+                f"{ctx.author.name} hat ein leeres Squad in {ctx.channel.name} gerufen."
+            )
             return
 
         # Ult & Faith
@@ -483,11 +527,15 @@ class Reminder(commands.Cog, name='Events'):
 
         if len(members) == 0:
             await ctx.send(f"Hey, es wissen schon alle bescheid, Krah Krah!")
-            log(f"ERROR: {ctx.author.name} hat das Squad in {ctx.channel.name} gerufen aber es sind schon alle gejoint.")
+            logging.warning(
+                f"{ctx.author.name} hat das Squad in {ctx.channel.name} gerufen aber es sind schon alle gejoint."
+            )
             return
 
         await ctx.send(f"Hey Squad! Ja, genau ihr seid gemeint, Krah Krah!\n{' '.join(members)}")
-        log(f"{ctx.author.name} hat das Squad in {ctx.channel.name} gerufen.")
+        logging.info(
+            f"{ctx.author.name} hat das Squad in {ctx.channel.name} gerufen."
+        )
 
     @commands.command(
         name='squad',
@@ -514,10 +562,14 @@ class Reminder(commands.Cog, name='Events'):
                     game = ctx.channel.name.replace('-', ' ').title()
                     members = ", ".join(squads[ctx.channel.name].keys())
                     await ctx.send(f"Das sind die Mitglieder im {game}-Squad, Krah Krah!\n{members}")
-                    log(f"{ctx.author.name} hat das Squad in {ctx.channel.name} angezeigt: {members}.")
+                    logging.info(
+                        f"{ctx.author.name} hat das Squad in {ctx.channel.name} angezeigt: {members}."
+                    )
                 else:
                     await ctx.send(f"Es gibt hier noch kein Squad, Krah Krah!")
-                    log(f"ERROR: {ctx.author.name} hat das Squad in {ctx.channel.name} gerufen aber es gibt keins.")
+                    logging.warning(
+                        f"{ctx.author.name} hat das Squad in {ctx.channel.name} gerufen aber es gibt keins."
+                    )
             else:
                 if args[0] in ["add", "a", "+"] and len(args) > 1:
                     for arg in args[1:]:
@@ -532,14 +584,20 @@ class Reminder(commands.Cog, name='Events'):
                         try:
                             if member.name in squads[ctx.channel.name].keys():
                                 await ctx.send(f"{member.name} scheint schon im Squad zu sein, Krah Krah!")
-                                log(f"ERROR: {ctx.author.name} wollte {member.name} mehrfach zum {ctx.channel.name}-Squad hinzuzufügen.")
+                                logging.warning(
+                                    f"{ctx.author.name} wollte {member.name} mehrfach zum {ctx.channel.name}-Squad hinzuzufügen."
+                                )
                             else:
                                 squads[ctx.channel.name][member.name] = member.id
                                 await ctx.send(f"{member.name} wurde zum Squad hinzugefügt, Krah Krah!")
-                                log(f"{ctx.author.name} hat {member.name} zum {ctx.channel.name}-Squad hinzugefügt.")
+                                logging.info(
+                                    f"{ctx.author.name} hat {member.name} zum {ctx.channel.name}-Squad hinzugefügt."
+                                )
                         except:
                             await ctx.send(f"Ich kenne {arg} nicht, verlinke ihn bitte mit @.")
-                            log(f"ERROR: {ctx.author.name} hat versucht, {arg} zum {ctx.channel.name}-Squad hinzuzufügen.")
+                            logging.warning(
+                                f"{ctx.author.name} hat versucht, {arg} zum {ctx.channel.name}-Squad hinzuzufügen."
+                            )
 
                 if args[0] in ["rem", "r", "-"] and len(args) > 1:
                     for arg in args[1:]:
@@ -555,18 +613,26 @@ class Reminder(commands.Cog, name='Events'):
                             if member.name in squads[ctx.channel.name].keys():
                                 squads[ctx.channel.name].pop(member.name)
                                 await ctx.send(f"{member.name} wurde aus dem Squad entfernt, Krah Krah!")
-                                log(f"{ctx.author.name} hat {member.name} aus dem {ctx.channel.name}-Squad entfernt.")
+                                logging.info(
+                                    f"{ctx.author.name} hat {member.name} aus dem {ctx.channel.name}-Squad entfernt."
+                                )
                             else:
                                 await ctx.send(f"Das macht gar keinen Sinn. {member.name} ist gar nicht im Squad, Krah Krah!")
-                                log(f"ERROR: {ctx.author.name} wollte {member.name} aus dem {ctx.channel.name}-Squad entfernen, aber er war nicht Mitglied.")
+                                logging.warning(
+                                    f"{ctx.author.name} wollte {member.name} aus dem {ctx.channel.name}-Squad entfernen, aber er war nicht Mitglied."
+                                )
                         except:
                             await ctx.send(f"Ich kenne {arg} nicht, verlinke ihn bitte mit @.")
-                            log(f"ERROR: {ctx.author.name} hat versucht, {arg} aus dem {ctx.channel.name}-Squad zu entfernen.")
+                            logging.warning(
+                                f"{ctx.author.name} hat versucht, {arg} aus dem {ctx.channel.name}-Squad zu entfernen."
+                            )
 
                 save_file('squads', squads)
         else:
             await ctx.send('Hey, das ist kein Spiele-Channel, Krah Krah!')
-            log(f"ERROR: {ctx.author.name} denkt, {ctx.channel.name} sei ein Spiele-Channel.")
+            logging.warning(
+                f"{ctx.author.name} denkt, {ctx.channel.name} sei ein Spiele-Channel."
+            )
 
 
 class Fun(commands.Cog, name='Spaß'):
@@ -619,10 +685,16 @@ class Fun(commands.Cog, name='Spaß'):
                 example = data['list'][0]['example'].translate(
                     {ord(c): None for c in '[]'})
 
-                embed = discord.Embed(title=f"{term.title()}", colour=discord.Colour(
-                    0xff00ff), url=f'https://www.urbandictionary.com/define.php?term={term.replace(" ", "+")}', description=f"{definition}\n\n*{example}*")
+                embed = discord.Embed(
+                    title=f"{term.title()}",
+                    colour=discord.Colour(0xff00ff),
+                    url=f'https://www.urbandictionary.com/define.php?term={term.replace(" ", "+")}',
+                    description=f"{definition}\n\n*{example}*"
+                )
                 await ctx.send(embed=embed)
-                log(f"{ctx.author.name} hat {term} im Urban Dictionary recherchiert.")
+                logging.info(
+                    f"{ctx.author.name} hat {term} im Urban Dictionary recherchiert."
+                )
             except IndexError:
                 # Case: No Definition => Try These
                 page = requests.get(
@@ -643,7 +715,9 @@ class Fun(commands.Cog, name='Spaß'):
                 except Exception as e:
                     # Nothing found, not even try these
                     await ctx.send(f"Dazu kann ich nun wirklich gar nichts sagen, Krah Krah!")
-                    log(f"{ctx.author.name} hat {term} im Urban Dictionary recherchiert. ERROR: {e}")
+                    logging.error(
+                        f"{ctx.author.name} hat {term} im Urban Dictionary recherchiert. ERROR: {e}"
+                    )
 
     # Commands
     @commands.command(
@@ -666,10 +740,13 @@ class Fun(commands.Cog, name='Spaß'):
         # Send embed object
         try:
             await ctx.send(embed=embed)
-            log(f"{ctx.author.name} hat eine Frage verlangt. Sie lautet: {frage}")
+            logging.info(
+                f"{ctx.author.name} hat eine Frage verlangt. Sie lautet: {frage}"
+            )
         except Exception as e:
-            log(
-                f'ERROR: Keine Frage gefunden. Leere Zeile in fragen.txt?: {e}')
+            logging.error(
+                f'Keine Frage gefunden. Leere Zeile in fragen.txt?: {e}'
+            )
 
     @commands.command(
         name='bibel',
@@ -691,9 +768,11 @@ class Fun(commands.Cog, name='Spaß'):
         # Send embed object
         try:
             await ctx.send(embed=embed)
-            log(f"{ctx.author.name} hat ein Bibel-Zitat verlangt. Es lautet: {quote}")
+            logging.info(
+                f"{ctx.author.name} hat ein Bibel-Zitat verlangt. Es lautet: {quote}"
+            )
         except Exception as e:
-            log(f'ERROR: Kein Bibel-Zitat gefunden.{e}')
+            logging.error(f'Kein Bibel-Zitat gefunden.{e}')
 
     @commands.group(
         name='zitat',
@@ -704,13 +783,15 @@ class Fun(commands.Cog, name='Spaß'):
         global text_model, quoteby
 
         if ctx.invoked_subcommand is None:
-            log(f"Quote: {ctx.author.name} hat ein Zitat von {quoteby} verlangt.")
+            logging.info(
+                f"Quote: {ctx.author.name} hat ein Zitat von {quoteby} verlangt."
+            )
 
             try:
                 quote = text_model.make_sentence(tries=500)
 
                 if quote is None:
-                    log(f"Kein Quote gefunden.")
+                    logging.warning(f"Kein Quote gefunden.")
                     await ctx.send("Ich habe wirklich alles versucht, aber ich konnte einfach kein Zitat finden, Krah Krah!")
                 else:
                     # No Discord Quotes allowed in Quotes
@@ -721,9 +802,9 @@ class Fun(commands.Cog, name='Spaß'):
                     embed.set_footer(text=quoteby)
                     await ctx.send(embed=embed)
 
-                    log(f"Quote erfolgreich: {quote} - {quoteby}")
+                    logging.info(f"Quote erfolgreich: {quote} - {quoteby}")
             except Exception as e:
-                log(f"ERROR: {e}")
+                logging.error(f"ERROR: {e}")
 
             # Ult & Faith
             await addUltCharge(5)
@@ -741,8 +822,12 @@ class Fun(commands.Cog, name='Spaß'):
         user = await client.fetch_user(id)
         quoteby = user.display_name
 
-        await ctx.send(f"History Download: Lade pro Channel maximal {lim} Nachrichten von {quoteby} herunter, Krah Krah! Das kann einen Moment dauern, Krah Krah!")
-        log(f"{ctx.author.name} lädt die Nachrichten von {quoteby} herunter, Limit: {lim}.")
+        await ctx.send(
+            f"History Download: Lade pro Channel maximal {lim} Nachrichten von {quoteby} herunter, Krah Krah! Das kann einen Moment dauern, Krah Krah!"
+        )
+        logging.info(
+            f"{ctx.author.name} lädt die Nachrichten von {quoteby} herunter, Limit: {lim}."
+        )
 
         # Download history
         start_time = time.time()
@@ -756,8 +841,9 @@ class Fun(commands.Cog, name='Spaß'):
             try:
                 messages = await channel.history(limit=lim).flatten()
             except discord.Forbidden as err:
-                log(f"Fehler beim Lesen der History in channel {channel.name}")
-                log(str(err))
+                logging.error(
+                    f"Fehler beim Lesen der History in channel {channel.name}: {str(err)}"
+                )
                 continue
 
             for message in messages:
@@ -772,7 +858,9 @@ class Fun(commands.Cog, name='Spaß'):
             print(*lines, sep='\n', file=f)
 
         await ctx.send(f"History Download abgeschlossen! {number_of_sentences} Sätze in {number_of_channels} Channels von {quoteby} heruntergeladen. Dauer: {(time.time() - start_time)}")
-        log(f"History Download abgeschlossen! {number_of_sentences} Sätze in {number_of_channels} Channels von {quoteby} heruntergeladen. Dauer: {(time.time() - start_time)}")
+        logging.info(
+            f"History Download abgeschlossen! {number_of_sentences} Sätze in {number_of_channels} Channels von {quoteby} heruntergeladen. Dauer: {(time.time() - start_time)}"
+        )
 
     @isSuperUser()
     @_quote.command(
@@ -817,8 +905,9 @@ class Fun(commands.Cog, name='Spaß'):
                 await ctx.send(f"Meine ultimative Fähigkeit ist bereit, Krah Krah! [{int(STATE['ultCharge'])}%]")
 
             await addFaith(ctx.author.id, 1)
-            log(
-                f"{ctx.author.name} hat nach meiner Ult-Charge gefragt: {STATE['ultCharge']}%")
+            logging.info(
+                f"{ctx.author.name} hat nach meiner Ult-Charge gefragt: {STATE['ultCharge']}%"
+            )
         elif ctx.prefix == '!':
             # Do something
             if len(args) == 0:
@@ -827,8 +916,9 @@ class Fun(commands.Cog, name='Spaß'):
                 if STATE['ultCharge'] < 100:
                     # Not enough charge
                     await ctx.send(f"Meine ultimative Fähigkeit ist noch nicht bereit, Krah Krah! [{int(STATE['ultCharge'])}%]")
-                    log(
-                        f"{ctx.author.name} wollte meine Ult aktivieren. Charge: {STATE['ultCharge']}%")
+                    logging.warning(
+                        f"{ctx.author.name} wollte meine Ult aktivieren. Charge: {STATE['ultCharge']}%"
+                    )
                 else:
                     # Ult is ready
 
@@ -911,8 +1001,9 @@ class Fun(commands.Cog, name='Spaß'):
                 try:
                     output += f"{client.get_user(int(user)).display_name}: {format(amount,',d').replace(',','.')}🕊\n"
                 except:
-                    log(
-                        f"ERROR: Ich konnte den User mit der ID {user} nicht finden.")
+                    logging.error(
+                        f"ERROR: Ich konnte den User mit der ID {user} nicht finden."
+                    )
 
             if output != "":
                 embed = discord.Embed(title="Die treuen Jünger des Mövius und ihre Punkte",
@@ -920,7 +1011,7 @@ class Fun(commands.Cog, name='Spaß'):
 
                 await ctx.send(embed=embed)
 
-            log('Faith wurde angezeigt')
+            logging.info('Faith wurde angezeigt')
         elif ctx.prefix == '!' and ctx.author.name in settings['super-users']:
             if len(args) == 3:
                 try:
@@ -931,7 +1022,9 @@ class Fun(commands.Cog, name='Spaß'):
                     amount = int(args[2])
                 except Exception as e:
                     await ctx.send('Nanana, so geht das nicht, Krah Krah!')
-                    log(f"ERROR: Glaube konnte nicht zugewiesen werden: {e}")
+                    logging.error(
+                        f"ERROR: Glaube konnte nicht zugewiesen werden: {e}"
+                    )
 
                     return
 
@@ -962,7 +1055,9 @@ class Fun(commands.Cog, name='Spaß'):
         message = history[1].content
         correction = self.speller(message)
 
-        log(f'Wurstfinger: "{message}" → "{correction}", Dauer: {(time.time() - start_time)}')
+        logging.info(
+            f'Wurstfinger: "{message}" → "{correction}", Dauer: {(time.time() - start_time)}'
+        )
 
         await ctx.send(f"Meintest du vielleicht: {correction}")
 
@@ -1005,10 +1100,10 @@ class Administration(commands.Cog, name='Administration'):
                 'git describe --tags', shell=True).strip().decode('ascii')
 
             await ctx.send(f"Bot läuft auf Version {version}")
-            log(f'Version {version}')
+            logging.info(f'Version {version}')
         except Exception as e:
             await ctx.send(f'ERROR: Version konnte nicht erkannt werden: {e}')
-            log(f'ERROR: Version konnte nicht erkannt werden: {e}')
+            logging.error(f'Version konnte nicht erkannt werden: {e}')
 
     @_bot.command(
         name='uptime',
@@ -1020,14 +1115,16 @@ class Administration(commands.Cog, name='Administration'):
             uptime, "{days} Tage {hours}:{minutes}:{seconds}")
 
         await ctx.send(f"Uptime: {uptimestr} seit {startuptime.strftime('%Y.%m.%d %H:%M:%S')}")
-        log(f"Uptime: {uptimestr} seit {startuptime.strftime('%Y.%m.%d %H:%M:%S')}")
+        logging.info(
+            f"Uptime: {uptimestr} seit {startuptime.strftime('%Y.%m.%d %H:%M:%S')}"
+        )
 
     @_bot.command(
         name='reload',
         aliases=['-r']
     )
     async def _reload(self, ctx):
-        log(f"{ctx.author.name} hat einen Reload gestartet.")
+        logging.warning(f"{ctx.author.name} hat einen Reload gestartet.")
         await ctx.send("Reload wird gestartet.")
 
         startup()
@@ -1105,12 +1202,14 @@ async def timeCheck():
         if timenow == '09:00':
             global text_model, quoteby
 
-            log(f'Es ist 9 Uhr, Daily wird abgefeuert')
+            logging.info(f'Es ist 9 Uhr, Daily wird abgefeuert')
 
             try:
                 quote = text_model.make_sentence(tries=100)
                 while quote == None:
-                    log("Quote: Kein Zitat gefunden, neuer Versuch ...")
+                    logging.warning(
+                        "Quote: Kein Zitat gefunden, neuer Versuch ..."
+                    )
                     quote = text_model.make_sentence(tries=100)
 
                 # No Discord Quotes allowed in Quotes
@@ -1120,9 +1219,9 @@ async def timeCheck():
                     quote), timestamp=datetime.utcfromtimestamp(random.randint(0, int(datetime.now().timestamp()))))
                 embed.set_footer(text=quoteby)
                 await server.get_channel(580143021790855178).send(content="Guten Morgen, Krah Krah!", embed=embed)
-                log(f'Zitat des Tages: {quote} - {quoteby}')
+                logging.info(f'Zitat des Tages: {quote} - {quoteby}')
             except Exception as e:
-                log(f'ERROR: Kein Zitat des Tages: {e}')
+                logging.error(f'Kein Zitat des Tages: {e}')
 
         if timenow == '19:30':
             try:
@@ -1130,14 +1229,14 @@ async def timeCheck():
                     if c.name == 'gartic':
                         await c.__call__(None, channel=client.get_channel(815702384688234538))
             except Exception as e:
-                log(f'ERROR: Kein Gartic-Image des Tages: {e}')
+                logging.error(f'ERROR: Kein Gartic-Image des Tages: {e}')
 
             # await Administration._av(Administration, None)
 
         # Check for events now
         for e in events.values():
             if e.event_time == timenow:
-                log(f"Ein Event beginnt: {e.event_type}!")
+                logging.info(f"Ein Event beginnt: {e.event_type}!")
 
                 members = ""
                 for m in e.event_members.keys():
@@ -1152,7 +1251,7 @@ async def timeCheck():
                     await channels['game'].send(f"Oh, ist es denn schon {e.event_time} Uhr? Dann ab in den Voice-Chat, {e.event_game} fängt an, Krah Krah! Heute mit von der Partie: {members}", tts=False)
 
                 e.reset()
-                log('Event-Post abgesetzt, Timer resettet.')
+                logging.info('Event-Post abgesetzt, Timer resettet.')
 
 
 @client.event
@@ -1168,7 +1267,7 @@ async def on_message(message):
         response = responses['req'][message.content[1:]]
         for r in response['res']:
             await message.channel.send(r.format(**locals(), **globals()))
-        log(response['log'].format(**locals(), **globals()))
+        logging.info(response['log'].format(**locals(), **globals()))
 
     # Responses from file
     else:
@@ -1177,7 +1276,7 @@ async def on_message(message):
                 response = responses['res'][key]
                 for r in response['res']:
                     await message.channel.send(content=r.format(**locals(), **globals()), tts=False)
-                log(response['log'].format(**locals(), **globals()))
+                logging.info(response['log'].format(**locals(), **globals()))
 
     # Important for processing commands
     await client.process_commands(message)
@@ -1198,7 +1297,9 @@ async def faithOnReact(payload, operation='add'):
         await addFaith(giver.id, 1)
 
         # Log
-        log(f"FaithAdd-Reaction: {giver.display_name} {'nimmt' if operation == 'remove' else 'gibt'} {author.display_name} {reactionFaith}🕊")
+        logging.info(
+            f"FaithAdd-Reaction: {giver.display_name} {'nimmt' if operation == 'remove' else 'gibt'} {author.display_name} {reactionFaith}🕊"
+        )
 
 
 @client.event
@@ -1213,7 +1314,7 @@ async def on_raw_reaction_remove(payload):
 
 @client.event
 async def on_command_error(ctx, error):
-    log(f"ERROR: {ctx.author.name} - {ctx.message.content} - {error}")
+    logging.error(f"{ctx.author.name} - {ctx.message.content} - {error}")
 
 
 async def add_cogs():
@@ -1227,4 +1328,4 @@ async def add_cogs():
 if __name__ == "__main__":
     asyncio.run(add_cogs())
 
-    client.run(TOKEN)
+    client.run(DISCORD_TOKEN)

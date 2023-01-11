@@ -1,15 +1,12 @@
-from os import putenv
+import logging
 import random
 import re
-import discord
 from discord.ext import commands
-
-from myfunc import log
 
 
 async def setup(bot):
     await bot.add_cog(Wurstfinger(bot))
-    log("Cog: Wurstfinger geladen.")
+    logging.info("Cog: Wurstfinger geladen.")
 
 
 class Wurstfinger(commands.Cog, name='Wurstfinger'):
@@ -49,7 +46,7 @@ class Wurstfinger(commands.Cog, name='Wurstfinger'):
             ' ': ['c', 'v', 'b', 'n', 'm']
         }
 
-        log("Game-Stages geladen.")
+        logging.debug("Wurstfinger-Settings geladen.")
 
     # Commands
     @commands.group(

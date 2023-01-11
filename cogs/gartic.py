@@ -2,19 +2,18 @@ import os
 import re
 import random
 import math
+import logging
 
 from PIL import Image
 import discord
 from discord.ext import commands
-
-from myfunc import log
 
 CHANNEL = 815702384688234538
 
 
 async def setup(bot):
     await bot.add_cog(Gartic(bot))
-    log("Cog: Gartic geladen.")
+    logging.info("Cog: Gartic geladen.")
 
 
 class Gartic(commands.Cog, name='Gartic'):
@@ -26,7 +25,6 @@ class Gartic(commands.Cog, name='Gartic'):
         brief='Zeigt ein zufälliges Gartic-Gemälde aus dem Archiv.'
     )
     async def generate_random_painting(self, ctx, channel=None):
-
         try:
             raw_rounds = os.listdir("gartic")
             rounds = []
@@ -37,7 +35,7 @@ class Gartic(commands.Cog, name='Gartic'):
 
             round = random.choice(rounds)
         except Exception as e:
-            print(e)
+            logging.error(e)
 
         try:
             raw_stories = os.listdir(f"gartic/{round}")
@@ -49,14 +47,14 @@ class Gartic(commands.Cog, name='Gartic'):
 
             story = random.choice(stories)
         except Exception as e:
-            print(e)
+            logging.error(e)
 
         try:
             story_gif = Image.open(f"gartic/{round}/{story}")
 
             position = random.randint(0, math.floor(story_gif.n_frames/2) - 1)
         except Exception as e:
-            print(e)
+            logging.error(e)
 
         try:
             story_gif.seek(2*position)
@@ -87,7 +85,7 @@ class Gartic(commands.Cog, name='Gartic'):
                 )
 
         except Exception as e:
-            print(e)
+            logging.error(e)
 
     @commands.command(
         name='pick',

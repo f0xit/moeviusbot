@@ -1,14 +1,15 @@
 import json
+import logging
 import random
 import discord
 from discord.ext import commands
 
-from myfunc import log, load_file, gcts
+from myfunc import load_file, gcts
 
 
 async def setup(bot):
     await bot.add_cog(Quiz(bot))
-    log("Cog: Quiz geladen.")
+    logging.info("Cog: Quiz geladen.")
 
 
 # Check for user is Super User
@@ -36,7 +37,7 @@ class Quiz(commands.Cog, name='Quiz'):
             32000, 64000, 125000, 250000, 500000, 1000000
         ]
 
-        log("Game-Stages geladen.")
+        logging.debug("Game-Stages geladen.")
 
     async def get_random_question(self):
         while True:
@@ -68,7 +69,7 @@ class Quiz(commands.Cog, name='Quiz'):
                 self.question['answers'].items()
             )])
         )
-        return({
+        return ({
             "content": f"**Frage {self.game_stage + 1} - "
             + f"{self.stages[self.game_stage]}🕊**\n"
             + f"Kategorie: {self.question['category']}",
@@ -88,7 +89,7 @@ class Quiz(commands.Cog, name='Quiz'):
             with open('quiz_ranking.json', 'r') as file:
                 ranking = json.load(file)
         except OSError as err:
-            log("OS error: {0}".format(err))
+            logging.error("OS error: {0}".format(err))
         finally:
             with open('quiz_ranking.json', 'w') as file:
                 if player_id in ranking.keys():

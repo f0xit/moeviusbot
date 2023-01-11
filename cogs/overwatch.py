@@ -1,15 +1,14 @@
 import random
+import logging
 import discord
 from discord.ext import commands
 import requests
 from bs4 import BeautifulSoup
 
-from myfunc import log
-
 
 async def setup(bot):
     await bot.add_cog(Overwatch(bot))
-    log("Cog: Overwatch geladen.")
+    logging.info("Cog: Overwatch geladen.")
 
 
 def append_to_output(input_string: str):
@@ -32,7 +31,7 @@ class Overwatch(commands.Cog, name='Overwatch'):
         for cell in cells:
             self.heroes[cell.text] = cell.attrs["data-groups"][2:-2].title()
 
-        log("Overwatch-Heroes geladen.")
+        logging.info("Overwatch-Heroes geladen.")
 
     # Commands
     @commands.command(
@@ -108,12 +107,12 @@ class Overwatch(commands.Cog, name='Overwatch'):
             await ctx.send(embed=embed)
 
     async def random_hero(self, ctx, who="", role=None):
-        log(ctx.author.name
-            + "hat einen zufälligen Overwatch-Hero für "
-            + ('sich ' if who == 'me' else 'alle ')
-            + "verlangt. Rolle: "
-            + str(role)
-            )
+        logging.info(ctx.author.name
+                     + "hat einen zufälligen Overwatch-Hero für "
+                     + ('sich ' if who == 'me' else 'alle ')
+                     + "verlangt. Rolle: "
+                     + str(role)
+                     )
 
         output = ["Random Heroes? Kein Problem, Krah Krah!"]
 
@@ -135,11 +134,13 @@ class Overwatch(commands.Cog, name='Overwatch'):
 
         if output != []:
             await ctx.channel.send("\n".join(output))
-            log(f"Heroes für diese Runde: {', '.join(output[1:])}.")
+            logging.info(f"Heroes für diese Runde: {', '.join(output[1:])}.")
             # await addUltCharge(5)
             # await addFaith(ctx.author.id, 10)
         else:
-            log("Keine Heroes gefunden. Es könnte ein Fehler vorliegen.")
+            logging.error(
+                "Keine Heroes gefunden. Es könnte ein Fehler vorliegen."
+            )
 
     @commands.command(
         brief='Gibt dir oder dem kompletten Voice-Channel zufällige Overwatch-Heroes.'
