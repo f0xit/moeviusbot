@@ -27,10 +27,11 @@ from discord.ext import commands, tasks
 
 # Import Custom Stuff
 from event import Event
-from myfunc import load_file, save_file, strfdelta
+from myfunc import strfdelta
 
 # Import Tools
 from tools.logger_tools import LoggerTools
+import tools.json_tools as json_tools
 
 # Check Python version
 major_version, minor_version, micro_version, _, _ = sys.version_info
@@ -94,11 +95,12 @@ EVENTS = {
 def startup():
     global FRAGEN, BIBEL, SETTINGS, STATE, RESPONSES, CHANNELS, SERVER, SQUADS, FAITH
 
-    SETTINGS = load_file('settings')
-    STATE = load_file('state')
-    RESPONSES = load_file('responses')
-    SQUADS = load_file('squads')
-    FAITH = load_file('faith')
+    SETTINGS = json_tools.load_file('settings')
+    SETTINGS = json_tools.load_file('settings')
+    STATE = json_tools.load_file('state')
+    RESPONSES = json_tools.load_file('responses')
+    SQUADS = json_tools.load_file('squads')
+    FAITH = json_tools.load_file('faith')
 
     # Get Discord objects after settings are loaded
     # Get guild = server
@@ -746,7 +748,7 @@ class Reminder(commands.Cog, name='Events'):
                         ctx.channel.name
                     )
 
-        save_file('squads', SQUADS)
+        json_tools.save_file('squads', SQUADS)
 
 
 class Fun(commands.Cog, name='Spaß'):

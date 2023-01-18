@@ -4,7 +4,8 @@ import random
 import discord
 from discord.ext import commands
 
-from myfunc import load_file, gcts
+from myfunc import gcts
+import tools.json_tools as json_tools
 
 
 async def setup(bot):
@@ -14,7 +15,7 @@ async def setup(bot):
 
 # Check for user is Super User
 def is_super_user():
-    settings = load_file('settings')
+    settings = json_tools.load_file('settings')
 
     async def wrapper(ctx):
         return ctx.author.name in settings['super-users']
