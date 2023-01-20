@@ -181,21 +181,17 @@ async def add_ult_charge(amount):
         else:
             logging.info('Ult-Charge bereit.')
 
-# Faith
 
-
-async def add_faith(member, amount):
+async def add_faith(member: discord.User | discord.Member, amount: int) -> None:
+    '''Adds the specified amount of faith points to the member's wallet.'''
     global FAITH
 
-    if str(member) in FAITH.keys():
-        FAITH[str(member)] += amount
-    else:
-        FAITH[str(member)] = amount
+    member_id: str = str(member.id)
 
-    with open('faith.json', 'w', encoding="utf-8") as file:
-        json.dump(FAITH, file)
+    FAITH[str(member_id)] = FAITH.get(str(member_id), 0) + amount
+    json_tools.save_file('faith', FAITH)
 
-    logging.debug('Faith wurde hinzugefügt: %s, %s', member, amount)
+    logging.info('Faith was added: %s, %s', member.name, amount)
 
 # Markov
 
@@ -251,7 +247,7 @@ class Reminder(commands.Cog, name='Events'):
 
         # Charge!
         await add_ult_charge(5)
-        await add_faith(ctx.author.id, 10)
+        await add_faith(ctx.author, 10)
 
         # No argument => Reset stream
         if len(args) == 0:
@@ -399,7 +395,7 @@ class Reminder(commands.Cog, name='Events'):
 
         # Charge!
         await add_ult_charge(5)
-        await add_faith(ctx.author.id, 5)
+        await add_faith(ctx.author, 5)
 
         # There is no event
         if EVENTS[event_type].event_time == '':
@@ -455,7 +451,7 @@ class Reminder(commands.Cog, name='Events'):
         else:
             # Charge!
             await add_ult_charge(5)
-            await add_faith(ctx.author.id, 5)
+            await add_faith(ctx.author, 5)
 
             if ctx.author.display_name in EVENTS[event_type].event_members.values():
                 await ctx.send(
@@ -577,7 +573,7 @@ class Reminder(commands.Cog, name='Events'):
 
         # Ult & Faith
         await add_ult_charge(5)
-        await add_faith(ctx.author.id, 5)
+        await add_faith(ctx.author, 5)
 
         members = []
         for member in SQUADS[ctx.channel.name].values():
@@ -639,7 +635,7 @@ class Reminder(commands.Cog, name='Events'):
 
         # Ult & Faith
         await add_ult_charge(5)
-        await add_faith(ctx.author.id, 5)
+        await add_faith(ctx.author, 5)
 
         if len(args) == 0:
             if len(SQUADS[ctx.channel.name]) > 0:
@@ -790,7 +786,7 @@ class Fun(commands.Cog, name='Spaß'):
     async def _urbandict(self, ctx, *args):
         # Charge!
         await add_ult_charge(5)
-        await add_faith(ctx.author.id, 1)
+        await add_faith(ctx.author, 1)
 
         term = " ".join(args)
         url = 'http://api.urbandictionary.com/v0/define?term=' + \
@@ -861,7 +857,7 @@ class Fun(commands.Cog, name='Spaß'):
     async def _frage(self, ctx):
         # Charge & Faith
         await add_ult_charge(1)
-        await add_faith(ctx.author.id, 1)
+        await add_faith(ctx.author, 1)
 
         # Get random question
         frage = random.choice(FRAGEN)
@@ -889,7 +885,7 @@ class Fun(commands.Cog, name='Spaß'):
     async def _bibel(self, ctx):
         # Charge & Faith
         await add_ult_charge(1)
-        await add_faith(ctx.author.id, 1)
+        await add_faith(ctx.author, 1)
 
         # Get random bible quote
         quote = random.choice(BIBEL)
@@ -955,7 +951,7 @@ class Fun(commands.Cog, name='Spaß'):
 
             # Ult & Faith
             await add_ult_charge(5)
-            await add_faith(ctx.author.id, 1)
+            await add_faith(ctx.author, 1)
 
     @is_super_user()
     @_quote.command(
@@ -1075,7 +1071,7 @@ class Fun(commands.Cog, name='Spaß'):
                     f"[{int(STATE['ultCharge'])}%]"
                 )
 
-            await add_faith(ctx.author.id, 1)
+            await add_faith(ctx.author, 1)
             logging.info(
                 "%s hat nach meiner Ult-Charge gefragt: %s%%",
                 ctx.author.name,
@@ -1101,7 +1097,7 @@ class Fun(commands.Cog, name='Spaß'):
                     # Ult is ready
 
                     # Faith
-                    await add_faith(ctx.author.id, 10)
+                    await add_faith(ctx.author, 10)
                     action_id = random.randint(0, 3)
 
                     if action_id < 2:
@@ -1149,11 +1145,11 @@ class Fun(commands.Cog, name='Spaß'):
                 else:
                     await ctx.send('Nanana, das darfst du nicht, Krah Krah!')
 
-    @ commands.command(
+    @commands.group(
         name='faith',
         brief='Wie treu sind wohl die Jünger des Mövius'
     )
-    async def _faith(self, ctx, *args):
+    async def _faith(self, ctx: commands.Context):
         '''Dieses Kommando zeigt dir, wie viel 🕊-Glaubenspunkte die Jünger von Mövius gerade haben.
 
         ?faith  Alle Jünger des Mövius und ihre 🕊 werden angezeigt.
@@ -1165,64 +1161,93 @@ class Fun(commands.Cog, name='Spaß'):
         global FAITH
 
         if ctx.prefix == '?':
-            # Sort faith descending by value
-            sorted_faith = dict(
-                sorted(FAITH.items(), key=lambda item: item[1], reverse=True)
-            )
+            members = {
+                member.display_name: amount
+                for user, amount in sorted(
+                    FAITH.items(),
+                    key=lambda item: item[1],
+                    reverse=True
+                )
+                if (member := client.get_user(int(user))) is not None
+            }
 
-            # Output faith per user
-            output = ""
-            for user, amount in sorted_faith.items():
-                member = client.get_user(int(user))
+            output = '```'+'\n'.join([
+                "{:30}{:>6,d}🕊".format(user, amount).replace(',', '.')
+                for user, amount in members.items()
+            ]) + '```'
 
-                if member is None:
-                    continue
+            if not output:
+                await ctx.send('Nanana, da stimmt etwas, Krah Krah!')
+                logging.error('Faith could not be displayed.')
 
-                output += f"{member.display_name}: "
-                output += f"{format(amount,',d').replace(',','.')}🕊\n"
-
-            if output != "":
+                return
+            else:
                 embed = discord.Embed(
                     title="Die treuen Jünger des Mövius und ihre Punkte",
                     colour=discord.Colour(0xff00ff), description=output
                 )
 
                 await ctx.send(embed=embed)
+                logging.info('Faith displayed.')
 
-            logging.info('Faith wurde angezeigt')
-        elif ctx.prefix == '!' and ctx.author.name in SETTINGS['super-users']:
-            if len(args) == 3:
-                member_id = int(args[1])
-                user = client.get_user(member_id)
+                return
 
-                if user is None:
-                    await ctx.send('Nanana, so geht das nicht, Krah Krah!')
-                    return
+        if ctx.prefix == '!':
+            if ctx.author.name not in SETTINGS['super-users']:
+                await ctx.send('Nanana, das darfst du nicht, Krah Krah!')
+                logging.warning('Unauthorized user tried to change faith.')
 
-                amount = int(args[2])
+                return
 
-                if args[0] in ['add', '-a', '+']:
-                    # Add faith
-                    await add_faith(member_id, amount)
-                    await ctx.send(
-                        f"Alles klar, {user.display_name} hat {amount}🕊 erhalten, Krah Krah!"
-                    )
-                elif args[0] in ['rem', '-r', '-']:
-                    # Remove faith
-                    await add_faith(member_id, amount*(-1))
-                    await ctx.send(
-                        f"Alles klar, {user.display_name} wurden {amount}🕊 abgezogen, Krah Krah!"
-                    )
-                elif args[0] in ['set', '-s', '=']:
-                    # Set faith
-                    FAITH[str(member_id)] = amount
-                    await ctx.send(
-                        f"Alles klar, {user.display_name} hat nun {amount}🕊, Krah Krah!"
-                    )
-            else:
-                await ctx.send('Nanana, so geht das nicht, Krah Krah! [add|rem|set] id amount')
-        else:
-            await ctx.send('Nanana, das darfst du nicht, Krah Krah!')
+            if ctx.invoked_subcommand is None:
+                await ctx.send(
+                    "Was möchtest du mit dem Bot anfangen? "
+                    "Mit !help faith siehst du, welche Optionen verfügbar sind."
+                )
+
+                return
+
+    @_faith.command(
+        name='add',
+        aliases=['-a', '+']
+    )
+    async def _add_faith(self, ctx: commands.Context, member: discord.Member, amount: int):
+        await add_faith(member, amount)
+        logging.info(
+            '%s added %s faith to %s.',
+            ctx.author.name, amount, member.name
+        )
+        await ctx.send(
+            f"Alles klar, {member.display_name} hat {amount}🕊 erhalten, Krah Krah!"
+        )
+
+    @_faith.command(
+        name='remove',
+        aliases=['-r', '-']
+    )
+    async def _remove_faith(self, ctx: commands.Context, member: discord.Member, amount: int):
+        await add_faith(member, amount*(-1))
+        logging.info(
+            '%s removed %s faith from %s.',
+            ctx.author.name, amount, member.name
+        )
+        await ctx.send(
+            f"Alles klar, {member.display_name} wurden {amount}🕊 abgezogen, Krah Krah!"
+        )
+
+    @_faith.command(
+        name='set',
+        aliases=['-s', '=']
+    )
+    async def _set_faith(self, ctx: commands.Context, member: discord.Member, amount: int):
+        FAITH.update({str(member.id): amount})
+        logging.info(
+            '%s set faith to %s for %s.',
+            ctx.author.name, amount, member.name
+        )
+        await ctx.send(
+            f"Alles klar, {member.display_name} hat nun {amount}🕊, Krah Krah!"
+        )
 
     @commands.command(
         name='wurstfinger'
@@ -1245,7 +1270,7 @@ class Fun(commands.Cog, name='Spaß'):
 
         # Ult & Faith
         await add_ult_charge(5)
-        await add_faith(ctx.author.id, 1)
+        await add_faith(ctx.author, 1)
 
 
 class Administration(commands.Cog, name='Administration'):
@@ -1499,8 +1524,8 @@ async def faith_on_react(payload: discord.RawReactionActionEvent, operation: str
     giver = client.get_user(payload.user_id)
 
     # Add/Remove Faith, giver always gets 1
-    await add_faith(author.id, reaction_faith*(-1 if operation == 'remove' else 1))
-    await add_faith(giver.id, 1)
+    await add_faith(author, reaction_faith*(-1 if operation == 'remove' else 1))
+    await add_faith(giver, 1)
 
     # Log
     logging.info(
