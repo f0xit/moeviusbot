@@ -48,7 +48,7 @@ except getopt.GetoptError:
     sys.exit("Option error.")
 for option, argument in options:
     match option:
-        case['-l' | '--loglevel']:
+        case '-l' | '--loglevel':
             LOG_TOOL.set_log_level(argument)
 
 load_dotenv()
@@ -661,7 +661,7 @@ class Reminder(commands.Cog, name='Events'):
             return
 
         match args[0]:
-            case ["add" | "a" | "+"]:
+            case "add" | "a" | "+":
                 for arg in args[1:]:
                     if arg == 'me':
                         member = ctx.author
@@ -692,8 +692,7 @@ class Reminder(commands.Cog, name='Events'):
 
                     SQUADS[ctx.channel.name][member.name] = member.id
                     await ctx.send(
-                        "%s wurde zum Squad hinzugefügt, Krah Krah!",
-                        member.name
+                        f"{member.name} wurde zum Squad hinzugefügt, Krah Krah!"
                     )
                     logging.info(
                         "%s hat %s zum %s-Squad hinzugefügt.",
@@ -702,7 +701,7 @@ class Reminder(commands.Cog, name='Events'):
                         ctx.channel.name
                     )
 
-            case ["rem" | "r" | "-"]:
+            case "rem" | "r" | "-":
                 for arg in args[1:]:
                     if arg == 'me':
                         member = ctx.author
