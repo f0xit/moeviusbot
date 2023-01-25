@@ -31,7 +31,7 @@ from myfunc import strfdelta
 
 # Import Tools
 from tools.logger_tools import LoggerTools
-import tools.json_tools as json_tools
+from tools.json_tools import DictFile
 
 # Check Python version
 major_version, minor_version, micro_version, _, _ = sys.version_info
@@ -95,12 +95,11 @@ EVENTS = {
 def startup():
     global FRAGEN, BIBEL, SETTINGS, STATE, RESPONSES, CHANNELS, SERVER, SQUADS, FAITH
 
-    SETTINGS = json_tools.load_file('settings')
-    SETTINGS = json_tools.load_file('settings')
-    STATE = json_tools.load_file('state')
-    RESPONSES = json_tools.load_file('responses')
-    SQUADS = json_tools.load_file('squads')
-    FAITH = json_tools.load_file('faith')
+    SETTINGS = DictFile('settings')
+    STATE = DictFile('state')
+    RESPONSES = DictFile('responses')
+    SQUADS = DictFile('squads')
+    FAITH = DictFile('faith')
 
     # Get Discord objects after settings are loaded
     # Get guild = server
@@ -189,7 +188,6 @@ async def add_faith(member: discord.User | discord.Member, amount: int) -> None:
     member_id: str = str(member.id)
 
     FAITH[str(member_id)] = FAITH.get(str(member_id), 0) + amount
-    json_tools.save_file('faith', FAITH)
 
     logging.info('Faith was added: %s, %s', member.name, amount)
 
@@ -742,8 +740,6 @@ class Reminder(commands.Cog, name='Events'):
                         member.name,
                         ctx.channel.name
                     )
-
-        json_tools.save_file('squads', SQUADS)
 
 
 class Fun(commands.Cog, name='Spaß'):

@@ -15,7 +15,7 @@ async def setup(bot):
 
 # Check for user is Super User
 def is_super_user():
-    settings = json_tools.load_file('settings')
+    settings = json_tools.load_file('json/settings.json')
 
     async def wrapper(ctx):
         return ctx.author.name in settings['super-users']

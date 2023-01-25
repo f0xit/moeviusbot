@@ -31,7 +31,7 @@ class Event:
         self.save()
 
     def save(self) -> None:
-        if json_tools.save_file(self.event_type, self.__dict__):
+        if json_tools.save_file(self.event_type + '.json', self.__dict__):
             logging.info(
                 'Event saved. Type: %s - Name: %s - Time: %s - Members: %s',
                 self.event_type,
@@ -49,7 +49,7 @@ class Event:
             )
 
     def load(self) -> None:
-        if (data := json_tools.load_file(self.event_type)) != None:
+        if (data := json_tools.load_file(self.event_type + '.json')) != None:
             self.event_time = data['event_time']
             self.event_game = data['event_game']
             self.event_members = data['event_members']
