@@ -15,21 +15,15 @@ from urllib.request import urlopen
 from urllib.parse import quote as urlquote
 import math
 import asyncio
-
 from dotenv import load_dotenv
 import markovify
 import requests
 from bs4 import BeautifulSoup
 from autocorrect import Speller
-
 import discord
 from discord.ext import commands, tasks
-
-# Import Custom Stuff
 from event import Event
 from myfunc import strfdelta
-
-# Import Tools
 from tools.logger_tools import LoggerTools
 from tools.json_tools import DictFile
 
@@ -37,6 +31,9 @@ from tools.json_tools import DictFile
 major_version, minor_version, micro_version, _, _ = sys.version_info
 if (major_version, minor_version) < (3, 11):
     sys.exit("Wrong Python version. Please use at least 3.11.")
+
+##### Save startup time #####
+STARTUP_TIME = datetime.now()
 
 ##### First Setup #####
 LOG_TOOL = LoggerTools(level="DEBUG")
@@ -52,34 +49,144 @@ for option, argument in options:
             LOG_TOOL.set_log_level(argument)
 
 load_dotenv()
-DISCORD_TOKEN = os.getenv('DISCORD_TOKEN')
+discord_token = os.getenv('DISCORD_TOKEN')
 
-if DISCORD_TOKEN is None:
+if discord_token is None:
     sys.exit('Discord token not found! Please check your .env file!')
 else:
     logging.info('Discord token loaded successfully.')
 
-# Get the Discord Client Object
-intents = discord.Intents.all()
-client = commands.Bot(command_prefix=('!', '?'), intents=intents)
+
+class Bot(commands.Bot):
+    def __init__(self) -> None:
+        super().__init__(('!', '?'), intents=discord.Intents.all())
+
+        self.load_files_into_attrs()
+
+        self.guild: discord.Guild
+        self.quote_by: str
+        self.text_model: markovify.NewlineText
+
+        logging.info('Bot initialized!')
+
+    def load_files_into_attrs(self) -> None:
+        self.settings = DictFile('settings')
+        self.state = DictFile('state')
+        self.responses = DictFile('responses')
+        self.squads = DictFile('squads')
+        self.faith = DictFile('faith')
+
+        self.channels: dict[str, discord.TextChannel] = {}
+
+        with open('fragen.txt', 'r', encoding="utf-8") as file:
+            self.fragen = file.readlines()
+            logging.info('Question file loaded. %s lines.', len(self.fragen))
+
+        with open('moevius-bibel.txt', 'r', encoding="utf-8") as file:
+            self.bible = file.readlines()
+            logging.info('Bible file loaded. %s lines.', len(self.bible))
+
+        self.build_markov()
+
+    def analyze_guild(self):
+        logging.info(
+            'Finding guild with ID:%s...', self.settings['server_id']
+        )
+
+        self.guild = self.get_guild(int(self.settings['server_id']))
+        if self.guild is None:
+            raise RuntimeError('Guild not found!')
+
+        logging.info(
+            'Guild found! [ID:%s] %s',
+            self.guild.id,
+            self.guild.name
+        )
+
+        logging.info('Analyzing channels...')
+
+        categories = {
+            None if cat[0] is None else cat[0].name: cat[1]
+            for cat in self.guild.by_category()
+        }
+
+        try:
+            self.channels['stream'] = [
+                chan for chan in categories[None]
+                if chan.name == self.settings['channels']['stream']
+            ][0]
+        except KeyError as err_msg:
+            logging.warning(
+                'Category not found. Stream channel should be here. %s', err_msg
+            )
+            self.channels['stream'] = None
+        except IndexError as err_msg:
+            logging.warning(
+                'Stream channel not found. Name in settings is %s. %s',
+                self.settings['channels']['stream'], err_msg
+            )
+            self.channels['stream'] = None
+
+        logging.info(
+            'Stream channel found. [ID: %s] %s',
+            self.channels['stream'].id,
+            self.channels['stream'].name
+        )
+
+        try:
+            self.channels.update({
+                chan.name: chan for chan in list(categories['Spiele'])
+            })
+        except KeyError as err_msg:
+            logging.warning(
+                'Category "Spiele" not found. %s', err_msg
+            )
+
+        logging.info(
+            'Channels found. %s',
+            ','.join(self.channels.keys())
+        )
+
+        for name in self.channels:
+            if name == 'stream':
+                continue
+
+            if name not in self.squads:
+                self.squads[name] = {}
+                logging.info(
+                    'Created empty squad for new game channel %s', name
+                )
+                continue
+
+            logging.debug(
+                'Squad found: %s',
+                ','.join(self.squads[name].keys())
+            )
+
+        logging.info('Channel analysis completed!')
+
+    def build_markov(self, size: int = 3):
+        logging.info('Markov build started with size %s...', size)
+        start_time = time.time()
+
+        with open('channel_messages.txt', 'r', encoding='utf-8') as file:
+            self.quote_by = file.readline()[:-1]
+            text = file.read()
+
+        self.text_model = markovify.NewlineText(text, state_size=size)
+
+        logging.info(
+            'Markov generation finished. Size: %s Duration: %s',
+            size,
+            time.time() - start_time
+        )
+
+
+moevius = Bot()
 
 # Variables for global use
-QUOTE_BY = ''
 TIME_NOW = ''
-CHANNELS = {}
 LATEST_MSG = []
-FRAGEN = []
-BIBEL = []
-SETTINGS = {}
-STATE = {}
-RESPONSES = {}
-CHANNELS = {}
-SERVER = None
-SQUADS = {}
-FAITH = {}
-TEXT_MODEL = None
-
-STARTUP_TIME = datetime.now()
 
 # Create events
 EVENTS = {
@@ -87,134 +194,42 @@ EVENTS = {
     'game': Event('game')
 }
 
-##### Functions #####
-
-# Set up everything when load or reload
-
-
-def startup():
-    global FRAGEN, BIBEL, SETTINGS, STATE, RESPONSES, CHANNELS, SERVER, SQUADS, FAITH
-
-    SETTINGS = DictFile('settings')
-    STATE = DictFile('state')
-    RESPONSES = DictFile('responses')
-    SQUADS = DictFile('squads')
-    FAITH = DictFile('faith')
-
-    # Get Discord objects after settings are loaded
-    # Get guild = server
-    logging.info("Server-Suche startet.")
-    SERVER = client.get_guild(int(SETTINGS['server_id']))
-    logging.info(
-        "Server-Suche abgeschlossen: %s [%s]",
-        SERVER.name,
-        SERVER.id
-    )
-
-    # Get channel for stream and games
-    logging.info("Channel-Suche startet.")
-    for channel in SERVER.text_channels:
-        if channel.name == SETTINGS['channels']['stream']:
-            CHANNELS['stream'] = channel
-            logging.debug(
-                "Channel für Stream gefunden: %s [%s]",
-                channel.name.replace('-', ' ').title(),
-                channel.id
-            )
-        elif channel.category is not None:
-            if channel.category.name == 'Spiele':
-                CHANNELS[channel.name] = channel
-                logging.debug(
-                    "Spiel gefunden: %s [%s]",
-                    channel.name.replace('-', ' ').title(),
-                    channel.id
-                )
-                if channel.name not in SQUADS.keys():
-                    SQUADS[channel.name] = {}
-                    logging.debug("Leeres Squad erstellt!")
-                else:
-                    logging.debug(
-                        "Squad gefunden: %s",
-                        ','.join(SQUADS[channel.name].keys())
-                    )
-
-    logging.info("Channel-Suche abgeschlossen.")
-
-    # 500 Fragen
-    with open('fragen.txt', 'r', encoding="utf-8") as file:
-        FRAGEN = file.readlines()
-        logging.info('Die Fragen wurden geladen.')
-
-    with open('moevius-bibel.txt', 'r', encoding="utf-8") as file:
-        BIBEL = file.readlines()
-        logging.info('Die Bibel wurde geladen.')
-
-    build_markov()
-
-    logging.info("Startup complete!")
-
-# Check for user is Super User
-
 
 def is_super_user():
-    async def wrapper(ctx):
-        return ctx.author.name in SETTINGS['super-users']
+    # Check for user is Super User
+    async def wrapper(ctx: commands.Context):
+        return ctx.author.name in moevius.settings['super-users']
     return commands.check(wrapper)
 
-# Ult charge
 
+async def add_ult_charge(amount: int) -> None:
+    if amount <= 0:
+        logging.warning('Invalid amount of Ult charge.')
+        return
 
-async def add_ult_charge(amount):
-    if amount > 1:
-        if STATE['ultCharge'] < 100:
-            STATE['ultCharge'] = min(STATE['ultCharge'] + amount, 100)
+    if moevius.state['ult_charge'] >= 100:
+        logging.info('Ult ready!')
+        return
 
-            await client.change_presence(
-                activity=discord.Game(f"Charge: {int(STATE['ultCharge'])}%")
-            )
+    moevius.state['ult_charge'] = min(
+        moevius.state['ult_charge'] + amount, 100)
 
-            with open('state.json', 'w', encoding="utf-8") as file:
-                json.dump(STATE, file)
+    await moevius.change_presence(
+        activity=discord.Game(f'Charge: {int(moevius.state["ult_charge"])}%')
+    )
 
-            logging.debug('Ult-Charge hinzugefügt: %s', amount)
-        else:
-            logging.info('Ult-Charge bereit.')
+    logging.debug('Ult charge added: %s', amount)
 
 
 async def add_faith(member: discord.User | discord.Member, amount: int) -> None:
     '''Adds the specified amount of faith points to the member's wallet.'''
-    global FAITH
 
     member_id: str = str(member.id)
 
-    FAITH[str(member_id)] = FAITH.get(str(member_id), 0) + amount
+    moevius.faith[str(member_id)] = moevius.faith.get(
+        str(member_id), 0) + amount
 
     logging.info('Faith was added: %s, %s', member.name, amount)
-
-# Markov
-
-
-def build_markov(size: int = 3):
-    logging.info("Markov Update gestartet, Size: %s", size)
-    start_time = time.time()
-
-    # Build Markov Chain
-    with open("channel_messages.txt", 'r', encoding="utf-8") as file:
-        global QUOTE_BY
-        QUOTE_BY = file.readline()[:-1]
-        text = file.read()
-
-    # Build the model.
-    global TEXT_MODEL
-    TEXT_MODEL = markovify.NewlineText(text, state_size=size)
-
-    logging.info(
-        "Markov Update abgeschlossen. Size: %s, Dauer: %s",
-        size,
-        time.time() - start_time
-    )
-
-##### Cogs #####
 
 
 class Reminder(commands.Cog, name='Events'):
@@ -224,26 +239,26 @@ class Reminder(commands.Cog, name='Events'):
     Bestimmte Kommandos benötigen bestimmte Berechtigungen. Kontaktiere HansEichLP,
     wenn du mehr darüber wissen willst.'''
 
-    def __init__(self, bot):
+    def __init__(self, bot: Bot):
         self.bot = bot
 
     # Process an Event-Command (Stream, Game, ...)
-    async def process_event_command(self, event_type: str, ctx, args, ult=False):
-        global CHANNELS, EVENTS, SQUADS
-
+    async def process_event_command(self, event_type: str, ctx: commands.Context, args, ult=False):
         # Check for super-user
-        if event_type == 'stream' and ctx.author.name not in SETTINGS['super-users'] and not ult:
+        if (
+            event_type == 'stream'
+            and ctx.author.name not in self.bot.settings['super-users']
+            and not ult
+        ):
             await ctx.send('Nanana, das darfst du nicht, Krah Krah!')
             logging.warning(
                 '%s wollte den Stream-Reminder einstellen.',
                 ctx.author.name
             )
 
-            # Charge!
             await add_ult_charge(1)
             return
 
-        # Charge!
         await add_ult_charge(5)
         await add_faith(ctx.author, 10)
 
@@ -279,9 +294,9 @@ class Reminder(commands.Cog, name='Events'):
                 # In case of a game, check for the channel
                 if event_type == 'game':
                     # Is the channel a game channel?
-                    if ctx.channel.name in CHANNELS:
+                    if ctx.channel.name in self.bot.channels:
                         # Save the channel for later posts
-                        CHANNELS['game'] = ctx.channel
+                        self.bot.channels['game'] = ctx.channel
                         game = ctx.channel.name.replace('-', ' ').title()
                     else:
                         await ctx.send('Hey, das ist kein Spiele-Channel, Krah Krah!')
@@ -295,7 +310,8 @@ class Reminder(commands.Cog, name='Events'):
             else:
                 game = ' '.join(args[1:])
                 if event_type == 'game':
-                    CHANNELS['game'] = SERVER.get_channel(379345471719604236)
+                    self.bot.channels['game'] = self.bot.guild.get_channel(
+                        379345471719604236)
 
             # Update event
             logging.info(
@@ -314,7 +330,7 @@ class Reminder(commands.Cog, name='Events'):
             # Direct feedback for the creator
             # Stream
             if event_type == 'stream':
-                if ctx.channel != CHANNELS['stream']:
+                if ctx.channel != self.bot.channels['stream']:
                     await ctx.send(
                         f"Ich habe einen Stream-Reminder für {event_time} "
                         "Uhr eingerichtet, Krah Krah!"
@@ -351,12 +367,12 @@ class Reminder(commands.Cog, name='Events'):
 
                 # Announce the event in the right channel
                 if game == 'bot':
-                    await client.get_channel(580143021790855178).send(
+                    await moevius.get_channel(580143021790855178).send(
                         "Macht euch bereit für einen Stream, "
                         + f"um {event_time} Uhr wird am Bot gebastelt, Krah Krah!"
                     )
                 else:
-                    await CHANNELS['stream'].send(
+                    await self.bot.channels['stream'].send(
                         '**Kochstudio!**\n' if ult else ''
                         + '**Macht euch bereit für einen Stream!**\n'
                         + f'Wann? {event_time} Uhr\n'
@@ -371,11 +387,11 @@ class Reminder(commands.Cog, name='Events'):
                     + f'Was? {game}\n'
                     + 'Gebt mir ein !join, Krah Krah!'
                 )
-                if ctx.channel.name in SQUADS.keys():
+                if ctx.channel.name in self.bot.squads.keys():
                     members = [
                         f'<@{member}> '
-                        if member != ctx.author.id else None
-                        for member in SQUADS[ctx.channel.name].values()
+                        for member in self.bot.squads[ctx.channel.name].values()
+                        if member != ctx.author.id
                     ]
                     if members:
                         await ctx.send(
@@ -388,7 +404,7 @@ class Reminder(commands.Cog, name='Events'):
             )
 
     # Process the Request for Event-Info
-    async def process_event_info(self, event_type: str, ctx):
+    async def process_event_info(self, event_type: str, ctx: commands.Context):
         global EVENTS
 
         # Charge!
@@ -436,7 +452,7 @@ class Reminder(commands.Cog, name='Events'):
             )
 
     # Join an event
-    async def join_event(self, event_type: str, ctx):
+    async def join_event(self, event_type: str, ctx: commands.Context):
         global EVENTS
 
         if EVENTS[event_type].event_time == '':
@@ -478,7 +494,7 @@ class Reminder(commands.Cog, name='Events'):
         brief='Infos und Einstellungen zum aktuellen Stream-Reminder.',
         usage='(hh:mm) (game)'
     )
-    async def _stream(self, ctx, *args):
+    async def _stream(self, ctx: commands.Context, *args):
         '''Hier kannst du alles über einen aktuellen Stream-Reminder herausfinden oder seine
         Einstellungen anpassen
 
@@ -505,7 +521,7 @@ class Reminder(commands.Cog, name='Events'):
         brief='Infos und Einstellungen zum aktuellen Coop-Reminder.',
         usage='(hh:mm) (game)'
     )
-    async def _game(self, ctx, *args):
+    async def _game(self, ctx: commands.Context, *args):
         '''Hier kannst du alles über einen aktuellen Coop-Reminder herausfinden oder
         seine Einstellungen anpassen
 
@@ -531,15 +547,14 @@ class Reminder(commands.Cog, name='Events'):
         aliases=['j'],
         brief='Tritt einem Event bei.'
     )
-    async def _join(self, ctx):
+    async def _join(self, ctx: commands.Context):
         '''Wenn ein Reminder eingerichtet wurde, kannst du ihm mit diesem Kommando beitreten.
 
         Stehst du auf der Teilnehmerliste, wird der Bot dich per Erwähnung benachrichtigen,
         wenn das Event beginnt oder siche etwas ändern sollte.'''
 
-        global CHANNELS
-        if ctx.channel in CHANNELS.values():
-            if ctx.channel == CHANNELS['stream']:
+        if ctx.channel in self.bot.channels.values():
+            if ctx.channel == self.bot.channels['stream']:
                 await self.join_event('stream', ctx)
             else:
                 await self.join_event('game', ctx)
@@ -549,8 +564,8 @@ class Reminder(commands.Cog, name='Events'):
         aliases=['h'],
         brief='Informiere das Squad über ein bevorstehendes Event.'
     )
-    async def _hey(self, ctx):
-        global SQUADS, EVENTS
+    async def _hey(self, ctx: commands.Context):
+        global EVENTS
 
         if ctx.channel.category.name != "Spiele":
             await ctx.send('Hey, das ist kein Spiele-Channel, Krah Krah!')
@@ -560,7 +575,7 @@ class Reminder(commands.Cog, name='Events'):
             )
             return
 
-        if len(SQUADS[ctx.channel.name]) == 0:
+        if len(self.bot.squads[ctx.channel.name]) == 0:
             await ctx.send('Hey, hier gibt es kein Squad, Krah Krah!')
             logging.warning(
                 "%s hat ein leeres Squad in %s gerufen.",
@@ -574,7 +589,7 @@ class Reminder(commands.Cog, name='Events'):
         await add_faith(ctx.author, 5)
 
         members = []
-        for member in SQUADS[ctx.channel.name].values():
+        for member in self.bot.squads[ctx.channel.name].values():
             if member != ctx.author.id and str(member) not in EVENTS['game'].event_members.keys():
                 members.append(f'<@{member}>')
 
@@ -599,7 +614,7 @@ class Reminder(commands.Cog, name='Events'):
         aliases=['sq'],
         brief='Manage dein Squad mit ein paar simplen Kommandos.'
     )
-    async def _squad(self, ctx, *args):
+    async def _squad(self, ctx: commands.Context, *args):
         '''Du willst dein Squad managen? Okay, so gehts!
         Achtung: Jeder Game-Channel hat ein eigenes Squad. Du musst also im richtigen Channel sein.
 
@@ -607,8 +622,6 @@ class Reminder(commands.Cog, name='Events'):
         !squad add User1 ...    fügt User hinzu. Du kannst auch mehrere User gleichzeitig
                                 hinzufügen. "add me" fügt dich hinzu.
         !squad rem User1 ...    entfernt den oder die User wieder.'''
-
-        global SQUADS
 
         if ctx.channel.category is None:
             await ctx.send('Hey, das ist kein Spiele-Channel, Krah Krah!')
@@ -636,9 +649,9 @@ class Reminder(commands.Cog, name='Events'):
         await add_faith(ctx.author, 5)
 
         if len(args) == 0:
-            if len(SQUADS[ctx.channel.name]) > 0:
+            if len(self.bot.squads[ctx.channel.name]) > 0:
                 game = ctx.channel.name.replace('-', ' ').title()
-                members = ", ".join(SQUADS[ctx.channel.name].keys())
+                members = ", ".join(self.bot.squads[ctx.channel.name].keys())
                 await ctx.send(
                     f"Das sind die Mitglieder im {game}-Squad, Krah Krah!\n{members}"
                 )
@@ -664,7 +677,7 @@ class Reminder(commands.Cog, name='Events'):
                     if arg == 'me':
                         member = ctx.author
                     else:
-                        member = client.get_user(int(arg[2:-1]))
+                        member = moevius.get_user(int(arg[2:-1]))
 
                     if member is None:
                         await ctx.send(f"Ich kenne {arg} nicht, verlinke ihn bitte mit @.")
@@ -676,7 +689,7 @@ class Reminder(commands.Cog, name='Events'):
                         )
                         continue
 
-                    if member.name in SQUADS[ctx.channel.name].keys():
+                    if member.name in self.bot.squads[ctx.channel.name].keys():
                         await ctx.send(
                             f"{member.name} scheint schon im Squad zu sein, Krah Krah!"
                         )
@@ -688,7 +701,7 @@ class Reminder(commands.Cog, name='Events'):
                         )
                         continue
 
-                    SQUADS[ctx.channel.name][member.name] = member.id
+                    self.bot.squads[ctx.channel.name][member.name] = member.id
                     await ctx.send(
                         f"{member.name} wurde zum Squad hinzugefügt, Krah Krah!"
                     )
@@ -704,7 +717,7 @@ class Reminder(commands.Cog, name='Events'):
                     if arg == 'me':
                         member = ctx.author
                     else:
-                        member = client.get_user(int(arg[2:-1]))
+                        member = moevius.get_user(int(arg[2:-1]))
 
                     if member is None:
                         await ctx.send(f"Ich kenne {arg} nicht, verlinke ihn bitte mit @.")
@@ -716,7 +729,7 @@ class Reminder(commands.Cog, name='Events'):
                         )
                         continue
 
-                    if member.name not in SQUADS[ctx.channel.name].keys():
+                    if member.name not in self.bot.squads[ctx.channel.name].keys():
                         await ctx.send(
                             "Das macht gar keinen Sinn. "
                             f"{member.name} ist gar nicht im Squad, Krah Krah!"
@@ -730,7 +743,7 @@ class Reminder(commands.Cog, name='Events'):
                         )
                         continue
 
-                    SQUADS[ctx.channel.name].pop(member.name)
+                    self.bot.squads[ctx.channel.name].pop(member.name)
                     await ctx.send(
                         f"{member.name} wurde aus dem Squad entfernt, Krah Krah!"
                     )
@@ -745,7 +758,7 @@ class Reminder(commands.Cog, name='Events'):
 class Fun(commands.Cog, name='Spaß'):
     '''Ein paar spaßige Kommandos für zwischendurch.'''
 
-    def __init__(self, bot):
+    def __init__(self, bot: Bot):
         self.bot = bot
         self.speller = Speller()
 
@@ -778,7 +791,7 @@ class Fun(commands.Cog, name='Spaß'):
         aliases=['ud'],
         brief='Durchforstet das Urban Dictionary'
     )
-    async def _urbandict(self, ctx, *args):
+    async def _urbandict(self, ctx: commands.Context, *args):
         # Charge!
         await add_ult_charge(5)
         await add_faith(ctx.author, 1)
@@ -849,13 +862,13 @@ class Fun(commands.Cog, name='Spaß'):
         aliases=['f'],
         brief='Stellt eine zufällige Frage.'
     )
-    async def _frage(self, ctx):
+    async def _frage(self, ctx: commands.Context):
         # Charge & Faith
         await add_ult_charge(1)
         await add_faith(ctx.author, 1)
 
         # Get random question
-        frage = random.choice(FRAGEN)
+        frage = random.choice(self.bot.fragen)
 
         # Build embed object
         embed = discord.Embed(
@@ -877,13 +890,13 @@ class Fun(commands.Cog, name='Spaß'):
         aliases=['bi'],
         brief='Präsentiert die Weisheiten des Krächzers.'
     )
-    async def _bibel(self, ctx):
+    async def _bibel(self, ctx: commands.Context):
         # Charge & Faith
         await add_ult_charge(1)
         await add_faith(ctx.author, 1)
 
         # Get random bible quote
-        quote = random.choice(BIBEL)
+        quote = random.choice(self.bot.bible)
 
         # Build embed object
         embed = discord.Embed(
@@ -905,17 +918,15 @@ class Fun(commands.Cog, name='Spaß'):
         aliases=['z'],
         brief='Zitiert eine weise Persönlichkeit.'
     )
-    async def _quote(self, ctx):
-        global TEXT_MODEL, QUOTE_BY
-
+    async def _quote(self, ctx: commands.Context):
         if ctx.invoked_subcommand is None:
             logging.info(
                 "%s hat ein Zitat von %s verlangt.",
                 ctx.author.name,
-                QUOTE_BY
+                self.bot.quote_by
             )
 
-            quote = TEXT_MODEL.make_sentence(tries=500)
+            quote = self.bot.text_model.make_sentence(tries=500)
 
             if quote is None:
                 logging.warning("Kein Quote gefunden.")
@@ -935,13 +946,13 @@ class Fun(commands.Cog, name='Spaß'):
                         random.randint(0, int(datetime.now().timestamp()))
                     )
                 )
-                embed.set_footer(text=QUOTE_BY)
+                embed.set_footer(text=self.bot.quote_by)
                 await ctx.send(embed=embed)
 
                 logging.info(
                     "Quote erfolgreich: %s - %s",
                     quote,
-                    QUOTE_BY
+                    self.bot.quote_by
                 )
 
             # Ult & Faith
@@ -955,21 +966,20 @@ class Fun(commands.Cog, name='Spaß'):
         brief='Besorgt sich die nötigen Daten für den Zitategenerator. '
         'ACHTUNG: Kann je nach Limit einige Sekunden bis Minuten dauern.'
     )
-    async def _download_history(self, ctx, member_id: int, lim: int = 1000):
-        global SERVER, QUOTE_BY
-
-        user = await client.fetch_user(member_id)
-        QUOTE_BY = user.display_name
+    async def _download_history(
+        self, ctx: commands.Context, member: discord.Member, lim: int = 1000
+    ) -> None:
+        self.bot.quote_by = member.display_name
 
         await ctx.send(
             f"History Download: Lade pro Channel maximal {lim} "
-            f"Nachrichten von {QUOTE_BY} herunter, "
+            f"Nachrichten von {self.bot.quote_by} herunter, "
             "Krah Krah! Das kann einen Moment dauern, Krah Krah!"
         )
         logging.info(
             "%s lädt die Nachrichten von %s herunter, Limit: %s.",
             ctx.author.name,
-            QUOTE_BY,
+            self.bot.quote_by,
             lim
         )
 
@@ -977,9 +987,9 @@ class Fun(commands.Cog, name='Spaß'):
         start_time = time.time()
         number_of_channels = 0
         number_of_sentences = 0
-        lines = [QUOTE_BY]
+        lines = [self.bot.quote_by]
 
-        rammgut = client.get_guild(323922215584268290)  # Hard coded Rammgut
+        rammgut = self.bot.get_guild(323922215584268290)  # Hard coded Rammgut
         for channel in rammgut.text_channels:
             number_of_channels += 1
             try:
@@ -993,7 +1003,7 @@ class Fun(commands.Cog, name='Spaß'):
                 continue
 
             for message in messages:
-                if message.author.id == member_id:
+                if message.author == member:
                     sentences = message.content.split('. ')
                     for sentence in sentences:
                         if sentence != '':
@@ -1005,14 +1015,14 @@ class Fun(commands.Cog, name='Spaß'):
 
         await ctx.send(
             f"History Download abgeschlossen! {number_of_sentences} Sätze in {number_of_channels} "
-            f"Channels von {QUOTE_BY} heruntergeladen. Dauer: {(time.time() - start_time)}"
+            f"Channels von {self.bot.quote_by} heruntergeladen. Dauer: {(time.time() - start_time)}"
         )
         logging.info(
             "History Download abgeschlossen! %s Sätze in %s "
             "Channels von %s heruntergeladen. Dauer: %s",
             number_of_sentences,
             number_of_channels,
-            QUOTE_BY,
+            self.bot.quote_by,
             time.time() - start_time
         )
 
@@ -1022,10 +1032,10 @@ class Fun(commands.Cog, name='Spaß'):
         aliases=['bm'],
         brief='Generiert das Modell für zufällige Zitate.'
     )
-    async def _makequotes(self, ctx, size: int = 3):
+    async def _makequotes(self, ctx: commands.Context, size: int = 3) -> None:
         await ctx.send("Markov Update wird gestartet.")
 
-        build_markov(size)
+        self.bot.build_markov(size)
         await ctx.send("Markov Update abgeschlossen.")
 
     @commands.command(
@@ -1033,7 +1043,7 @@ class Fun(commands.Cog, name='Spaß'):
         aliases=['Q', 'q'],
         brief='Die ultimative Fähigkeit von Mövius dem Krächzer.'
     )
-    async def _ult(self, ctx, *args):
+    async def _ult(self, ctx: commands.Context, *args) -> None:
         '''Dieses Kommando feuert die ultimative Fähigkeit von Mövius ab oder liefert dir
         Informationen über die Ult-Charge. Alle Kommandos funktionieren mit dem Wort Ult, können
         aber auch mit Q oder q getriggert werden.
@@ -1046,47 +1056,45 @@ class Fun(commands.Cog, name='Spaß'):
         !ult [add, -a, +] <n: int>  Fügt der Charge n Prozent hinzu.
         !ult [set, -s, =] <n: int>  Setzt die Charge auf n Prozent.'''
 
-        global STATE, CHANNELS
-
         if ctx.prefix == '?':
             # Output charge
-            if STATE['ultCharge'] < 90:
+            if self.bot.state['ult_charge'] < 90:
                 await ctx.send(
                     "Meine ultimative Fähigkeit lädt sich auf, Krah Krah! "
-                    f"[{int(STATE['ultCharge'])}%]"
+                    f"[{int(self.bot.state['ult_charge'])}%]"
                 )
-            elif STATE['ultCharge'] < 100:
+            elif self.bot.state['ult_charge'] < 100:
                 await ctx.send(
                     "Meine ultimative Fähigkeit ist fast bereit, Krah Krah! "
-                    f"[{int(STATE['ultCharge'])}%]"
+                    f"[{int(self.bot.state['ult_charge'])}%]"
                 )
             else:
                 await ctx.send(
                     "Meine ultimative Fähigkeit ist bereit, Krah Krah! "
-                    f"[{int(STATE['ultCharge'])}%]"
+                    f"[{int(self.bot.state['ult_charge'])}%]"
                 )
 
             await add_faith(ctx.author, 1)
             logging.info(
                 "%s hat nach meiner Ult-Charge gefragt: %s%%",
                 ctx.author.name,
-                STATE['ultCharge']
+                self.bot.state['ult_charge']
             )
         elif ctx.prefix == '!':
             # Do something
             if len(args) == 0:
                 # Ultimate is triggered
 
-                if STATE['ultCharge'] < 100:
+                if self.bot.state['ult_charge'] < 100:
                     # Not enough charge
                     await ctx.send(
                         "Meine ultimative Fähigkeit ist noch nicht bereit, Krah Krah! "
-                        f"[{int(STATE['ultCharge'])}%]"
+                        f"[{int(self.bot.state['ult_charge'])}%]"
                     )
                     logging.warning(
                         "%s wollte meine Ult aktivieren. Charge: %s%%",
                         ctx.author.name,
-                        STATE['ultCharge']
+                        self.bot.state['ult_charge']
                     )
                 else:
                     # Ult is ready
@@ -1100,7 +1108,7 @@ class Fun(commands.Cog, name='Spaß'):
                         game_type = random.choice(['stream', 'game'])
                         event_time = str(random.randint(0, 23)).zfill(2) + ":"
                         event_time += str(random.randint(0, 59)).zfill(2)
-                        games = list(CHANNELS.keys())[1:]
+                        games = list(self.bot.channels.keys())[1:]
                         game = random.choice(games).replace('-', ' ').title()
 
                         await Reminder.process_event_command(
@@ -1114,28 +1122,23 @@ class Fun(commands.Cog, name='Spaß'):
                         await Fun._bibel(self, ctx)
 
                     # Reset charge
-                    STATE['ultCharge'] = 0
+                    self.bot.state['ult_charge'] = 0
 
-                    with open('state.json', 'w', encoding="utf-8") as file:
-                        json.dump(STATE, file)
-
-                    await client.change_presence(activity=discord.Game(
-                        f"Charge: {int(STATE['ultCharge'])}%")
+                    await moevius.change_presence(activity=discord.Game(
+                        f"Charge: {int(self.bot.state['ult_charge'])}%")
                     )
             else:
                 # Charge is manipulated by a user
-                if ctx.author.name in SETTINGS['super-users']:
+                if ctx.author.name in self.bot.settings['super-users']:
                     # Only allowed if super user
                     if args[0] in ['add', '-a', '+']:
                         await add_ult_charge(int(args[1]))
                     elif args[0] in ['set', '-s', '=']:
-                        STATE['ultCharge'] = max(min(int(args[1]), 100), 0)
+                        self.bot.state['ult_charge'] = max(
+                            min(int(args[1]), 100), 0)
 
-                        with open('state.json', 'w', encoding="utf-8") as file:
-                            json.dump(STATE, file)
-
-                        await client.change_presence(activity=discord.Game(
-                            f"Charge: {int(STATE['ultCharge'])}%")
+                        await moevius.change_presence(activity=discord.Game(
+                            f"Charge: {int(self.bot.state['ult_charge'])}%")
                         )
                 else:
                     await ctx.send('Nanana, das darfst du nicht, Krah Krah!')
@@ -1144,7 +1147,7 @@ class Fun(commands.Cog, name='Spaß'):
         name='faith',
         brief='Wie treu sind wohl die Jünger des Mövius'
     )
-    async def _faith(self, ctx: commands.Context):
+    async def _faith(self, ctx: commands.Context) -> None:
         '''Dieses Kommando zeigt dir, wie viel 🕊-Glaubenspunkte die Jünger von Mövius gerade haben.
 
         ?faith  Alle Jünger des Mövius und ihre 🕊 werden angezeigt.
@@ -1153,21 +1156,20 @@ class Fun(commands.Cog, name='Spaß'):
         !faith [add, -a, +] <id> <n>  Erhöht den Glauben von einem User mit der id um n🕊.
         !faith [rem, -r, -] <id> <n>  Reudziert den Glauben von einem User mit der id um n🕊.
         !faith [set, -s, =] <id> <n>  Setzt den Glauben von einem User mit der id auf n🕊.'''
-        global FAITH
 
         if ctx.prefix == '?':
             members = {
                 member.display_name: amount
                 for user, amount in sorted(
-                    FAITH.items(),
+                    self.bot.faith.items(),
                     key=lambda item: item[1],
                     reverse=True
                 )
-                if (member := client.get_user(int(user))) is not None
+                if (member := moevius.get_user(int(user))) is not None
             }
 
             output = '```'+'\n'.join([
-                "{:30}{:>6,d}🕊".format(user, amount).replace(',', '.')
+                f"{user:30}{amount:>6,d}🕊".replace(',', '.')
                 for user, amount in members.items()
             ]) + '```'
 
@@ -1176,19 +1178,19 @@ class Fun(commands.Cog, name='Spaß'):
                 logging.error('Faith could not be displayed.')
 
                 return
-            else:
-                embed = discord.Embed(
-                    title="Die treuen Jünger des Mövius und ihre Punkte",
-                    colour=discord.Colour(0xff00ff), description=output
-                )
 
-                await ctx.send(embed=embed)
-                logging.info('Faith displayed.')
+            embed = discord.Embed(
+                title="Die treuen Jünger des Mövius und ihre Punkte",
+                colour=discord.Colour(0xff00ff), description=output
+            )
 
-                return
+            await ctx.send(embed=embed)
+            logging.info('Faith displayed.')
+
+            return
 
         if ctx.prefix == '!':
-            if ctx.author.name not in SETTINGS['super-users']:
+            if ctx.author.name not in self.bot.settings['super-users']:
                 await ctx.send('Nanana, das darfst du nicht, Krah Krah!')
                 logging.warning('Unauthorized user tried to change faith.')
 
@@ -1206,7 +1208,7 @@ class Fun(commands.Cog, name='Spaß'):
         name='add',
         aliases=['-a', '+']
     )
-    async def _add_faith(self, ctx: commands.Context, member: discord.Member, amount: int):
+    async def _add_faith(self, ctx: commands.Context, member: discord.Member, amount: int) -> None:
         await add_faith(member, amount)
         logging.info(
             '%s added %s faith to %s.',
@@ -1220,7 +1222,9 @@ class Fun(commands.Cog, name='Spaß'):
         name='remove',
         aliases=['-r', '-']
     )
-    async def _remove_faith(self, ctx: commands.Context, member: discord.Member, amount: int):
+    async def _remove_faith(
+        self, ctx: commands.Context, member: discord.Member, amount: int
+    ) -> None:
         await add_faith(member, amount*(-1))
         logging.info(
             '%s removed %s faith from %s.',
@@ -1234,8 +1238,8 @@ class Fun(commands.Cog, name='Spaß'):
         name='set',
         aliases=['-s', '=']
     )
-    async def _set_faith(self, ctx: commands.Context, member: discord.Member, amount: int):
-        FAITH.update({str(member.id): amount})
+    async def _set_faith(self, ctx: commands.Context, member: discord.Member, amount: int) -> None:
+        self.bot.faith.update({str(member.id): amount})
         logging.info(
             '%s set faith to %s for %s.',
             ctx.author.name, amount, member.name
@@ -1247,7 +1251,7 @@ class Fun(commands.Cog, name='Spaß'):
     @commands.command(
         name='wurstfinger'
     )
-    async def _wurstfinger(self, ctx: commands.Context):
+    async def _wurstfinger(self, ctx: commands.Context) -> None:
         start_time = time.time()
 
         history = [msg async for msg in ctx.channel.history(limit=2)]
@@ -1271,7 +1275,7 @@ class Fun(commands.Cog, name='Spaß'):
 class Administration(commands.Cog, name='Administration'):
     '''Diese Kategorie erfordert bestimmte Berechtigungen'''
 
-    def __init__(self, bot):
+    def __init__(self, bot: Bot) -> None:
         self.bot = bot
 
     @is_super_user()
@@ -1280,7 +1284,7 @@ class Administration(commands.Cog, name='Administration'):
         aliases=['b'],
         brief='Kann den Bot steuern.'
     )
-    async def _bot(self, ctx):
+    async def _bot(self, ctx: commands.Context) -> None:
         if ctx.invoked_subcommand is None:
             await ctx.send(
                 "Was möchtest du mit dem Bot anfangen? "
@@ -1291,7 +1295,7 @@ class Administration(commands.Cog, name='Administration'):
         name='version',
         aliases=['-v']
     )
-    async def _version(self, ctx):
+    async def _version(self, ctx: commands.Context) -> None:
         version = subprocess.check_output(
             'git describe --tags', shell=True).strip().decode('ascii')
 
@@ -1302,7 +1306,7 @@ class Administration(commands.Cog, name='Administration'):
         name='uptime',
         aliases=['-u']
     )
-    async def _uptime(self, ctx):
+    async def _uptime(self, ctx: commands.Context) -> None:
         uptime = (datetime.now() - STARTUP_TIME)
         uptimestr = strfdelta(
             uptime, "{days} Tage {hours}:{minutes}:{seconds}")
@@ -1318,11 +1322,12 @@ class Administration(commands.Cog, name='Administration'):
         name='reload',
         aliases=['-r']
     )
-    async def _reload(self, ctx):
+    async def _reload(self, ctx: commands.Context) -> None:
         logging.warning("%s hat einen Reload gestartet.", ctx.author.name)
         await ctx.send("Reload wird gestartet.")
 
-        startup()
+        self.bot.load_files_into_attrs()
+        self.bot.analyze_guild()
 
     @is_super_user()
     @commands.group(
@@ -1330,11 +1335,11 @@ class Administration(commands.Cog, name='Administration'):
         aliases=['ext'],
         brief='Verwaltet die Extensions des Bots.'
     )
-    async def _extensions(self, ctx):
+    async def _extensions(self, ctx: commands.Context) -> None:
         if ctx.invoked_subcommand is None:
             await ctx.send(
                 "Aktuell sind folgende Extensions geladen: "
-                f"{', '.join(client.extensions.keys())}"
+                f"{', '.join(moevius.extensions.keys())}"
             )
             await ctx.send("Mit !help ext siehst du, welche Optionen verfügbar sind.")
 
@@ -1343,12 +1348,12 @@ class Administration(commands.Cog, name='Administration'):
         aliases=['-l'],
         brief='Lädt eine Extension in den Bot.'
     )
-    async def _load(self, ctx, extension):
-        if 'cogs.' + extension in client.extensions.keys():
+    async def _load(self, ctx: commands.Context, extension: str) -> None:
+        if 'cogs.' + extension in self.bot.extensions.keys():
             await ctx.send("Diese Extensions ist bereits geladen.")
         else:
             try:
-                client.load_extension(f"cogs.{extension}")
+                self.bot.load_extension(f"cogs.{extension}")
                 await ctx.send("Die Extension wurde geladen.")
             except Exception as exc_msg:
                 await ctx.send(f"ERROR: {exc_msg}")
@@ -1358,10 +1363,10 @@ class Administration(commands.Cog, name='Administration'):
         aliases=['-u'],
         brief='Entfernt eine Extension aus dem Bot.'
     )
-    async def _unload(self, ctx, extension):
-        if 'cogs.' + extension in client.extensions.keys():
+    async def _unload(self, ctx: commands.Context, extension: str) -> None:
+        if 'cogs.' + extension in self.bot.extensions.keys():
             try:
-                client.unload_extension(f"cogs.{extension}")
+                moevius.unload_extension(f"cogs.{extension}")
                 await ctx.send("Die Extension wurde entfernt.")
             except Exception as exc_msg:
                 await ctx.send(f"ERROR: {exc_msg}")
@@ -1369,19 +1374,21 @@ class Administration(commands.Cog, name='Administration'):
             await ctx.send("Diese Extensions ist nicht aktiv.")
 
 
-@client.event
-async def on_ready():
+@moevius.event
+async def on_ready() -> None:
     # Load Settings for the first time
-    startup()
+    moevius.analyze_guild()
 
     for filename in os.listdir('./cogs'):
         if (filename.endswith('.py')
                 and not filename.startswith('__')
-                and f"cogs.{filename[:-3]}" not in client.extensions.keys()):
-            await client.load_extension(f"cogs.{filename[:-3]}")
+                and f"cogs.{filename[:-3]}" not in moevius.extensions.keys()):
+            await moevius.load_extension(f"cogs.{filename[:-3]}")
 
     # First Ult Charge Update
-    await client.change_presence(activity=discord.Game(f"Charge: {int(STATE['ultCharge'])}%"))
+    await moevius.change_presence(
+        activity=discord.Game(f"Charge: {int(moevius.state['ult_charge'])}%")
+    )
 
     # Start Loop
     time_check.start()
@@ -1400,17 +1407,15 @@ async def time_check() -> None:
 
     # Check for daily Stuff at 9am
     if TIME_NOW == '09:00':
-        global TEXT_MODEL, QUOTE_BY
-
         logging.info('Es ist 9 Uhr, Daily wird abgefeuert')
 
         try:
-            quote = TEXT_MODEL.make_sentence(tries=100)
+            quote = moevius.text_model.make_sentence(tries=100)
             while quote is None:
                 logging.warning(
                     "Quote: Kein Zitat gefunden, neuer Versuch ..."
                 )
-                quote = TEXT_MODEL.make_sentence(tries=100)
+                quote = moevius.text_model.make_sentence(tries=100)
 
             # No Discord Quotes allowed in Quotes
             quote.replace('>', '')
@@ -1423,20 +1428,20 @@ async def time_check() -> None:
                     random.randint(0, int(datetime.now().timestamp()))
                 )
             )
-            embed.set_footer(text=QUOTE_BY)
-            await SERVER.get_channel(580143021790855178).send(
+            embed.set_footer(text=moevius.quote_by)
+            await moevius.guild.get_channel(580143021790855178).send(
                 content="Guten Morgen, Krah Krah!",
                 embed=embed
             )
-            logging.info('Zitat des Tages: %s - %s', quote, QUOTE_BY)
+            logging.info('Zitat des Tages: %s - %s', quote, moevius.quote_by)
         except Exception as exc_msg:
             logging.error('Kein Zitat des Tages: %s', exc_msg)
 
     if TIME_NOW == '19:30':
         try:
-            for command in client.commands:
+            for command in moevius.commands:
                 if command.name == 'gartic':
-                    await command.__call__(None, channel=client.get_channel(815702384688234538))
+                    await command.__call__(None, channel=moevius.get_channel(815702384688234538))
         except Exception as exc_msg:
             logging.error(
                 'ERROR: Kein Gartic-Image des Tages: %s', exc_msg)
@@ -1452,21 +1457,21 @@ async def time_check() -> None:
 
             if event.event_type == 'stream':
                 if event.event_game == 'bot':
-                    await client.get_channel(580143021790855178).send(
+                    await moevius.get_channel(580143021790855178).send(
                         f"Oh, ist es denn schon {event.event_time} Uhr? "
                         "Dann ab auf https://www.twitch.tv/hanseichlp ... "
                         "es wird endlich wieder am Bot gebastelt, Krah Krah!"
                         f"Heute mit von der Partie: {members}", tts=False
                     )
                 else:
-                    await CHANNELS['stream'].send(
+                    await moevius.channels['stream'].send(
                         f"Oh, ist es denn schon {event.event_time} Uhr? "
                         "Dann ab auf https://www.twitch.tv/schnenko/ ... "
                         "der Stream fängt an, Krah Krah! "
                         f"Heute mit von der Partie: {members}", tts=False
                     )
             else:
-                await CHANNELS['game'].send(
+                await moevius.channels['game'].send(
                     f"Oh, ist es denn schon {event.event_time} Uhr? Dann ab in den Voice-Chat, "
                     f"{event.event_game} fängt an, Krah Krah! "
                     f"Heute mit von der Partie: {members}", tts=False
@@ -1476,26 +1481,26 @@ async def time_check() -> None:
             logging.info('Event-Post abgesetzt, Timer resettet.')
 
 
-@client.event
-async def on_message(message):
-    if message.author == client.user:
+@moevius.event
+async def on_message(message: discord.Message) -> None:
+    if message.author == moevius.user:
         return
 
     # Add a little charge
     await add_ult_charge(0.1)
 
     # Requests from file
-    if message.content[1:] in RESPONSES['req'].keys():
-        response = RESPONSES['req'][message.content[1:]]
+    if message.content[1:] in moevius.responses['req'].keys():
+        response = moevius.responses['req'][message.content[1:]]
         for res in response['res']:
             await message.channel.send(res.format(**locals(), **globals()))
         logging.info(response['log'].format(**locals(), **globals()))
 
     # Responses from file
     else:
-        for key in RESPONSES['res'].keys():
+        for key in moevius.responses['res'].keys():
             if re.search(key, message.content):
-                response = RESPONSES['res'][key]
+                response = moevius.responses['res'][key]
                 for res in response['res']:
                     await message.channel.send(
                         content=res.format(**locals(), **globals()), tts=False
@@ -1503,7 +1508,7 @@ async def on_message(message):
                 logging.info(response['log'].format(**locals(), **globals()))
 
     # Important for processing commands
-    await client.process_commands(message)
+    await moevius.process_commands(message)
 
 
 async def faith_on_react(payload: discord.RawReactionActionEvent, operation: str = 'add') -> None:
@@ -1512,11 +1517,11 @@ async def faith_on_react(payload: discord.RawReactionActionEvent, operation: str
     if payload.emoji.name != 'Moevius':
         return
 
-    text_channel = client.get_channel(payload.channel_id)
+    text_channel = moevius.get_channel(payload.channel_id)
     # Who received the faith
     author = (await text_channel.fetch_message(payload.message_id)).author
     # Who gave the faith
-    giver = client.get_user(payload.user_id)
+    giver = moevius.get_user(payload.user_id)
 
     # Add/Remove Faith, giver always gets 1
     await add_faith(author, reaction_faith*(-1 if operation == 'remove' else 1))
@@ -1532,30 +1537,30 @@ async def faith_on_react(payload: discord.RawReactionActionEvent, operation: str
     )
 
 
-@client.event
+@moevius.event
 async def on_raw_reaction_add(payload):
     await faith_on_react(payload)
 
 
-@client.event
+@moevius.event
 async def on_raw_reaction_remove(payload):
     await faith_on_react(payload, operation='remove')
 
 
-@client.event
+@moevius.event
 async def on_command_error(ctx, error):
     logging.error("%s - %s - %s", ctx.author.name, ctx.message.content, error)
 
 
 async def add_cogs():
     ##### Add the cogs #####
-    await client.add_cog(Administration(client))
-    await client.add_cog(Reminder(client))
-    await client.add_cog(Fun(client))
+    await moevius.add_cog(Administration(moevius))
+    await moevius.add_cog(Reminder(moevius))
+    await moevius.add_cog(Fun(moevius))
 
 
 # Connect to Discord
 if __name__ == "__main__":
     asyncio.run(add_cogs())
 
-    client.run(DISCORD_TOKEN)
+    moevius.run(discord_token)
