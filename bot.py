@@ -35,7 +35,7 @@ class Bot(commands.Bot):
         self.channels: dict[str, discord.TextChannel] = {}
         self.fragen = lines_from_textfile('fragen.txt')
         self.bible = lines_from_textfile('moevius-bibel.txt')
-        self.text_model, self.quote_by = self.build_markov()
+        self.quote_by, self.text_model = self.build_markov()
 
     def analyze_guild(self) -> None:
         """This function analyzes the the channels in the discord guild
