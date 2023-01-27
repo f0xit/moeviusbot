@@ -4,19 +4,20 @@ import discord
 from discord.ext import commands
 import requests
 from bs4 import BeautifulSoup
+from bot import Bot
 
 
-async def setup(bot):
+async def setup(bot: Bot) -> None:
     await bot.add_cog(Overwatch(bot))
     logging.info("Cog: Overwatch geladen.")
 
 
-def append_to_output(input_string: str):
+def append_to_output(input_string: str) -> None:
     return ["- " + i for i in input_string.split('\n') if i != '']
 
 
 class Overwatch(commands.Cog, name='Overwatch'):
-    def __init__(self, bot):
+    def __init__(self, bot: Bot) -> None:
         self.bot = bot
 
         self.overwatch_page = requests.get(
@@ -39,7 +40,7 @@ class Overwatch(commands.Cog, name='Overwatch'):
         aliases=['owpn'],
         brief='Liefert dir, falls vorhanden, die neusten Änderungen bei Helden aus den Patchnotes'
     )
-    async def _owpn(self, ctx):
+    async def _owpn(self, ctx: commands.Context) -> None:
         patch_notes_page = requests.get(
             'https://playoverwatch.com/de-de/news/patch-notes/live')
         patch_notes_soup = BeautifulSoup(
@@ -106,13 +107,14 @@ class Overwatch(commands.Cog, name='Overwatch'):
 
             await ctx.send(embed=embed)
 
-    async def random_hero(self, ctx, who="", role=None):
-        logging.info(ctx.author.name
-                     + "hat einen zufälligen Overwatch-Hero für "
-                     + ('sich ' if who == 'me' else 'alle ')
-                     + "verlangt. Rolle: "
-                     + str(role)
-                     )
+    async def random_hero(self, ctx: commands.Context, who: str = "", role: str = "") -> None:
+        logging.info(
+            ctx.author.name
+            + "hat einen zufälligen Overwatch-Hero für "
+            + ('sich ' if who == 'me' else 'alle ')
+            + "verlangt. Rolle: "
+            + str(role)
+        )
 
         output = ["Random Heroes? Kein Problem, Krah Krah!"]
 
@@ -145,7 +147,7 @@ class Overwatch(commands.Cog, name='Overwatch'):
     @commands.command(
         brief='Gibt dir oder dem kompletten Voice-Channel zufällige Overwatch-Heroes.'
     )
-    async def ow(self, ctx, who=""):
+    async def ow(self, ctx: commands.Context, who: str = "") -> None:
         '''Dieses Kommando wählt für dich einen zufälligen Overwatch-Hero aus.
 
         Solltest du dich währenddessen mit anderen Spielern im Voice befinden,
@@ -160,7 +162,7 @@ class Overwatch(commands.Cog, name='Overwatch'):
     @commands.command(
         brief='Gibt dir einen zufälligen Overwatch-DPS.'
     )
-    async def owd(self, ctx):
+    async def owd(self, ctx: commands.Context) -> None:
         '''Gibt dir einen zufälligen Overwatch-DPS.
 
         Dieses Kommando ist ein Alias für !ow me Damage.'''
@@ -170,7 +172,7 @@ class Overwatch(commands.Cog, name='Overwatch'):
     @commands.command(
         brief='Gibt dir einen zufälligen Overwatch-Support.'
     )
-    async def ows(self, ctx):
+    async def ows(self, ctx: commands.Context) -> None:
         '''Gibt dir einen zufälligen Overwatch-Support.
 
         Dieses Kommando ist ein Alias für !ow me Support.'''
@@ -180,7 +182,7 @@ class Overwatch(commands.Cog, name='Overwatch'):
     @commands.command(
         brief='Gibt dir einen zufälligen Overwatch-Tank.'
     )
-    async def owt(self, ctx):
+    async def owt(self, ctx: commands.Context) -> None:
         '''Gibt dir einen zufälligen Overwatch-Tank.
 
         Dieses Kommando ist ein Alias für !ow me Tank.'''

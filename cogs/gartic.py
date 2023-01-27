@@ -3,28 +3,32 @@ import re
 import random
 import math
 import logging
-
 from PIL import Image
 import discord
 from discord.ext import commands
+from bot import Bot
 
 CHANNEL = 815702384688234538
 
 
-async def setup(bot):
+async def setup(bot: Bot) -> None:
     await bot.add_cog(Gartic(bot))
     logging.info("Cog: Gartic geladen.")
 
 
 class Gartic(commands.Cog, name='Gartic'):
-    def __init__(self, bot):
+    def __init__(self, bot: Bot) -> None:
         self.bot = bot
 
     @commands.command(
         name='gartic',
         brief='Zeigt ein zufälliges Gartic-Gemälde aus dem Archiv.'
     )
-    async def generate_random_painting(self, ctx, channel=None):
+    async def generate_random_painting(
+        self,
+        ctx: commands.Context,
+        channel: discord.TextChannel = None
+    ) -> None:
         try:
             raw_rounds = os.listdir("gartic")
             rounds = []
@@ -91,7 +95,13 @@ class Gartic(commands.Cog, name='Gartic'):
         name='pick',
         brief='Zeigt ein spezifisches Gartic-Gemälde aus dem Archiv.'
     )
-    async def pick(self, ctx, round, album, position):
+    async def pick(
+        self,
+        ctx: commands.Context,
+        round: str,
+        album: int,
+        position: int
+    ) -> None:
         raw_stories = os.listdir(f"gartic/{round}")
         stories = []
 

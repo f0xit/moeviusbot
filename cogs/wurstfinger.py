@@ -2,15 +2,16 @@ import logging
 import random
 import re
 from discord.ext import commands
+from bot import Bot
 
 
-async def setup(bot):
+async def setup(bot: Bot) -> None:
     await bot.add_cog(Wurstfinger(bot))
     logging.info("Cog: Wurstfinger geladen.")
 
 
 class Wurstfinger(commands.Cog, name='Wurstfinger'):
-    def __init__(self, bot):
+    def __init__(self, bot: Bot) -> None:
         self.bot = bot
 
         self.substitute = {
@@ -53,7 +54,7 @@ class Wurstfinger(commands.Cog, name='Wurstfinger'):
         name='Schnenk',
         aliases=['schnenk']
     )
-    async def _schnenk(self, ctx, percent: int = 5):
+    async def _schnenk(self, ctx: commands.Context, percent: int = 5) -> None:
         output = ""
         history = await ctx.channel.history(limit=2).flatten()
         message = history[1].content

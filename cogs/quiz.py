@@ -1,20 +1,21 @@
 import json
 import logging
 import random
+from typing import Any
 import discord
 from discord.ext import commands
-
+from bot import Bot
 from myfunc import gcts
 import tools.json_tools as json_tools
 
 
-async def setup(bot):
+async def setup(bot: Bot) -> None:
     await bot.add_cog(Quiz(bot))
     logging.info("Cog: Quiz geladen.")
 
 
-# Check for user is Super User
 def is_super_user():
+    # Check for user is Super User
     settings = json_tools.load_file('json/settings.json')
 
     async def wrapper(ctx):
@@ -23,7 +24,7 @@ def is_super_user():
 
 
 class Quiz(commands.Cog, name='Quiz'):
-    def __init__(self, bot):
+    def __init__(self, bot: Bot) -> None:
         self.bot = bot
 
         self.player = None
@@ -40,7 +41,7 @@ class Quiz(commands.Cog, name='Quiz'):
 
         logging.debug("Game-Stages geladen.")
 
-    async def get_random_question(self):
+    async def get_random_question(self) -> None:
         while True:
             question = random.choice(self.quiz)
 
@@ -61,7 +62,7 @@ class Quiz(commands.Cog, name='Quiz'):
 
                 return
 
-    async def get_question_output(self):
+    async def get_question_output(self) -> dict[str, Any]:
         embed = discord.Embed(
             title=self.question['question'],
             colour=discord.Colour(0xff00ff),
@@ -77,12 +78,12 @@ class Quiz(commands.Cog, name='Quiz'):
             "embed": embed
         })
 
-    async def stop_quiz(self):
+    async def stop_quiz(self) -> None:
         self.player = None
         self.channel = None
         self.game_stage = 0
 
-    async def update_ranking(self, amount):
+    async def update_ranking(self, amount: int) -> None:
         ranking = {}
         player_id = str(self.player.id)
 
@@ -112,7 +113,7 @@ class Quiz(commands.Cog, name='Quiz'):
         name='quiz',
         brief='Startet eine Quiz Runde'
     )
-    async def _quiz(self, ctx):
+    async def _quiz(self, ctx: commands.Context) -> None:
         if ctx.invoked_subcommand is None:
             if self.player is not None:
                 await ctx.send(
@@ -148,7 +149,7 @@ class Quiz(commands.Cog, name='Quiz'):
         aliases=['-s'],
         brief='Beendet das laufende Quiz.'
     )
-    async def _stop(self, ctx):
+    async def _stop(self, ctx: commands.Context) -> None:
         if self.player is not None:
             await ctx.send(
                 "Das laufende Quiz wurde abgebrochen. "
@@ -167,7 +168,7 @@ class Quiz(commands.Cog, name='Quiz'):
         brief='Meldet eine Frage als unpassend/falsch/wasauchimmer.',
         usage='report <Grund>'
     )
-    async def _report(self, ctx, *args):
+    async def _report(self, ctx: commands.Context, *args) -> None:
         with open('logs/quiz_report.log', 'a+') as file:
             file.write(
                 f"[{gcts()}] {ctx.author.name}: "
@@ -189,7 +190,7 @@ class Quiz(commands.Cog, name='Quiz'):
         name='rank',
         brief='Zeigt das Leaderboard an.'
     )
-    async def _rank(self, ctx):
+    async def _rank(self, ctx: commands.Context) -> None:
         with open('quiz_ranking.json', 'r') as file:
             ranking = json.load(file)
             sorted_ranking = dict(sorted(
@@ -240,7 +241,7 @@ class Quiz(commands.Cog, name='Quiz'):
             await ctx.send(embed=embed)
 
     @commands.Cog.listener()
-    async def on_message(self, message):
+    async def on_message(self, message: discord.Message):
         if self.player == message.author and message.channel == self.channel:
             user_answer = message.content.title()
 
