@@ -1315,8 +1315,7 @@ async def on_ready() -> None:
         activity=discord.Game(f"Charge: {int(moevius.state['ult_charge'])}%")
     )
 
-    # Start Loops
-    daily_gartic.start()
+    # Start Loop
     daily_quote.start()
 
 
@@ -1352,16 +1351,6 @@ async def daily_quote() -> None:
     except Exception as exc_msg:
         logging.error('Kein Zitat des Tages: %s', exc_msg)
 
-
-@tasks.loop(time=[dt.time.fromisoformat('19:30')])
-async def daily_gartic() -> None:
-    try:
-        for command in moevius.commands:
-            if command.name == 'gartic':
-                await command.__call__(None, channel=moevius.get_channel(815702384688234538))
-    except Exception as exc_msg:
-        logging.error(
-            'ERROR: Kein Gartic-Image des Tages: %s', exc_msg)
 
 
 @moevius.event

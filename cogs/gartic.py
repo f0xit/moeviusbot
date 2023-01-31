@@ -3,12 +3,11 @@ import re
 import random
 import math
 import logging
+import datetime as dt
 from PIL import Image
 import discord
-from discord.ext import commands
+from discord.ext import commands, tasks
 from bot import Bot
-
-CHANNEL = 815702384688234538
 
 
 async def setup(bot: Bot) -> None:
@@ -19,6 +18,11 @@ async def setup(bot: Bot) -> None:
 class Gartic(commands.Cog, name='Gartic'):
     def __init__(self, bot: Bot) -> None:
         self.bot = bot
+        self._daily_gartic.start()
+        self.gartic_channel = 815702384688234538
+
+    async def cog_unload(self) -> None:
+        self._daily_gartic.cancel()
 
     @commands.command(
         name='gartic',
@@ -116,3 +120,19 @@ class Gartic(commands.Cog, name='Gartic'):
         await ctx.send(
             file=discord.File('gartic_output.png')
         )
+
+    @tasks.loop(time=[dt.time.fromisoformat('19:30')])
+    async def _daily_gartic(self) -> None:
+        try:
+            await self.generate_random_painting(
+                None,
+                channel=self.bot.get_channel(self.gartic_channel)
+            )
+        except Exception as exc_msg:
+            logging.error(
+                'ERROR: Kein Gartic-Image des Tages: %s', exc_msg
+            )
+
+    @_daily_gartic.before_loop
+    async def _before_gartic_loop(self):
+        await self.bot.wait_until_ready()
