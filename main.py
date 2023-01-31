@@ -8,7 +8,7 @@ import logging
 import subprocess
 import random
 import re
-from datetime import datetime
+import datetime as dt
 import time
 import json
 from urllib.request import urlopen
@@ -32,7 +32,7 @@ if (major_version, minor_version) < (3, 11):
     sys.exit("Wrong Python version. Please use at least 3.11.")
 
 ##### Save startup time #####
-STARTUP_TIME = datetime.now()
+STARTUP_TIME = dt.datetime.now()
 
 ##### First Setup #####
 LOG_TOOL = LoggerTools(level="DEBUG")
@@ -56,16 +56,6 @@ else:
     logging.info('Discord token loaded successfully.')
 
 moevius = Bot()
-
-# Variables for global use
-TIME_NOW = ''
-LATEST_MSG = []
-
-# Create events
-EVENTS = {
-    'stream': Event('stream'),
-    'game': Event('game')
-}
 
 
 def is_super_user():
@@ -112,11 +102,26 @@ class Reminder(commands.Cog, name='Events'):
     Bestimmte Kommandos benötigen bestimmte Berechtigungen. Kontaktiere HansEichLP,
     wenn du mehr darüber wissen willst.'''
 
-    def __init__(self, bot: Bot):
+    def __init__(self, bot: Bot) -> None:
         self.bot = bot
+        self.events = {
+            'stream': Event('stream'),
+            'game': Event('game')
+        }
+        self.time_now = ''
+        self._reminder_loop.start()
+
+    async def cog_unload(self) -> None:
+        self._reminder_loop.cancel()
 
     # Process an Event-Command (Stream, Game, ...)
-    async def process_event_command(self, event_type: str, ctx: commands.Context, args, ult=False):
+    async def process_event_command(
+        self,
+        event_type: str,
+        ctx: commands.Context,
+        args,
+        ult=False
+    ) -> None:
         # Check for super-user
         if (
             event_type == 'stream'
@@ -137,7 +142,7 @@ class Reminder(commands.Cog, name='Events'):
 
         # No argument => Reset stream
         if len(args) == 0:
-            EVENTS[event_type].reset()
+            self.events[event_type].reset()
 
             # Feedback
             # TODO: Wenn ein Reminder resettet wird, lass es alle im richtigen Channel wissen
@@ -190,7 +195,7 @@ class Reminder(commands.Cog, name='Events'):
             logging.info(
                 "%s hat das Event %s geupdatet.", ctx.author.name, event_type
             )
-            EVENTS[event_type].update_event(
+            self.events[event_type].update_event(
                 '25:00' if ult else event_time, game
             )
 
@@ -198,7 +203,7 @@ class Reminder(commands.Cog, name='Events'):
             logging.debug(
                 "%s wurde zum Event %s hinzugefügt.", ctx.author.name, event_type
             )
-            EVENTS[event_type].add_member(ctx.author)
+            self.events[event_type].add_member(ctx.author)
 
             # Direct feedback for the creator
             # Stream
@@ -277,15 +282,17 @@ class Reminder(commands.Cog, name='Events'):
             )
 
     # Process the Request for Event-Info
-    async def process_event_info(self, event_type: str, ctx: commands.Context):
-        global EVENTS
-
+    async def process_event_info(
+        self,
+        event_type: str,
+        ctx: commands.Context
+    ) -> None:
         # Charge!
         await add_ult_charge(5)
         await add_faith(ctx.author, 5)
 
         # There is no event
-        if EVENTS[event_type].event_time == '':
+        if self.events[event_type].event_time == '':
             if event_type == 'stream':
                 await ctx.send("Es wurde noch kein Stream angekündigt, Krah Krah!")
             else:
@@ -305,17 +312,17 @@ class Reminder(commands.Cog, name='Events'):
                 begin_string = "Die nächste Coop-Runde"
 
             # Check for game
-            if EVENTS[event_type].event_game == '':
+            if self.events[event_type].event_game == '':
                 game_str = ""
             else:
-                game_str = f"Gespielt wird: {EVENTS[event_type].event_game}. "
+                game_str = f"Gespielt wird: {self.events[event_type].event_game}. "
 
             # Get the members
-            members = ", ".join(EVENTS[event_type].event_members.values())
+            members = ", ".join(self.events[event_type].event_members.values())
 
             # Post the info
             await ctx.send(
-                f"{begin_string} beginnt um {EVENTS[event_type].event_time} Uhr. "
+                f"{begin_string} beginnt um {self.events[event_type].event_time} Uhr. "
                 + f"{game_str}Mit dabei sind bisher: {members}, Krah Krah!"
             )
             logging.info(
@@ -325,10 +332,12 @@ class Reminder(commands.Cog, name='Events'):
             )
 
     # Join an event
-    async def join_event(self, event_type: str, ctx: commands.Context):
-        global EVENTS
-
-        if EVENTS[event_type].event_time == '':
+    async def join_event(
+        self,
+        event_type: str,
+        ctx: commands.Context
+    ) -> None:
+        if self.events[event_type].event_time == '':
             await ctx.send("Nanu, anscheinend gibt es nichts zum Beitreten, Krah Krah!")
             logging.warning(
                 "%s wollte einem Event %s beitreten, dass es nicht gibt.",
@@ -340,7 +349,7 @@ class Reminder(commands.Cog, name='Events'):
             await add_ult_charge(5)
             await add_faith(ctx.author, 5)
 
-            if ctx.author.display_name in EVENTS[event_type].event_members.values():
+            if ctx.author.display_name in self.events[event_type].event_members.values():
                 await ctx.send(
                     "Hey du Vogel, du stehst bereits auf der Teilnehmerliste, Krah Krah!"
                 )
@@ -350,7 +359,7 @@ class Reminder(commands.Cog, name='Events'):
                     event_type
                 )
             else:
-                EVENTS[event_type].add_member(ctx.author)
+                self.events[event_type].add_member(ctx.author)
                 await ctx.send(
                     "Alles klar, ich packe dich auf die Teilnehmerliste, Krah Krah!"
                 )
@@ -367,7 +376,7 @@ class Reminder(commands.Cog, name='Events'):
         brief='Infos und Einstellungen zum aktuellen Stream-Reminder.',
         usage='(hh:mm) (game)'
     )
-    async def _stream(self, ctx: commands.Context, *args):
+    async def _stream(self, ctx: commands.Context, *args) -> None:
         '''Hier kannst du alles über einen aktuellen Stream-Reminder herausfinden oder seine
         Einstellungen anpassen
 
@@ -394,7 +403,7 @@ class Reminder(commands.Cog, name='Events'):
         brief='Infos und Einstellungen zum aktuellen Coop-Reminder.',
         usage='(hh:mm) (game)'
     )
-    async def _game(self, ctx: commands.Context, *args):
+    async def _game(self, ctx: commands.Context, *args) -> None:
         '''Hier kannst du alles über einen aktuellen Coop-Reminder herausfinden oder
         seine Einstellungen anpassen
 
@@ -420,7 +429,7 @@ class Reminder(commands.Cog, name='Events'):
         aliases=['j'],
         brief='Tritt einem Event bei.'
     )
-    async def _join(self, ctx: commands.Context):
+    async def _join(self, ctx: commands.Context) -> None:
         '''Wenn ein Reminder eingerichtet wurde, kannst du ihm mit diesem Kommando beitreten.
 
         Stehst du auf der Teilnehmerliste, wird der Bot dich per Erwähnung benachrichtigen,
@@ -437,9 +446,7 @@ class Reminder(commands.Cog, name='Events'):
         aliases=['h'],
         brief='Informiere das Squad über ein bevorstehendes Event.'
     )
-    async def _hey(self, ctx: commands.Context):
-        global EVENTS
-
+    async def _hey(self, ctx: commands.Context) -> None:
         if ctx.channel.category.name != "Spiele":
             await ctx.send('Hey, das ist kein Spiele-Channel, Krah Krah!')
             logging.warning(
@@ -463,7 +470,9 @@ class Reminder(commands.Cog, name='Events'):
 
         members = []
         for member in self.bot.squads[ctx.channel.name].values():
-            if member != ctx.author.id and str(member) not in EVENTS['game'].event_members.keys():
+            if (member != ctx.author.id
+                    and str(member) not in self.events['game'].event_members.keys()
+                    ):
                 members.append(f'<@{member}>')
 
         if len(members) == 0:
@@ -487,7 +496,7 @@ class Reminder(commands.Cog, name='Events'):
         aliases=['sq'],
         brief='Manage dein Squad mit ein paar simplen Kommandos.'
     )
-    async def _squad(self, ctx: commands.Context, *args):
+    async def _squad(self, ctx: commands.Context, *args) -> None:
         '''Du willst dein Squad managen? Okay, so gehts!
         Achtung: Jeder Game-Channel hat ein eigenes Squad. Du musst also im richtigen Channel sein.
 
@@ -626,6 +635,49 @@ class Reminder(commands.Cog, name='Events'):
                         member.name,
                         ctx.channel.name
                     )
+
+    @tasks.loop(seconds=5)
+    async def _reminder_loop(self) -> None:
+        if self.time_now == dt.datetime.now().strftime('%H:%M'):
+            return
+
+        self.time_now = dt.datetime.now().strftime('%H:%M')
+        for event in self.events.values():
+            if event.event_time == self.time_now:
+                logging.info("Ein Event beginnt: %s!", event.event_type)
+
+                members = " ".join(
+                    [f"<@{id}>" for id in event.event_members.keys()]
+                )
+
+                if event.event_type == 'stream':
+                    if event.event_game == 'bot':
+                        await moevius.get_channel(580143021790855178).send(
+                            f"Oh, ist es denn schon {event.event_time} Uhr? "
+                            "Dann ab auf https://www.twitch.tv/hanseichlp ... "
+                            "es wird endlich wieder am Bot gebastelt, Krah Krah!"
+                            f"Heute mit von der Partie: {members}", tts=False
+                        )
+                    else:
+                        await moevius.channels['stream'].send(
+                            f"Oh, ist es denn schon {event.event_time} Uhr? "
+                            "Dann ab auf https://www.twitch.tv/schnenko/ ... "
+                            "der Stream fängt an, Krah Krah! "
+                            f"Heute mit von der Partie: {members}", tts=False
+                        )
+                else:
+                    await moevius.channels['game'].send(
+                        f"Oh, ist es denn schon {event.event_time} Uhr? Dann ab in den Voice-Chat, "
+                        f"{event.event_game} fängt an, Krah Krah! "
+                        f"Heute mit von der Partie: {members}", tts=False
+                    )
+
+                event.reset()
+                logging.info('Event-Post abgesetzt, Timer resettet.')
+
+    @_reminder_loop.before_loop
+    async def _before_reminder_loop(self):
+        await self.bot.wait_until_ready()
 
 
 class Fun(commands.Cog, name='Spaß'):
@@ -815,8 +867,8 @@ class Fun(commands.Cog, name='Spaß'):
                     title="Zitat",
                     colour=discord.Colour(0xff00ff),
                     description=str(quote),
-                    timestamp=datetime.utcfromtimestamp(
-                        random.randint(0, int(datetime.now().timestamp()))
+                    timestamp=dt.datetime.utcfromtimestamp(
+                        random.randint(0, int(dt.datetime.now().timestamp()))
                     )
                 )
                 embed.set_footer(text=self.bot.quote_by)
@@ -1180,7 +1232,7 @@ class Administration(commands.Cog, name='Administration'):
         aliases=['-u']
     )
     async def _uptime(self, ctx: commands.Context) -> None:
-        uptime = (datetime.now() - STARTUP_TIME)
+        uptime = (dt.datetime.now() - STARTUP_TIME)
         uptimestr = strfdelta(
             uptime, "{days} Tage {hours}:{minutes}:{seconds}")
 
@@ -1263,95 +1315,53 @@ async def on_ready() -> None:
         activity=discord.Game(f"Charge: {int(moevius.state['ult_charge'])}%")
     )
 
-    # Start Loop
-    time_check.start()
+    # Start Loops
+    daily_gartic.start()
+    daily_quote.start()
 
-##### Tasks #####
 
+@tasks.loop(time=[dt.time.fromisoformat('09:00')])
+async def daily_quote() -> None:
+    logging.info('Es ist 9 Uhr, Daily wird abgefeuert')
 
-@tasks.loop(seconds=5)
-async def time_check() -> None:
-    global TIME_NOW, EVENTS
-
-    if TIME_NOW == datetime.now().strftime('%H:%M'):
-        return
-
-    TIME_NOW = datetime.now().strftime('%H:%M')
-
-    # Check for daily Stuff at 9am
-    if TIME_NOW == '09:00':
-        logging.info('Es ist 9 Uhr, Daily wird abgefeuert')
-
-        try:
+    try:
+        quote = moevius.text_model.make_sentence(tries=100)
+        while quote is None:
+            logging.warning(
+                "Quote: Kein Zitat gefunden, neuer Versuch ..."
+            )
             quote = moevius.text_model.make_sentence(tries=100)
-            while quote is None:
-                logging.warning(
-                    "Quote: Kein Zitat gefunden, neuer Versuch ..."
-                )
-                quote = moevius.text_model.make_sentence(tries=100)
 
-            # No Discord Quotes allowed in Quotes
-            quote.replace('>', '')
+        # No Discord Quotes allowed in Quotes
+        quote.replace('>', '')
 
-            embed = discord.Embed(
-                title="Zitat des Tages",
-                colour=discord.Colour(0xff00ff),
-                description=str(quote),
-                timestamp=datetime.utcfromtimestamp(
-                    random.randint(0, int(datetime.now().timestamp()))
-                )
+        embed = discord.Embed(
+            title="Zitat des Tages",
+            colour=discord.Colour(0xff00ff),
+            description=str(quote),
+            timestamp=dt.datetime.utcfromtimestamp(
+                random.randint(0, int(dt.datetime.now().timestamp()))
             )
-            embed.set_footer(text=moevius.quote_by)
-            await moevius.guild.get_channel(580143021790855178).send(
-                content="Guten Morgen, Krah Krah!",
-                embed=embed
-            )
-            logging.info('Zitat des Tages: %s - %s', quote, moevius.quote_by)
-        except Exception as exc_msg:
-            logging.error('Kein Zitat des Tages: %s', exc_msg)
+        )
+        embed.set_footer(text=moevius.quote_by)
+        await moevius.guild.get_channel(580143021790855178).send(
+            content="Guten Morgen, Krah Krah!",
+            embed=embed
+        )
+        logging.info('Zitat des Tages: %s - %s', quote, moevius.quote_by)
+    except Exception as exc_msg:
+        logging.error('Kein Zitat des Tages: %s', exc_msg)
 
-    if TIME_NOW == '19:30':
-        try:
-            for command in moevius.commands:
-                if command.name == 'gartic':
-                    await command.__call__(None, channel=moevius.get_channel(815702384688234538))
-        except Exception as exc_msg:
-            logging.error(
-                'ERROR: Kein Gartic-Image des Tages: %s', exc_msg)
 
-    # Check for events now
-    for event in EVENTS.values():
-        if event.event_time == TIME_NOW:
-            logging.info("Ein Event beginnt: %s!", event.event_type)
-
-            members = " ".join(
-                [f"<@{id}>" for id in event.event_members.keys()]
-            )
-
-            if event.event_type == 'stream':
-                if event.event_game == 'bot':
-                    await moevius.get_channel(580143021790855178).send(
-                        f"Oh, ist es denn schon {event.event_time} Uhr? "
-                        "Dann ab auf https://www.twitch.tv/hanseichlp ... "
-                        "es wird endlich wieder am Bot gebastelt, Krah Krah!"
-                        f"Heute mit von der Partie: {members}", tts=False
-                    )
-                else:
-                    await moevius.channels['stream'].send(
-                        f"Oh, ist es denn schon {event.event_time} Uhr? "
-                        "Dann ab auf https://www.twitch.tv/schnenko/ ... "
-                        "der Stream fängt an, Krah Krah! "
-                        f"Heute mit von der Partie: {members}", tts=False
-                    )
-            else:
-                await moevius.channels['game'].send(
-                    f"Oh, ist es denn schon {event.event_time} Uhr? Dann ab in den Voice-Chat, "
-                    f"{event.event_game} fängt an, Krah Krah! "
-                    f"Heute mit von der Partie: {members}", tts=False
-                )
-
-            event.reset()
-            logging.info('Event-Post abgesetzt, Timer resettet.')
+@tasks.loop(time=[dt.time.fromisoformat('19:30')])
+async def daily_gartic() -> None:
+    try:
+        for command in moevius.commands:
+            if command.name == 'gartic':
+                await command.__call__(None, channel=moevius.get_channel(815702384688234538))
+    except Exception as exc_msg:
+        logging.error(
+            'ERROR: Kein Gartic-Image des Tages: %s', exc_msg)
 
 
 @moevius.event
