@@ -456,8 +456,8 @@ class Reminder(commands.Cog, name='Events'):
         members = []
         for member in self.bot.squads[ctx.channel.name].values():
             if (member != ctx.author.id
-                    and str(member) not in self.events['game'].event_members.keys()
-                    ):
+                and str(member) not in self.events['game'].event_members.keys()
+                ):
                 members.append(f'<@{member}>')
 
         if len(members) == 0:
@@ -1091,11 +1091,25 @@ class Administration(commands.Cog, name='Administration'):
         aliases=['-v']
     )
     async def _version(self, ctx: commands.Context) -> None:
-        version = subprocess.check_output(
-            'git describe --tags', shell=True).strip().decode('ascii')
+        console_output = subprocess.check_output(
+            'git describe --tags', shell=True
+        ).strip().decode('ascii')
 
-        await ctx.send(f"Bot läuft auf Version {version}")
-        logging.info('Version %s', version)
+        try:
+            res = console_output.split('-')
+            version_string = ' '.join(res[:2]).title()
+            if len(res) >= 2:
+                version_string += f'.\nTag is {res[2]} commits behind.'
+                version_string += f' Currently running commit {res[3][1:]}'
+
+            await ctx.send(f"Bot läuft auf Version {version_string}")
+            logging.info('Version %s', version_string)
+        except IndexError:
+            logging.error(
+                'Something is wrong with the version string: %s', console_output
+            )
+            await ctx.send(f"Bot läuft auf Version {console_output}")
+            logging.info('Version %s', version_string)
 
     @_bot.command(
         name='uptime',
