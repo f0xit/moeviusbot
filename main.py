@@ -84,17 +84,6 @@ async def add_ult_charge(amount: int) -> None:
     logging.debug('Ult charge added: %s', amount)
 
 
-async def add_faith(member: discord.User | discord.Member, amount: int) -> None:
-    '''Adds the specified amount of faith points to the member's wallet.'''
-
-    member_id: str = str(member.id)
-
-    moevius.faith[str(member_id)] = moevius.faith.get(
-        str(member_id), 0) + amount
-
-    logging.info('Faith was added: %s, %s', member.name, amount)
-
-
 class Reminder(commands.Cog, name='Events'):
     '''Diese Kommandos dienen dazu, Reminder für Streams oder Coop-Sessions einzurichten,
     beizutreten oder deren Status abzufragen.
@@ -138,7 +127,6 @@ class Reminder(commands.Cog, name='Events'):
             return
 
         await add_ult_charge(5)
-        await add_faith(ctx.author, 10)
 
         # No argument => Reset stream
         if len(args) == 0:
@@ -289,7 +277,6 @@ class Reminder(commands.Cog, name='Events'):
     ) -> None:
         # Charge!
         await add_ult_charge(5)
-        await add_faith(ctx.author, 5)
 
         # There is no event
         if self.events[event_type].event_time == '':
@@ -347,7 +334,6 @@ class Reminder(commands.Cog, name='Events'):
         else:
             # Charge!
             await add_ult_charge(5)
-            await add_faith(ctx.author, 5)
 
             if ctx.author.display_name in self.events[event_type].event_members.values():
                 await ctx.send(
@@ -466,7 +452,6 @@ class Reminder(commands.Cog, name='Events'):
 
         # Ult & Faith
         await add_ult_charge(5)
-        await add_faith(ctx.author, 5)
 
         members = []
         for member in self.bot.squads[ctx.channel.name].values():
@@ -528,7 +513,6 @@ class Reminder(commands.Cog, name='Events'):
 
         # Ult & Faith
         await add_ult_charge(5)
-        await add_faith(ctx.author, 5)
 
         if len(args) == 0:
             if len(self.bot.squads[ctx.channel.name]) > 0:
@@ -719,7 +703,6 @@ class Fun(commands.Cog, name='Spaß'):
     async def _urbandict(self, ctx: commands.Context, *args):
         # Charge!
         await add_ult_charge(5)
-        await add_faith(ctx.author, 1)
 
         term = " ".join(args)
         url = 'http://api.urbandictionary.com/v0/define?term=' + \
@@ -790,7 +773,6 @@ class Fun(commands.Cog, name='Spaß'):
     async def _frage(self, ctx: commands.Context):
         # Charge & Faith
         await add_ult_charge(1)
-        await add_faith(ctx.author, 1)
 
         # Get random question
         frage = random.choice(self.bot.fragen)
@@ -818,7 +800,6 @@ class Fun(commands.Cog, name='Spaß'):
     async def _bibel(self, ctx: commands.Context):
         # Charge & Faith
         await add_ult_charge(1)
-        await add_faith(ctx.author, 1)
 
         # Get random bible quote
         quote = random.choice(self.bot.bible)
@@ -882,7 +863,6 @@ class Fun(commands.Cog, name='Spaß'):
 
             # Ult & Faith
             await add_ult_charge(5)
-            await add_faith(ctx.author, 1)
 
     @is_super_user()
     @_quote.command(
@@ -999,7 +979,6 @@ class Fun(commands.Cog, name='Spaß'):
                     f"[{int(self.bot.state['ult_charge'])}%]"
                 )
 
-            await add_faith(ctx.author, 1)
             logging.info(
                 "%s hat nach meiner Ult-Charge gefragt: %s%%",
                 ctx.author.name,
@@ -1023,9 +1002,6 @@ class Fun(commands.Cog, name='Spaß'):
                     )
                 else:
                     # Ult is ready
-
-                    # Faith
-                    await add_faith(ctx.author, 10)
                     action_id = random.randint(0, 3)
 
                     if action_id < 2:
@@ -1067,6 +1043,94 @@ class Fun(commands.Cog, name='Spaß'):
                         )
                 else:
                     await ctx.send('Nanana, das darfst du nicht, Krah Krah!')
+
+    @commands.command(
+        name='wurstfinger'
+    )
+    async def _wurstfinger(self, ctx: commands.Context) -> None:
+        start_time = time.time()
+
+        history = [msg async for msg in ctx.channel.history(limit=2)]
+        message = history[1].content
+        correction = self.speller(message)
+
+        logging.info(
+            'Wurstfinger: "%s" → "%s", Dauer: %s',
+            message,
+            correction,
+            time.time() - start_time
+        )
+
+        await ctx.send(f"Meintest du vielleicht: {correction}")
+
+        # Ult & Faith
+        await add_ult_charge(5)
+
+
+class Faith(commands.Cog, name='Faith'):
+    def __init__(self, bot: Bot) -> None:
+        self.bot = bot
+
+        logging.info('Cog Faith loaded.')
+
+    async def faith_on_react(
+        self,
+        payload: discord.RawReactionActionEvent,
+        operation: str = 'add'
+    ) -> None:
+        if payload.emoji.name != 'Moevius':
+            return
+
+        text_channel = moevius.get_channel(payload.channel_id)
+
+        receiver = (await text_channel.fetch_message(payload.message_id)).author
+        giver = moevius.get_user(payload.user_id)
+
+        await self.add_faith(
+            receiver,
+            self.bot.settings["faith_on_react"] *
+            (-1 if operation == 'remove' else 1)
+        )
+        await self.add_faith(giver, 1)
+
+        logging.info(
+            'Faith on reaction: %s %s %s %s🕊',
+            giver.display_name,
+            'takes' if operation == 'remove' else 'gives',
+            receiver.display_name,
+            self.bot.settings['faith_on_react']
+        )
+
+    async def add_faith(self, member: discord.User | discord.Member, amount: int) -> None:
+        '''Adds the specified amount of faith points to the member's wallet.'''
+        member_id: str = str(member.id)
+
+        moevius.faith[member_id] = moevius.faith.get(member_id, 0) + amount
+
+        logging.info('Faith was added: %s, %s', member.name, amount)
+
+    @commands.Cog.listener()
+    async def on_command_completion(self, ctx: commands.Context):
+        if ctx.command.qualified_name not in self.bot.settings['faith_by_command']:
+            return
+
+        logging.info(
+            'Faith will be added for command: %s',
+            ctx.command.qualified_name
+        )
+
+        await self.add_faith(
+            ctx.author,
+            self.bot.settings['faith_by_command'][ctx.command.qualified_name]
+        )
+
+    @commands.Cog.listener()
+    async def on_raw_reaction_add(self, payload: discord.RawReactionActionEvent):
+        await self.faith_on_react(payload)
+
+    @commands.Cog.listener()
+    async def on_raw_reaction_remove(self, payload: discord.RawReactionActionEvent):
+        await self.faith_on_react(payload, operation='remove')
 
     @commands.group(
         name='faith',
@@ -1133,8 +1197,13 @@ class Fun(commands.Cog, name='Spaß'):
         name='add',
         aliases=['-a', '+']
     )
-    async def _add_faith(self, ctx: commands.Context, member: discord.Member, amount: int) -> None:
-        await add_faith(member, amount)
+    async def _add_faith(
+        self,
+        ctx: commands.Context,
+        member: discord.Member,
+        amount: int
+    ) -> None:
+        await self.add_faith(member, amount)
         logging.info(
             '%s added %s faith to %s.',
             ctx.author.name, amount, member.name
@@ -1148,9 +1217,12 @@ class Fun(commands.Cog, name='Spaß'):
         aliases=['-r', '-']
     )
     async def _remove_faith(
-        self, ctx: commands.Context, member: discord.Member, amount: int
+        self,
+        ctx: commands.Context,
+        member: discord.Member,
+        amount: int
     ) -> None:
-        await add_faith(member, amount*(-1))
+        await self.add_faith(member, amount*(-1))
         logging.info(
             '%s removed %s faith from %s.',
             ctx.author.name, amount, member.name
@@ -1163,7 +1235,12 @@ class Fun(commands.Cog, name='Spaß'):
         name='set',
         aliases=['-s', '=']
     )
-    async def _set_faith(self, ctx: commands.Context, member: discord.Member, amount: int) -> None:
+    async def _set_faith(
+        self,
+        ctx: commands.Context,
+        member: discord.Member,
+        amount: int
+    ) -> None:
         self.bot.faith.update({str(member.id): amount})
         logging.info(
             '%s set faith to %s for %s.',
@@ -1172,29 +1249,6 @@ class Fun(commands.Cog, name='Spaß'):
         await ctx.send(
             f"Alles klar, {member.display_name} hat nun {amount}🕊, Krah Krah!"
         )
-
-    @commands.command(
-        name='wurstfinger'
-    )
-    async def _wurstfinger(self, ctx: commands.Context) -> None:
-        start_time = time.time()
-
-        history = [msg async for msg in ctx.channel.history(limit=2)]
-        message = history[1].content
-        correction = self.speller(message)
-
-        logging.info(
-            'Wurstfinger: "%s" → "%s", Dauer: %s',
-            message,
-            correction,
-            time.time() - start_time
-        )
-
-        await ctx.send(f"Meintest du vielleicht: {correction}")
-
-        # Ult & Faith
-        await add_ult_charge(5)
-        await add_faith(ctx.author, 1)
 
 
 class Administration(commands.Cog, name='Administration'):
@@ -1352,7 +1406,6 @@ async def daily_quote() -> None:
         logging.error('Kein Zitat des Tages: %s', exc_msg)
 
 
-
 @moevius.event
 async def on_message(message: discord.Message) -> None:
     if message.author == moevius.user:
@@ -1383,42 +1436,6 @@ async def on_message(message: discord.Message) -> None:
     await moevius.process_commands(message)
 
 
-async def faith_on_react(payload: discord.RawReactionActionEvent, operation: str = 'add') -> None:
-    reaction_faith = 10
-
-    if payload.emoji.name != 'Moevius':
-        return
-
-    text_channel = moevius.get_channel(payload.channel_id)
-    # Who received the faith
-    author = (await text_channel.fetch_message(payload.message_id)).author
-    # Who gave the faith
-    giver = moevius.get_user(payload.user_id)
-
-    # Add/Remove Faith, giver always gets 1
-    await add_faith(author, reaction_faith*(-1 if operation == 'remove' else 1))
-    await add_faith(giver, 1)
-
-    # Log
-    logging.info(
-        "FaithAdd-Reaction: %s %s %s %s🕊",
-        giver.display_name,
-        'nimmt' if operation == 'remove' else 'gibt',
-        author.display_name,
-        reaction_faith
-    )
-
-
-@moevius.event
-async def on_raw_reaction_add(payload):
-    await faith_on_react(payload)
-
-
-@moevius.event
-async def on_raw_reaction_remove(payload):
-    await faith_on_react(payload, operation='remove')
-
-
 @moevius.event
 async def on_command_error(ctx, error):
     logging.error("%s - %s - %s", ctx.author.name, ctx.message.content, error)
@@ -1429,6 +1446,7 @@ async def add_cogs():
     await moevius.add_cog(Administration(moevius))
     await moevius.add_cog(Reminder(moevius))
     await moevius.add_cog(Fun(moevius))
+    await moevius.add_cog(Faith(moevius))
 
 
 # Connect to Discord
