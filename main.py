@@ -1241,9 +1241,6 @@ async def on_message(message: discord.Message) -> None:
     if message.author == moevius.user:
         return
 
-    # Add a little charge
-    await add_ult_charge(0.1)
-
     # Requests from file
     if message.content[1:] in moevius.responses['req'].keys():
         response = moevius.responses['req'][message.content[1:]]
