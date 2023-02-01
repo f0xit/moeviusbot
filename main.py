@@ -456,8 +456,8 @@ class Reminder(commands.Cog, name='Events'):
         members = []
         for member in self.bot.squads[ctx.channel.name].values():
             if (member != ctx.author.id
-                and str(member) not in self.events['game'].event_members.keys()
-                ):
+                        and str(member) not in self.events['game'].event_members.keys()
+                    ):
                 members.append(f'<@{member}>')
 
         if len(members) == 0:
@@ -1269,6 +1269,27 @@ async def on_message(message: discord.Message) -> None:
 @moevius.event
 async def on_command_error(ctx, error):
     logging.error("%s - %s - %s", ctx.author.name, ctx.message.content, error)
+
+
+@moevius.event
+async def on_guild_channel_create(channel: discord.abc.GuildChannel) -> None:
+    logging.info('New channel created: [ID:%s] %s', channel.id, channel.name)
+    moevius.analyze_guild()
+
+
+@moevius.event
+async def on_guild_channel_delete(channel: discord.abc.GuildChannel) -> None:
+    logging.info('Channel deleted: [ID:%s] %s', channel.id, channel.name)
+    moevius.analyze_guild()
+
+
+@moevius.event
+async def on_guild_channel_update(
+    before: discord.abc.GuildChannel,
+    after: discord.abc.GuildChannel
+) -> None:
+    logging.info('Channel updated: [ID:%s] %s', after.id, after.name)
+    moevius.analyze_guild()
 
 
 async def add_cogs():
