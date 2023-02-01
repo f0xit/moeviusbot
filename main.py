@@ -1264,8 +1264,11 @@ async def on_message(message: discord.Message) -> None:
 
 
 @moevius.event
-async def on_command_error(ctx, error):
+async def on_command_error(ctx: commands.Context, error: commands.CommandError):
     logging.error("%s - %s - %s", ctx.author.name, ctx.message.content, error)
+    await moevius.get_user(247117682875432960).send(
+        f"```*ERROR*\n{ctx.author.name}\n{ctx.message.content}\n{error}```"
+    )
 
 
 @moevius.event
