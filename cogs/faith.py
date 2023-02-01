@@ -52,6 +52,10 @@ class Faith(commands.Cog, name='Faith'):
     @commands.Cog.listener()
     async def on_command_completion(self, ctx: commands.Context):
         if ctx.command.qualified_name not in self.bot.settings['faith_by_command']:
+            logging.warning(
+                "Command %s not in Settings.",
+                ctx.command.qualified_name
+            )
             return
 
         logging.info(
