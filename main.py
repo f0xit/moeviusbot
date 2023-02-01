@@ -98,10 +98,12 @@ class Reminder(commands.Cog, name='Events'):
             'game': Event('game')
         }
         self.time_now = ''
-        self._reminder_loop.start()
+        self.reminder_checker.start()
+        logging.info('Reminder initialized.')
 
     async def cog_unload(self) -> None:
-        self._reminder_loop.cancel()
+        self.reminder_checker.cancel()
+        logging.info('Reminder unloaded.')
 
     # Process an Event-Command (Stream, Game, ...)
     async def process_event_command(
@@ -456,7 +458,7 @@ class Reminder(commands.Cog, name='Events'):
         members = []
         for member in self.bot.squads[ctx.channel.name].values():
             if (member != ctx.author.id
-                        and str(member) not in self.events['game'].event_members.keys()
+                    and str(member) not in self.events['game'].event_members.keys()
                     ):
                 members.append(f'<@{member}>')
 
@@ -620,8 +622,8 @@ class Reminder(commands.Cog, name='Events'):
                         ctx.channel.name
                     )
 
-    @tasks.loop(seconds=5)
-    async def _reminder_loop(self) -> None:
+    @tasks.loop(seconds=5.0)
+    async def reminder_checker(self):
         if self.time_now == dt.datetime.now().strftime('%H:%M'):
             return
 
@@ -659,9 +661,11 @@ class Reminder(commands.Cog, name='Events'):
                 event.reset()
                 logging.info('Event-Post abgesetzt, Timer resettet.')
 
-    @_reminder_loop.before_loop
-    async def _before_reminder_loop(self):
+    @reminder_checker.before_loop
+    async def before_reminder_loop(self):
+        logging.debug('Waiting for reminder time checker..')
         await self.bot.wait_until_ready()
+        logging.info('Reminder time checkerstarted!')
 
 
 class Fun(commands.Cog, name='Spaß'):
@@ -1194,6 +1198,11 @@ async def on_ready() -> None:
                 and f"cogs.{filename[:-3]}" not in moevius.extensions.keys()):
             await moevius.load_extension(f"cogs.{filename[:-3]}")
 
+    ##### Add the cogs #####
+    await moevius.add_cog(Administration(moevius))
+    await moevius.add_cog(Reminder(moevius))
+    await moevius.add_cog(Fun(moevius))
+
     # First Ult Charge Update
     await moevius.change_presence(
         activity=discord.Game(f"Charge: {int(moevius.state['ult_charge'])}%")
@@ -1292,15 +1301,5 @@ async def on_guild_channel_update(
     moevius.analyze_guild()
 
 
-async def add_cogs():
-    ##### Add the cogs #####
-    await moevius.add_cog(Administration(moevius))
-    await moevius.add_cog(Reminder(moevius))
-    await moevius.add_cog(Fun(moevius))
-
-
-# Connect to Discord
 if __name__ == "__main__":
-    asyncio.run(add_cogs())
-
     moevius.run(discord_token)
