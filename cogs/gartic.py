@@ -20,7 +20,8 @@ class Gartic(commands.Cog, name='Gartic'):
     def __init__(self, bot: Bot) -> None:
         self.bot = bot
         self._daily_gartic.start()
-        self.gartic_channel = 815702384688234538
+        # self.gartic_channel = 815702384688234538
+        self.gartic_channel = 1054406646782230578
 
     async def cog_unload(self) -> None:
         self._daily_gartic.cancel()
@@ -122,7 +123,7 @@ class Gartic(commands.Cog, name='Gartic'):
             file=discord.File('gartic_output.png')
         )
 
-    @tasks.loop(time=dt.time(9, tzinfo=get_local_timezone()))
+    @tasks.loop(time=dt.time(19, 30, tzinfo=get_local_timezone()))
     async def _daily_gartic(self) -> None:
         try:
             await self.generate_random_painting(
