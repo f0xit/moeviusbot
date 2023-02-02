@@ -17,7 +17,6 @@ import math
 from dotenv import load_dotenv
 import requests
 from bs4 import BeautifulSoup
-from autocorrect import Speller
 import discord
 from discord.ext import commands, tasks
 from event import Event
@@ -424,8 +423,8 @@ class Reminder(commands.Cog, name='Events'):
         members = []
         for member in self.bot.squads[ctx.channel.name].values():
             if (member != ctx.author.id
-                        and str(member) not in self.events['game'].event_members.keys()
-                    ):
+                and str(member) not in self.events['game'].event_members.keys()
+                ):
                 members.append(f'<@{member}>')
 
         if len(members) == 0:
@@ -636,7 +635,6 @@ class Fun(commands.Cog, name='Spaß'):
 
     def __init__(self, bot: Bot):
         self.bot = bot
-        self.speller = Speller()
 
     @commands.command(
         name='ps5',
@@ -903,25 +901,6 @@ class Fun(commands.Cog, name='Spaß'):
         await ctx.send(
             'Die Ult ist aktuell deaktiviert, bitte bleiben Sie in der Leitung, Krah Krah!'
         )
-
-    @commands.command(
-        name='wurstfinger'
-    )
-    async def _wurstfinger(self, ctx: commands.Context) -> None:
-        start_time = time.time()
-
-        history = [msg async for msg in ctx.channel.history(limit=2)]
-        message = history[1].content
-        correction = self.speller(message)
-
-        logging.info(
-            'Wurstfinger: "%s" → "%s", Dauer: %s',
-            message,
-            correction,
-            time.time() - start_time
-        )
-
-        await ctx.send(f"Meintest du vielleicht: {correction}")
 
 
 class Administration(commands.Cog, name='Administration'):

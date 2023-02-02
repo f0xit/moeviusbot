@@ -1,7 +1,9 @@
 import logging
 import random
 import re
+import time
 from discord.ext import commands
+from autocorrect import Speller
 from bot import Bot
 
 
@@ -13,6 +15,7 @@ async def setup(bot: Bot) -> None:
 class Wurstfinger(commands.Cog, name='Wurstfinger'):
     def __init__(self, bot: Bot) -> None:
         self.bot = bot
+        self.speller = Speller()
 
         self.substitute = {
             'q': ['w', 'a'],
@@ -49,15 +52,13 @@ class Wurstfinger(commands.Cog, name='Wurstfinger'):
 
         logging.debug("Wurstfinger-Settings geladen.")
 
-    # Commands
-    @commands.group(
-        name='Schnenk',
-        aliases=['schnenk']
+    @commands.command(
+        name='schnenk',
+        aliases=['Schnenk']
     )
     async def _schnenk(self, ctx: commands.Context, percent: int = 5) -> None:
         output = ""
-        history = await ctx.channel.history(limit=2).flatten()
-        message = history[1].content
+        message = [message async for message in ctx.channel.history(limit=2)][1].content
 
         for character in message:
             uppercase = False
@@ -80,3 +81,21 @@ class Wurstfinger(commands.Cog, name='Wurstfinger'):
                 output += character
 
         await ctx.send(f"Oder wie Schnenk, es sagen würde:\n{output} Krah Krah!")
+
+    @commands.command(
+        name='wurstfinger'
+    )
+    async def _wurstfinger(self, ctx: commands.Context) -> None:
+        start_time = time.time()
+
+        message = [msg async for msg in ctx.channel.history(limit=2)][1].content
+        correction = self.speller(message)
+
+        logging.info(
+            'Wurstfinger: "%s" → "%s", Dauer: %s',
+            message,
+            correction,
+            time.time() - start_time
+        )
+
+        await ctx.send(f"Meintest du vielleicht: {correction}")
