@@ -22,6 +22,7 @@ from discord.ext import commands, tasks
 from event import Event
 from myfunc import strfdelta
 from bot import Bot
+from tools.dt_tools import get_local_timezone
 from tools.logger_tools import LoggerTools
 
 # Check Python version
@@ -423,8 +424,8 @@ class Reminder(commands.Cog, name='Events'):
         members = []
         for member in self.bot.squads[ctx.channel.name].values():
             if (member != ctx.author.id
-                and str(member) not in self.events['game'].event_members.keys()
-                ):
+                    and str(member) not in self.events['game'].event_members.keys()
+                    ):
                 members.append(f'<@{member}>')
 
         if len(members) == 0:
@@ -1019,7 +1020,7 @@ class Administration(commands.Cog, name='Administration'):
             await ctx.send("Diese Extensions ist nicht aktiv.")
 
 
-@tasks.loop(time=[dt.time.fromisoformat('09:00')])
+@tasks.loop(time=dt.time(9, tzinfo=get_local_timezone()))
 async def daily_quote() -> None:
     logging.info('Es ist 9 Uhr, Daily wird abgefeuert')
 

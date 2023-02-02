@@ -8,6 +8,7 @@ from PIL import Image
 import discord
 from discord.ext import commands, tasks
 from bot import Bot
+from tools.dt_tools import get_local_timezone
 
 
 async def setup(bot: Bot) -> None:
@@ -121,7 +122,7 @@ class Gartic(commands.Cog, name='Gartic'):
             file=discord.File('gartic_output.png')
         )
 
-    @tasks.loop(time=[dt.time.fromisoformat('19:30')])
+    @tasks.loop(time=dt.time(9, tzinfo=get_local_timezone()))
     async def _daily_gartic(self) -> None:
         try:
             await self.generate_random_painting(
