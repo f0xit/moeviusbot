@@ -1,7 +1,7 @@
 import datetime as dt
 
 
-def get_local_timezone() -> dt._TzInfo:
+def get_local_timezone() -> dt.tzinfo:
     """Quick tool to get the local timezone.
 
     Returns:
