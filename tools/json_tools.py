@@ -5,18 +5,25 @@ import logging
 import os
 
 
-def load_file(file_path: str) -> dict:
-    '''Opens the file under the specified path and converts it to a dict.
+def load_file(file_path: str, /, encoding: str = 'utf-8') -> dict | None:
+    """Opens the file under the specified path and converts it to a dict.
+    If the file could not be found or the file path is empty, the function returns None.
 
-    If the file could not be found or the file path is empty, the function returns None.'''
+    Args:
+        file_path (str): _description_
+        encoding (str, optional): _description_. Defaults to 'utf-8'.
+
+    Returns:
+        dict | None: _description_
+    """
 
     if str(file_path) == '':
         logging.warning('Can\'t save file, file_path is empty.')
         return None
 
     try:
-        with open(file_path, 'r', encoding='utf-8') as file:
-            logging.info('File %s opened succesfully.', file_path)
+        with open(file_path, 'r', encoding=encoding) as file:
+            logging.debug('File %s opened succesfully.', file_path)
             return json.load(file)
     except OSError as err_msg:
         logging.error(
@@ -25,20 +32,29 @@ def load_file(file_path: str) -> dict:
         return None
 
 
-def save_file(file_path: str, content: dict) -> bool:
-    '''Writes the content dict into a file under the specified path.
+def save_file(file_path: str, content: dict, /, indent: int = 4, encoding: str = 'utf-8') -> bool:
+    """Writes the content dict into a file under the specified path.
 
     If the file could not be found or the file path is empty, the function returns False,
-    otherwise it returns True.'''
+    otherwise it returns True.
+
+    Args:
+        file_path (str): _description_
+        content (dict): _description_
+        indent (int, optional): _description_. Defaults to 4.
+
+    Returns:
+        bool: _description_
+    """
 
     if str(file_path) == '':
         logging.warning('Can\'t save file, file_path is empty.')
         return False
 
     try:
-        with open(file_path, 'w', encoding='utf-8') as file:
-            json.dump(content, file)
-            logging.info('File %s saved succesfully.', file_path)
+        with open(file_path, 'w', encoding=encoding) as file:
+            json.dump(content, file, indent=indent)
+            logging.debug('File %s saved succesfully.', file_path)
             return True
     except OSError as err_msg:
         logging.error(
