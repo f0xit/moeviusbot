@@ -1,4 +1,3 @@
-import json
 import logging
 import random
 from typing import Any
@@ -10,11 +9,12 @@ import tools.json_tools as json_tools
 
 
 async def setup(bot: Bot) -> None:
-    await bot.add_cog(Quiz(bot))
-    logging.info("Cog: Quiz geladen.")
+    # await bot.add_cog(Ult(bot))
+    # logging.info("Cog: Ult geladen.")
+    pass
 
 
-class Quiz(commands.Cog, name='Quiz'):
+class Ult(commands.Cog, name='Ult'):
     def __init__(self, bot: Bot) -> None:
         self.bot = bot
 
