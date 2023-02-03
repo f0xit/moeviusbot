@@ -34,8 +34,7 @@ class Misc(commands.Cog, name='Sonstiges'):
     async def _ps5(self, ctx: commands.Context):
         ps5_price = 499
 
-        history = [msg async for msg in ctx.channel.history(limit=2)]
-        message = history[1].content
+        message = [msg async for msg in ctx.channel.history(limit=2)][1].content
 
         number = float(
             re.search(r"\d+(,\d+)?", message).group(0).replace(',', '.')
@@ -44,11 +43,13 @@ class Misc(commands.Cog, name='Sonstiges'):
         quot_ps5 = number / ps5_price
 
         if quot_ps5 < 1:
-            await ctx.send(f"Wow, das reicht ja gerade mal für {round(quot_ps5*100)}% einer PS5.")
+            await ctx.send(
+                f'Wow, das reicht ja gerade mal für {round(quot_ps5*100)}% einer PS5.'
+            )
         else:
             await ctx.send(
-                f"Wow, das reicht ja gerade mal für {math.floor(quot_ps5)} "
-                f"{'PS5' if math.floor(quot_ps5) == 1 else 'PS5en'}."
+                f'Wow, das reicht ja gerade mal für {math.floor(quot_ps5)} '
+                f'{"PS5" if math.floor(quot_ps5) == 1 else "PS5en"}.'
             )
 
     @commands.command(
