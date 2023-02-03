@@ -1,6 +1,3 @@
-#!/usr/bin/env python3
-
-##### Imports #####
 import os
 import sys
 import getopt
@@ -9,7 +6,6 @@ import subprocess
 import random
 import re
 import datetime as dt
-import time
 import math
 from dotenv import load_dotenv
 import discord
@@ -17,7 +13,6 @@ from discord.ext import commands, tasks
 from event import Event
 from myfunc import strfdelta
 from bot import Bot
-from tools.dt_tools import get_local_timezone
 from tools.logger_tools import LoggerTools
 
 # Check Python version
@@ -698,127 +693,6 @@ class Fun(commands.Cog, name='Spaß'):
             quote
         )
 
-    @commands.group(
-        name='zitat',
-        aliases=['z'],
-        brief='Zitiert eine weise Persönlichkeit.'
-    )
-    async def _quote(self, ctx: commands.Context):
-        if ctx.invoked_subcommand is None:
-            logging.info(
-                "%s hat ein Zitat von %s verlangt.",
-                ctx.author.name,
-                self.bot.quote_by
-            )
-
-            quote = self.bot.text_model.make_sentence(tries=500)
-
-            if quote is None:
-                logging.warning("Kein Quote gefunden.")
-                await ctx.send(
-                    "Ich habe wirklich alles versucht, aber ich konnte einfach "
-                    "kein Zitat finden, Krah Krah!"
-                )
-            else:
-                # No Discord Quotes allowed in Quotes
-                quote.replace('>', '')
-
-                embed = discord.Embed(
-                    title="Zitat",
-                    colour=discord.Colour(0xff00ff),
-                    description=str(quote),
-                    timestamp=dt.datetime.utcfromtimestamp(
-                        random.randint(0, int(dt.datetime.now().timestamp()))
-                    )
-                )
-                embed.set_footer(text=self.bot.quote_by)
-                await ctx.send(embed=embed)
-
-                logging.info(
-                    "Quote erfolgreich: %s - %s",
-                    quote,
-                    self.bot.quote_by
-                )
-
-    @is_super_user()
-    @_quote.command(
-        name='downloadHistory',
-        aliases=['dh'],
-        brief='Besorgt sich die nötigen Daten für den Zitategenerator. '
-        'ACHTUNG: Kann je nach Limit einige Sekunden bis Minuten dauern.'
-    )
-    async def _download_history(
-        self, ctx: commands.Context, member: discord.Member, lim: int = 1000
-    ) -> None:
-        self.bot.quote_by = member.display_name
-
-        await ctx.send(
-            f"History Download: Lade pro Channel maximal {lim} "
-            f"Nachrichten von {self.bot.quote_by} herunter, "
-            "Krah Krah! Das kann einen Moment dauern, Krah Krah!"
-        )
-        logging.info(
-            "%s lädt die Nachrichten von %s herunter, Limit: %s.",
-            ctx.author.name,
-            self.bot.quote_by,
-            lim
-        )
-
-        # Download history
-        start_time = time.time()
-        number_of_channels = 0
-        number_of_sentences = 0
-        lines = [self.bot.quote_by]
-
-        rammgut = self.bot.get_guild(323922215584268290)  # Hard coded Rammgut
-        for channel in rammgut.text_channels:
-            number_of_channels += 1
-            try:
-                messages = [msg async for msg in channel.history(limit=lim)]
-            except discord.Forbidden as exc_msg:
-                logging.error(
-                    "Fehler beim Lesen der History in channel %s: %s",
-                    channel.name,
-                    str(exc_msg)
-                )
-                continue
-
-            for message in messages:
-                if message.author == member:
-                    sentences = message.content.split('. ')
-                    for sentence in sentences:
-                        if sentence != '':
-                            number_of_sentences += 1
-                            lines.append(sentence)
-
-        with open("channel_messages.txt", "w", encoding="utf-8") as file:
-            print(*lines, sep='\n', file=file)
-
-        await ctx.send(
-            f"History Download abgeschlossen! {number_of_sentences} Sätze in {number_of_channels} "
-            f"Channels von {self.bot.quote_by} heruntergeladen. Dauer: {(time.time() - start_time)}"
-        )
-        logging.info(
-            "History Download abgeschlossen! %s Sätze in %s "
-            "Channels von %s heruntergeladen. Dauer: %s",
-            number_of_sentences,
-            number_of_channels,
-            self.bot.quote_by,
-            time.time() - start_time
-        )
-
-    @is_super_user()
-    @_quote.command(
-        name='buildMarkov',
-        aliases=['bm'],
-        brief='Generiert das Modell für zufällige Zitate.'
-    )
-    async def _makequotes(self, ctx: commands.Context, size: int = 3) -> None:
-        await ctx.send("Markov Update wird gestartet.")
-
-        self.bot.build_markov(size)
-        await ctx.send("Markov Update abgeschlossen.")
-
     @commands.command(
         name='ult',
         aliases=['Q', 'q'],
@@ -948,39 +822,6 @@ class Administration(commands.Cog, name='Administration'):
             await ctx.send("Diese Extensions ist nicht aktiv.")
 
 
-@tasks.loop(time=dt.time(9, tzinfo=get_local_timezone()))
-async def daily_quote() -> None:
-    logging.info('Es ist 9 Uhr, Daily wird abgefeuert')
-
-    try:
-        quote = moevius.text_model.make_sentence(tries=100)
-        while quote is None:
-            logging.warning(
-                "Quote: Kein Zitat gefunden, neuer Versuch ..."
-            )
-            quote = moevius.text_model.make_sentence(tries=100)
-
-        # No Discord Quotes allowed in Quotes
-        quote.replace('>', '')
-
-        embed = discord.Embed(
-            title="Zitat des Tages",
-            colour=discord.Colour(0xff00ff),
-            description=str(quote),
-            timestamp=dt.datetime.utcfromtimestamp(
-                random.randint(0, int(dt.datetime.now().timestamp()))
-            )
-        )
-        embed.set_footer(text=moevius.quote_by)
-        await moevius.guild.get_channel(580143021790855178).send(
-            content="Guten Morgen, Krah Krah!",
-            embed=embed
-        )
-        logging.info('Zitat des Tages: %s - %s', quote, moevius.quote_by)
-    except Exception as exc_msg:
-        logging.error('Kein Zitat des Tages: %s', exc_msg)
-
-
 @moevius.event
 async def on_message(message: discord.Message) -> None:
     if message.author == moevius.user:
@@ -1023,9 +864,6 @@ async def on_ready() -> None:
     await moevius.add_cog(Administration(moevius))
     await moevius.add_cog(Reminder(moevius))
     await moevius.add_cog(Fun(moevius))
-
-    # Start Loop
-    daily_quote.start()
 
 
 @moevius.event

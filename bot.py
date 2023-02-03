@@ -1,10 +1,7 @@
 '''This module contains the bot class that inherits from discord's default bot.'''
 import logging
-import time
-from typing import Tuple
 import discord
 from discord.ext import commands
-import markovify
 from tools.json_tools import DictFile
 from tools.textfile_tools import lines_from_textfile
 
@@ -20,7 +17,6 @@ class Bot(commands.Bot):
         self.load_files_into_attrs()
 
         self.guild: discord.Guild
-        self.quote_by: str
 
         logging.info('Bot initialized!')
 
@@ -35,7 +31,6 @@ class Bot(commands.Bot):
         self.channels: dict[str, discord.TextChannel] = {}
         self.fragen = lines_from_textfile('fragen.txt')
         self.bible = lines_from_textfile('moevius-bibel.txt')
-        self.quote_by, self.text_model = self.build_markov()
 
     def analyze_guild(self) -> None:
         """This function analyzes the the channels in the discord guild
@@ -119,35 +114,3 @@ class Bot(commands.Bot):
             )
 
         logging.info('Channel analysis completed!')
-
-    def build_markov(self, size: int = 3) -> Tuple[str, markovify.NewlineText]:
-        """Generates a markov model from the channel_messages.txt file and
-        returns it.
-
-        Args:
-            size (int, optional):
-                The number of words per slice in the model. Defaults to 3.
-
-        Returns:
-            Tuple[str, markovify.NewlineText]:
-                The first item contains the author of the messages, the second
-                item is the model itself.
-        """
-
-        logging.debug('Markov build started with size %s...', size)
-        start_time = time.time()
-
-        channel_messages = lines_from_textfile('channel_messages.txt')
-        author = channel_messages.pop(0)
-
-        model = markovify.NewlineText(
-            '\n'.join(channel_messages), state_size=size
-        )
-
-        logging.info(
-            'Markov generation finished. Size: %s Duration: %s',
-            size,
-            time.time() - start_time
-        )
-
-        return (author, model)
