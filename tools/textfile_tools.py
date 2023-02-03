@@ -16,10 +16,26 @@ def lines_from_textfile(filepath: str, /, encoding: str = 'utf-8') -> list[str] 
     try:
         with open(filepath, 'r', encoding=encoding) as file:
             output: list[str] = file.readlines()
-            logging.debug('Text file %s read. %s lines.',
-                          filepath, len(output))
+            logging.debug(
+                'Text file %s read. %s lines.',
+                filepath, len(output)
+            )
             return output
     except OSError as err_msg:
-        logging.error('Failed reading file %s with error: %s',
-                      filepath, err_msg)
+        logging.error(
+            'Failed reading file %s with error: %s',
+            filepath, err_msg
+        )
         return None
+
+
+def lines_to_textfile(filepath: str, lines: list[str], /, encoding: str = 'utf-8') -> None:
+    """_summary_
+
+    Args:
+        filepath (str): _description_
+        lines (list[str]): _description_
+        encoding (str, optional): _description_. Defaults to 'utf-8'.
+    """
+    with open(filepath, 'w', encoding=encoding) as file:
+        print(*lines, sep='\n', file=file)
