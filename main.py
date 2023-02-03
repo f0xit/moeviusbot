@@ -13,6 +13,7 @@ from event import Event
 from myfunc import strfdelta
 from bot import Bot
 from tools.logger_tools import LoggerTools
+from tools import json_tools
 
 # Check Python version
 major_version, minor_version, micro_version, _, _ = sys.version_info
@@ -47,7 +48,6 @@ moevius = Bot()
 
 
 def is_super_user():
-    # Check for user is Super User
     async def wrapper(ctx: commands.Context):
         return ctx.author.name in moevius.settings['super-users']
     return commands.check(wrapper)
@@ -200,7 +200,7 @@ class Reminder(commands.Cog, name='Events'):
 
                 # Announce the event in the right channel
                 if game == 'bot':
-                    await moevius.get_channel(580143021790855178).send(
+                    await self.bot.get_channel(580143021790855178).send(
                         "Macht euch bereit für einen Stream, "
                         + f"um {event_time} Uhr wird am Bot gebastelt, Krah Krah!"
                     )
@@ -413,7 +413,7 @@ class Reminder(commands.Cog, name='Events'):
         members = []
         for member in self.bot.squads[ctx.channel.name].values():
             if (member != ctx.author.id
-                and str(member) not in self.events['game'].event_members.keys()
+                    and str(member) not in self.events['game'].event_members.keys()
                 ):
                 members.append(f'<@{member}>')
 
@@ -497,7 +497,7 @@ class Reminder(commands.Cog, name='Events'):
                     if arg == 'me':
                         member = ctx.author
                     else:
-                        member = moevius.get_user(int(arg[2:-1]))
+                        member = self.bot.get_user(int(arg[2:-1]))
 
                     if member is None:
                         await ctx.send(f"Ich kenne {arg} nicht, verlinke ihn bitte mit @.")
@@ -537,7 +537,7 @@ class Reminder(commands.Cog, name='Events'):
                     if arg == 'me':
                         member = ctx.author
                     else:
-                        member = moevius.get_user(int(arg[2:-1]))
+                        member = self.bot.get_user(int(arg[2:-1]))
 
                     if member is None:
                         await ctx.send(f"Ich kenne {arg} nicht, verlinke ihn bitte mit @.")
@@ -590,21 +590,21 @@ class Reminder(commands.Cog, name='Events'):
 
                 if event.event_type == 'stream':
                     if event.event_game == 'bot':
-                        await moevius.get_channel(580143021790855178).send(
+                        await self.bot.get_channel(580143021790855178).send(
                             f"Oh, ist es denn schon {event.event_time} Uhr? "
                             "Dann ab auf https://www.twitch.tv/hanseichlp ... "
                             "es wird endlich wieder am Bot gebastelt, Krah Krah!"
                             f"Heute mit von der Partie: {members}", tts=False
                         )
                     else:
-                        await moevius.channels['stream'].send(
+                        await self.bot.channels['stream'].send(
                             f"Oh, ist es denn schon {event.event_time} Uhr? "
                             "Dann ab auf https://www.twitch.tv/schnenko/ ... "
                             "der Stream fängt an, Krah Krah! "
                             f"Heute mit von der Partie: {members}", tts=False
                         )
                 else:
-                    await moevius.channels['game'].send(
+                    await self.bot.channels['game'].send(
                         f"Oh, ist es denn schon {event.event_time} Uhr? Dann ab in den Voice-Chat, "
                         f"{event.event_game} fängt an, Krah Krah! "
                         f"Heute mit von der Partie: {members}", tts=False

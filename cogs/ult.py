@@ -1,11 +1,8 @@
 import logging
 import random
-from typing import Any
 import discord
 from discord.ext import commands
 from bot import Bot
-from myfunc import gcts
-import tools.json_tools as json_tools
 
 
 async def setup(bot: Bot) -> None:
