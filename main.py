@@ -10,13 +10,8 @@ import random
 import re
 import datetime as dt
 import time
-import json
-from urllib.request import urlopen
-from urllib.parse import quote as urlquote
 import math
 from dotenv import load_dotenv
-import requests
-from bs4 import BeautifulSoup
 import discord
 from discord.ext import commands, tasks
 from event import Event
@@ -424,7 +419,7 @@ class Reminder(commands.Cog, name='Events'):
         members = []
         for member in self.bot.squads[ctx.channel.name].values():
             if (member != ctx.author.id
-                    and str(member) not in self.events['game'].event_members.keys()
+                        and str(member) not in self.events['game'].event_members.keys()
                     ):
                 members.append(f'<@{member}>')
 
@@ -660,73 +655,6 @@ class Fun(commands.Cog, name='Spaß'):
                 f"Wow, das reicht ja gerade mal für {math.floor(quot_ps5)} "
                 f"{'PS5' if math.floor(quot_ps5) == 1 else 'PS5en'}."
             )
-
-    @commands.command(
-        name='urbandict',
-        aliases=['ud'],
-        brief='Durchforstet das Urban Dictionary'
-    )
-    async def _urbandict(self, ctx: commands.Context, *args):
-        term = " ".join(args)
-        url = 'http://api.urbandictionary.com/v0/define?term=' + \
-            urlquote(term.replace(" ", "+"))
-
-        with urlopen(url) as file:
-            data = json.loads(file.read().decode('utf-8'))
-            try:
-                # Case: Definition found
-                definition = data['list'][0]['definition'].translate(
-                    {ord(c): None for c in '[]'})
-                example = data['list'][0]['example'].translate(
-                    {ord(c): None for c in '[]'})
-
-                embed = discord.Embed(
-                    title=f"{term.title()}",
-                    colour=discord.Colour(0xff00ff),
-                    url=f'https://www.urbandictionary.com/define.php?term={term.replace(" ", "+")}',
-                    description=f"{definition}\n\n*{example}*"
-                )
-                await ctx.send(embed=embed)
-                logging.info(
-                    "%s hat %s im Urban Dictionary recherchiert.",
-                    ctx.author.name,
-                    term
-                )
-            except IndexError:
-                # Case: No Definition => Try These
-                page = requests.get(
-                    'https://www.urbandictionary.com/define.php?term='
-                    f'{urlquote(term.replace(" ", "+"))}'
-                )
-                soup = BeautifulSoup(page.content, 'html.parser')
-
-                items = soup.find(
-                    'div', class_='try-these').find_all('li')[:10]
-
-                if items is None:
-                    # Nothing found, not even try these
-                    await ctx.send("Dazu kann ich nun wirklich gar nichts sagen, Krah Krah!")
-                    logging.error(
-                        "%s hat %s im Urban Dictionary recherchiert.",
-                        ctx.author.name,
-                        term
-                    )
-                    return
-
-                listitems = [*map(lambda i: i.text, items)]
-
-                output = "\n".join(listitems)
-
-                embed = discord.Embed(
-                    title=f"Suchvorschläge für {term.title()}",
-                    colour=discord.Colour(0xff00ff),
-                    description=output
-                )
-                await ctx.send(
-                    content="Hey, ich habe habe dazu nichts gefunden, "
-                    "aber versuch's doch mal hiermit:",
-                    embed=embed
-                )
 
     @commands.command(
         name='frage',
