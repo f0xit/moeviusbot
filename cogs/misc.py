@@ -14,6 +14,7 @@ from event import Event
 from myfunc import strfdelta
 from bot import Bot
 from tools.logger_tools import LoggerTools
+from tools.textfile_tools import lines_from_textfile
 
 
 async def setup(bot: Bot) -> None:
@@ -26,6 +27,8 @@ class Misc(commands.Cog, name='Sonstiges'):
 
     def __init__(self, bot: Bot):
         self.bot = bot
+        self.fragen = lines_from_textfile('fragen.txt')
+        self.bible = lines_from_textfile('moevius-bibel.txt')
 
     @commands.command(
         name='ps5',
@@ -58,20 +61,18 @@ class Misc(commands.Cog, name='Sonstiges'):
         brief='Stellt eine zufällige Frage.'
     )
     async def _frage(self, ctx: commands.Context):
-        frage = random.choice(self.bot.fragen)
+        frage = random.choice(self.fragen)
 
-        embed = discord.Embed(
-            title=f"Frage an {ctx.author.display_name}",
-            colour=discord.Colour(0xff00ff),
-            description=frage
+        await ctx.send(
+            embed=discord.Embed(
+                title=f'Frage an {ctx.author.display_name}',
+                colour=discord.Colour(0xff00ff),
+                description=frage
+            )
         )
 
-        await ctx.send(embed=embed)
-        logging.info(
-            "%s hat eine Frage verlangt. Sie lautet: %s",
-            ctx.author.name,
-            frage
-        )
+        logging.info('%s requested a question', ctx.author.name)
+        logging.debug(frage)
 
     @commands.command(
         name='bibel',
@@ -79,20 +80,18 @@ class Misc(commands.Cog, name='Sonstiges'):
         brief='Präsentiert die Weisheiten des Krächzers.'
     )
     async def _bibel(self, ctx: commands.Context):
-        quote = random.choice(self.bot.bible)
+        quote = random.choice(self.bible)
 
-        embed = discord.Embed(
-            title="Das Wort unseres Herrn, Krah Krah!",
-            colour=discord.Colour(0xff00ff),
-            description=quote
+        await ctx.send(
+            embed=discord.Embed(
+                title='Das Wort unseres Herrn, Krah Krah!',
+                colour=discord.Colour(0xff00ff),
+                description=quote
+            )
         )
 
-        await ctx.send(embed=embed)
-        logging.info(
-            "%s hat ein Bibel-Zitat verlangt. Es lautet: %s",
-            ctx.author.name,
-            quote
-        )
+        logging.info('%s requested a bible quote', ctx.author.name)
+        logging.debug(quote)
 
     @commands.command(
         name='ult',

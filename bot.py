@@ -29,8 +29,6 @@ class Bot(commands.Bot):
         self.squads = DictFile('squads')
         self.faith = DictFile('faith')
         self.channels: dict[str, discord.TextChannel] = {}
-        self.fragen = lines_from_textfile('fragen.txt')
-        self.bible = lines_from_textfile('moevius-bibel.txt')
 
     def analyze_guild(self) -> None:
         """This function analyzes the the channels in the discord guild
