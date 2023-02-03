@@ -96,7 +96,7 @@ class Administration(commands.Cog, name='Administration'):
 
         try:
             res = console_output.split('-')
-            version_string = ' '.join(res[:2]).title()
+            version_string = ' '.join(res[:2]).removeprefix('v').title()
             if len(res) >= 2:
                 version_string += f'.\nTag is {res[2]} commits behind.'
                 version_string += f' Currently running commit {res[3][1:]}'
