@@ -2,8 +2,8 @@
 
 ## High Priority
 
-- [ ] Moving every Cog to it's own file. Currently missing:
-  - [ ] Reminder
+- [x] Moving every Cog to it's own file. Currently missing:
+  - [x] Reminder
   - [x] Fun
 - [ ] Rethinking the event mechanics from the ground up
   - [ ] Saving the date as proper timestamp to allow events more than 24 hours ahead
