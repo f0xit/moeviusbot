@@ -19,12 +19,10 @@ async def setup(bot: Bot) -> None:
 class Gartic(commands.Cog, name='Gartic'):
     def __init__(self, bot: Bot) -> None:
         self.bot = bot
-        self._daily_gartic.start()
-        # self.gartic_channel = 815702384688234538
-        self.gartic_channel = 1054406646782230578
+        self.daily_gartic.start()
 
     async def cog_unload(self) -> None:
-        self._daily_gartic.cancel()
+        self.daily_gartic.cancel()
 
     @commands.command(
         name='gartic',
@@ -124,17 +122,20 @@ class Gartic(commands.Cog, name='Gartic'):
         )
 
     @tasks.loop(time=dt.time(19, 30, tzinfo=get_local_timezone()))
-    async def _daily_gartic(self) -> None:
+    async def daily_gartic(self) -> None:
+        gartic_channel = 815702384688234538
         try:
             await self.generate_random_painting(
                 None,
-                channel=self.bot.get_channel(self.gartic_channel)
+                channel=self.bot.get_channel(gartic_channel)
             )
         except Exception as exc_msg:
             logging.error(
                 'ERROR: Kein Gartic-Image des Tages: %s', exc_msg
             )
 
-    @_daily_gartic.before_loop
+    @daily_gartic.before_loop
     async def _before_gartic_loop(self):
+        logging.debug('Waiting for daily gartic loop...')
         await self.bot.wait_until_ready()
+        logging.debug('Daily gartic loop running!')
