@@ -96,10 +96,10 @@ class Administration(commands.Cog, name='Administration'):
 
         try:
             res = console_output.split('-')
-            version_string = ' '.join(res[:2]).removeprefix('v').title()
+            version_string = res[0].removeprefix('v')
             if len(res) >= 2:
-                version_string += f'.\nTag is {res[2]} commits behind.'
-                version_string += f' Currently running commit {res[3][1:]}'
+                version_string += f'.\nTag is {res[1]} commits behind.'
+                version_string += f' Currently running commit {res[2][1:]}'
 
             await ctx.send(f'Bot läuft auf Version {version_string}')
             logging.info('Version %s', version_string)
