@@ -6,7 +6,6 @@ import subprocess
 import random
 import re
 import datetime as dt
-import math
 from dotenv import load_dotenv
 import discord
 from discord.ext import commands, tasks

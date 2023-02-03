@@ -3,7 +3,6 @@ import logging
 import discord
 from discord.ext import commands
 from tools.json_tools import DictFile
-from tools.textfile_tools import lines_from_textfile
 
 
 class Bot(commands.Bot):

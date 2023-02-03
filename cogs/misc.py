@@ -1,19 +1,10 @@
-import os
-import sys
-import getopt
 import logging
-import subprocess
 import random
 import re
-import datetime as dt
 import math
-from dotenv import load_dotenv
 import discord
-from discord.ext import commands, tasks
-from event import Event
-from myfunc import strfdelta
+from discord.ext import commands
 from bot import Bot
-from tools.logger_tools import LoggerTools
 from tools.textfile_tools import lines_from_textfile
 
 
