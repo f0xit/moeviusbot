@@ -18,12 +18,6 @@ check_python_version()
 STARTUP_TIME = dt.datetime.now()
 LOG_TOOL = LoggerTools(level="DEBUG")
 
-load_dotenv()
-if (DISCORD_TOKEN := os.getenv('DISCORD_TOKEN')) is None:
-    sys.exit('Discord token not found! Please check your .env file!')
-else:
-    logging.info('Discord token loaded successfully.')
-
 
 class Administration(commands.Cog, name='Administration'):
     '''Diese Kategorie erfordert bestimmte Berechtigungen'''
@@ -248,7 +242,18 @@ class Administration(commands.Cog, name='Administration'):
         self.bot.analyze_guild()
 
 
-if __name__ == "__main__":
+def main() -> None:
+    load_dotenv()
+
+    if (discord_token := os.getenv('DISCORD_TOKEN')) is None:
+        sys.exit('Discord token not found! Please check your .env file!')
+    else:
+        logging.info('Discord token loaded successfully.')
+
     moevius = Bot()
     asyncio.run(moevius.add_cog(Administration(moevius)))
-    moevius.run(DISCORD_TOKEN)
+    moevius.run(discord_token)
+
+
+if __name__ == "__main__":
+    main()
