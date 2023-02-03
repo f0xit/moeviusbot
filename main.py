@@ -1,7 +1,6 @@
 import asyncio
 import os
 import sys
-import getopt
 import logging
 import subprocess
 import datetime as dt
@@ -12,27 +11,15 @@ from myfunc import strfdelta
 from bot import Bot
 from tools.logger_tools import LoggerTools
 from tools.check_tools import is_super_user
+from tools.py_version_tool import check_python_version
 
-major_version, minor_version, micro_version, _, _ = sys.version_info
-if (major_version, minor_version) < (3, 11):
-    sys.exit("Wrong Python version. Please use at least 3.11.")
+check_python_version()
 
 STARTUP_TIME = dt.datetime.now()
 LOG_TOOL = LoggerTools(level="DEBUG")
 
-try:
-    options, arguments = getopt.getopt(sys.argv[1:], "l:", ["loglevel="])
-except getopt.GetoptError:
-    sys.exit("Option error.")
-for option, argument in options:
-    match option:
-        case '-l' | '--loglevel':
-            LOG_TOOL.set_log_level(argument)
-
 load_dotenv()
-discord_token = os.getenv('DISCORD_TOKEN')
-
-if discord_token is None:
+if (DISCORD_TOKEN := os.getenv('DISCORD_TOKEN')) is None:
     sys.exit('Discord token not found! Please check your .env file!')
 else:
     logging.info('Discord token loaded successfully.')
@@ -264,4 +251,4 @@ class Administration(commands.Cog, name='Administration'):
 if __name__ == "__main__":
     moevius = Bot()
     asyncio.run(moevius.add_cog(Administration(moevius)))
-    moevius.run(discord_token)
+    moevius.run(DISCORD_TOKEN)
