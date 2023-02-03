@@ -4,7 +4,7 @@
 
 - [ ] Moving every Cog to it's own file. Currently missing:
   - [ ] Reminder
-  - [ ] Fun
+  - [x] Fun
 - [ ] Rethinking the event mechanics from the ground up
   - [ ] Saving the date as proper timestamp to allow events more than 24 hours ahead
   - [ ] Storing events in two seperate files: Upcoming and past
