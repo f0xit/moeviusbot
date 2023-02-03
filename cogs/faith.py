@@ -2,6 +2,7 @@ import logging
 import discord
 from discord.ext import commands
 from bot import Bot
+from tools.json_tools import DictFile
 
 
 async def setup(bot: Bot) -> None:
@@ -12,69 +13,48 @@ async def setup(bot: Bot) -> None:
 class Faith(commands.Cog, name='Faith'):
     def __init__(self, bot: Bot) -> None:
         self.bot = bot
-
-    async def faith_on_react(
-        self,
-        payload: discord.RawReactionActionEvent,
-        operation: str = 'add'
-    ) -> None:
-        if payload.emoji.name != 'Moevius':
-            return
-
-        text_channel = self.bot.get_channel(payload.channel_id)
-
-        receiver = (await text_channel.fetch_message(payload.message_id)).author
-        giver = self.bot.get_user(payload.user_id)
-
-        await self.add_faith(
-            receiver,
-            self.bot.settings["faith_on_react"] *
-            (-1 if operation == 'remove' else 1)
-        )
-        await self.add_faith(giver, 1)
-
-        logging.info(
-            'Faith on reaction: %s %s %s %s🕊',
-            giver.display_name,
-            'takes' if operation == 'remove' else 'gives',
-            receiver.display_name,
-            self.bot.settings['faith_on_react']
-        )
+        self.faith = DictFile('faith')
 
     async def add_faith(self, member: discord.User | discord.Member, amount: int) -> None:
-        '''Adds the specified amount of faith points to the member's wallet.'''
+        '''_summary_
+
+        Args:
+            member (discord.User | discord.Member): _description_
+            amount (int): _description_
+        '''
         member_id: str = str(member.id)
 
-        self.bot.faith[member_id] = self.bot.faith.get(member_id, 0) + amount
+        self.faith[member_id] = self.faith.get(member_id, 0) + amount
 
         logging.info('Faith was added: %s, %s', member.name, amount)
 
-    @commands.Cog.listener()
-    async def on_command_completion(self, ctx: commands.Context):
-        if ctx.command.qualified_name not in self.bot.settings['faith_by_command']:
-            logging.warning(
-                "Command %s not in Settings.",
-                ctx.command.qualified_name
-            )
+    async def faith_on_react(self, payload: discord.RawReactionActionEvent) -> None:
+        '''_summary_
+
+        Args:
+            payload (discord.RawReactionActionEvent): _description_
+        '''
+        if payload.emoji.name != 'Moevius':
             return
 
+        amount = self.bot.settings["faith_on_react"]
+        if payload.event_type == "REACTION_REMOVE":
+            amount *= -1
+
+        channel = self.bot.get_channel(payload.channel_id)
+        faith_given_to = (await channel.fetch_message(payload.message_id)).author
+        faith_given_by = self.bot.get_user(payload.user_id)
+
+        await self.add_faith(faith_given_to, amount)
+        await self.add_faith(faith_given_by, 1)
+
         logging.info(
-            'Faith will be added for command: %s',
-            ctx.command.qualified_name
+            'Faith on reaction: %s %s %s %s🕊',
+            faith_given_by.display_name,
+            'takes' if amount <= 1 else 'gives',
+            faith_given_to.display_name,
+            self.bot.settings['faith_on_react']
         )
-
-        await self.add_faith(
-            ctx.author,
-            self.bot.settings['faith_by_command'][ctx.command.qualified_name]
-        )
-
-    @commands.Cog.listener()
-    async def on_raw_reaction_add(self, payload: discord.RawReactionActionEvent):
-        await self.faith_on_react(payload)
-
-    @commands.Cog.listener()
-    async def on_raw_reaction_remove(self, payload: discord.RawReactionActionEvent):
-        await self.faith_on_react(payload, operation='remove')
 
     @commands.group(
         name='faith',
@@ -94,7 +74,7 @@ class Faith(commands.Cog, name='Faith'):
             members = {
                 member.display_name: amount
                 for user, amount in sorted(
-                    self.bot.faith.items(),
+                    self.faith.items(),
                     key=lambda item: item[1],
                     reverse=True
                 )
@@ -185,7 +165,7 @@ class Faith(commands.Cog, name='Faith'):
         member: discord.Member,
         amount: int
     ) -> None:
-        self.bot.faith.update({str(member.id): amount})
+        self.faith.update({str(member.id): amount})
         logging.info(
             '%s set faith to %s for %s.',
             ctx.author.name, amount, member.name
@@ -193,3 +173,30 @@ class Faith(commands.Cog, name='Faith'):
         await ctx.send(
             f"Alles klar, {member.display_name} hat nun {amount}🕊, Krah Krah!"
         )
+
+    @commands.Cog.listener()
+    async def on_command_completion(self, ctx: commands.Context):
+        if ctx.command.qualified_name not in self.bot.settings['faith_by_command']:
+            logging.warning(
+                "Command %s not in Settings.",
+                ctx.command.qualified_name
+            )
+            return
+
+        logging.info(
+            'Faith will be added for command: %s',
+            ctx.command.qualified_name
+        )
+
+        await self.add_faith(
+            ctx.author,
+            self.bot.settings['faith_by_command'][ctx.command.qualified_name]
+        )
+
+    @commands.Cog.listener()
+    async def on_raw_reaction_add(self, payload: discord.RawReactionActionEvent):
+        await self.faith_on_react(payload)
+
+    @commands.Cog.listener()
+    async def on_raw_reaction_remove(self, payload: discord.RawReactionActionEvent):
+        await self.faith_on_react(payload)

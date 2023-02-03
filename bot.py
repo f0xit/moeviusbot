@@ -26,7 +26,6 @@ class Bot(commands.Bot):
         self.state = DictFile('state')
         self.responses = DictFile('responses')
         self.squads = DictFile('squads')
-        self.faith = DictFile('faith')
         self.channels: dict[str, discord.TextChannel] = {}
 
     def analyze_guild(self) -> None:
