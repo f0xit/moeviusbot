@@ -721,8 +721,8 @@ class Administration(commands.Cog, name='Administration'):
     async def _bot(self, ctx: commands.Context) -> None:
         if ctx.invoked_subcommand is None:
             await ctx.send(
-                "Was möchtest du mit dem Bot anfangen? "
-                "Mit !help bot siehst du, welche Optionen verfügbar sind."
+                'Was möchtest du mit dem Bot anfangen? '
+                'Mit !help bot siehst du, welche Optionen verfügbar sind.'
             )
 
     @_bot.command(
@@ -741,13 +741,13 @@ class Administration(commands.Cog, name='Administration'):
                 version_string += f'.\nTag is {res[2]} commits behind.'
                 version_string += f' Currently running commit {res[3][1:]}'
 
-            await ctx.send(f"Bot läuft auf Version {version_string}")
+            await ctx.send(f'Bot läuft auf Version {version_string}')
             logging.info('Version %s', version_string)
         except IndexError:
             logging.error(
                 'Something is wrong with the version string: %s', console_output
             )
-            await ctx.send(f"Bot läuft auf Version {console_output}")
+            await ctx.send(f'Bot läuft auf Version {console_output}')
             logging.info('Version %s', version_string)
 
     @_bot.command(
@@ -757,11 +757,11 @@ class Administration(commands.Cog, name='Administration'):
     async def _uptime(self, ctx: commands.Context) -> None:
         uptime = (dt.datetime.now() - STARTUP_TIME)
         uptimestr = strfdelta(
-            uptime, "{days} Tage {hours}:{minutes}:{seconds}")
+            uptime, '{days} Tage {hours}:{minutes}:{seconds}')
 
-        await ctx.send(f"Uptime: {uptimestr} seit {STARTUP_TIME.strftime('%Y.%m.%d %H:%M:%S')}")
+        await ctx.send(f'Uptime: {uptimestr} seit {STARTUP_TIME.strftime("%Y.%m.%d %H:%M:%S")}')
         logging.info(
-            "Uptime: %s seit %s",
+            'Uptime: %s seit %s',
             uptimestr,
             STARTUP_TIME.strftime('%Y.%m.%d %H:%M:%S')
         )
@@ -771,58 +771,89 @@ class Administration(commands.Cog, name='Administration'):
         aliases=['-r']
     )
     async def _reload(self, ctx: commands.Context) -> None:
-        logging.warning("%s hat einen Reload gestartet.", ctx.author.name)
-        await ctx.send("Reload wird gestartet.")
+        logging.warning('%s hat einen Reload gestartet.', ctx.author.name)
+        await ctx.send('Reload wird gestartet.')
 
         self.bot.load_files_into_attrs()
         self.bot.analyze_guild()
 
-    @is_super_user()
-    @commands.group(
+    async def load_ext(self, ctx: commands.Context, extension: str) -> None:
+        try:
+            await self.bot.load_extension(f'cogs.{extension}')
+            await ctx.send('Die Extension wurde geladen.')
+            logging.info('Extension loaded: %s', extension)
+        except commands.ExtensionNotFound:
+            await ctx.send(f'Fehler: Extension konnte nicht gefunden werden!')
+            logging.warning('Extension not existing: %s', extension)
+        except commands.ExtensionAlreadyLoaded:
+            await ctx.send(f'Fehler: Extension bereits geladen!')
+            logging.warning('Extension already loaded: %s', extension)
+        except commands.NoEntryPointError:
+            await ctx.send(f'Fehler: Extension hat keine Setup-Funktion!')
+            logging.warning('Extension has no setup function: %s', extension)
+        except commands.ExtensionFailed:
+            await ctx.send(f'Fehler: Extension Setup fehlgeschlagen!')
+            logging.warning('Extension setup failed: %s', extension)
+
+    async def unload_ext(self, ctx: commands.Context, extension: str) -> None:
+        try:
+            await self.bot.unload_extension(f'cogs.{extension}')
+            await ctx.send('Die Extension wurde entfernt.')
+            logging.info('Extension unloaded: %s', extension)
+        except commands.ExtensionNotFound:
+            await ctx.send(f'Fehler: Extension konnte nicht gefunden werden!')
+            logging.warning('Extension not existing: %s', extension)
+        except commands.ExtensionNotLoaded:
+            await ctx.send(f'Fehler: Extension nicht geladen!')
+            logging.warning('Extension not loaded: %s', extension)
+
+    @ is_super_user()
+    @ commands.group(
         name='extensions',
         aliases=['ext'],
         brief='Verwaltet die Extensions des Bots.'
     )
     async def _extensions(self, ctx: commands.Context) -> None:
-        if ctx.invoked_subcommand is None:
-            await ctx.send(
-                "Aktuell sind folgende Extensions geladen: "
-                f"{', '.join(moevius.extensions.keys())}"
-            )
-            await ctx.send("Mit !help ext siehst du, welche Optionen verfügbar sind.")
+        if ctx.invoked_subcommand is not None:
+            return
 
-    @_extensions.command(
+        await ctx.send(
+            'Aktuell sind folgende Extensions geladen:\n'
+            ', '.join(self.bot.extensions.keys())
+        )
+        await ctx.send('Mit !help ext siehst du, welche Optionen verfügbar sind.')
+        logging.info(
+            'Extensions active: %s',
+            ', '.join(self.bot.extensions.keys())
+        )
+
+    @ _extensions.command(
         name='load',
         aliases=['-l'],
         brief='Lädt eine Extension in den Bot.'
     )
     async def _load(self, ctx: commands.Context, extension: str) -> None:
-        if 'cogs.' + extension in self.bot.extensions.keys():
-            await ctx.send("Diese Extensions ist bereits geladen.")
-        else:
-            try:
-                self.bot.load_extension(f"cogs.{extension}")
-                await ctx.send("Die Extension wurde geladen.")
-            except Exception as exc_msg:
-                await ctx.send(f"ERROR: {exc_msg}")
+        await self.load_ext(ctx, extension)
 
-    @_extensions.command(
+    @ _extensions.command(
         name='unload',
         aliases=['-u'],
         brief='Entfernt eine Extension aus dem Bot.'
     )
     async def _unload(self, ctx: commands.Context, extension: str) -> None:
-        if 'cogs.' + extension in self.bot.extensions.keys():
-            try:
-                moevius.unload_extension(f"cogs.{extension}")
-                await ctx.send("Die Extension wurde entfernt.")
-            except Exception as exc_msg:
-                await ctx.send(f"ERROR: {exc_msg}")
-        else:
-            await ctx.send("Diese Extensions ist nicht aktiv.")
+        await self.unload_ext(ctx, extension)
+
+    @ _extensions.command(
+        name='reload',
+        aliases=['-r'],
+        brief='Lädt eine Extension neu.'
+    )
+    async def _reload(self, ctx: commands.Context, extension: str) -> None:
+        await self.unload_ext(ctx, extension)
+        await self.load_ext(ctx, extension)
 
 
-@moevius.event
+@ moevius.event
 async def on_message(message: discord.Message) -> None:
     if message.author == moevius.user:
         return
@@ -849,7 +880,7 @@ async def on_message(message: discord.Message) -> None:
     await moevius.process_commands(message)
 
 
-@moevius.event
+@ moevius.event
 async def on_ready() -> None:
     # Load Settings for the first time
     moevius.analyze_guild()
@@ -866,7 +897,7 @@ async def on_ready() -> None:
     await moevius.add_cog(Fun(moevius))
 
 
-@moevius.event
+@ moevius.event
 async def on_command_error(ctx: commands.Context, error: commands.CommandError):
     logging.error("%s - %s - %s", ctx.author.name, ctx.message.content, error)
     await moevius.get_user(247117682875432960).send(
@@ -874,24 +905,25 @@ async def on_command_error(ctx: commands.Context, error: commands.CommandError):
     )
 
 
-@moevius.event
+@ moevius.event
 async def on_guild_channel_create(channel: discord.abc.GuildChannel) -> None:
     logging.info('New channel created: [ID:%s] %s', channel.id, channel.name)
     moevius.analyze_guild()
 
 
-@moevius.event
+@ moevius.event
 async def on_guild_channel_delete(channel: discord.abc.GuildChannel) -> None:
     logging.info('Channel deleted: [ID:%s] %s', channel.id, channel.name)
     moevius.analyze_guild()
 
 
-@moevius.event
+@ moevius.event
 async def on_guild_channel_update(
     before: discord.abc.GuildChannel,
     after: discord.abc.GuildChannel
 ) -> None:
-    logging.info('Channel updated: [ID:%s] %s', after.id, after.name)
+    logging.info('Channel updated: [ID:%s] %s > %s',
+                 after.id, before.name, after.name)
     moevius.analyze_guild()
 
 
