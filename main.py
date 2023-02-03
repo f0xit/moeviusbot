@@ -13,7 +13,7 @@ from event import Event
 from myfunc import strfdelta
 from bot import Bot
 from tools.logger_tools import LoggerTools
-from tools import json_tools
+from tools.check_tools import is_super_user
 
 # Check Python version
 major_version, minor_version, micro_version, _, _ = sys.version_info
@@ -45,12 +45,6 @@ else:
     logging.info('Discord token loaded successfully.')
 
 moevius = Bot()
-
-
-def is_super_user():
-    async def wrapper(ctx: commands.Context):
-        return ctx.author.name in moevius.settings['super-users']
-    return commands.check(wrapper)
 
 
 class Reminder(commands.Cog, name='Events'):

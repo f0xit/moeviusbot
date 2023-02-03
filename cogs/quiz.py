@@ -7,20 +7,12 @@ from discord.ext import commands
 from bot import Bot
 from myfunc import gcts
 import tools.json_tools as json_tools
+from tools.check_tools import is_super_user
 
 
 async def setup(bot: Bot) -> None:
     await bot.add_cog(Quiz(bot))
     logging.info("Cog: Quiz geladen.")
-
-
-def is_super_user():
-    # Check for user is Super User
-    settings = json_tools.load_file('json/settings.json')
-
-    async def wrapper(ctx):
-        return ctx.author.name in settings['super-users']
-    return commands.check(wrapper)
 
 
 class Quiz(commands.Cog, name='Quiz'):

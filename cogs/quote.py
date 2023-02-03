@@ -7,22 +7,14 @@ import discord
 from discord.ext import commands, tasks
 import markovify
 from bot import Bot
-from tools import json_tools
 from tools.dt_tools import get_local_timezone
 from tools.textfile_tools import lines_from_textfile, lines_to_textfile
+from tools.check_tools import is_super_user
 
 
 async def setup(bot: Bot) -> None:
     await bot.add_cog(Quote(bot))
     logging.info("Cog: Quote loaded.")
-
-
-def is_super_user():
-    settings = json_tools.load_file('json/settings.json')
-
-    async def wrapper(ctx: commands.Context):
-        return ctx.author.name in settings['super-users']
-    return commands.check(wrapper)
 
 
 def build_markov(size: int = 3) -> Tuple[str, markovify.NewlineText]:
