@@ -124,20 +124,14 @@ class DictFile(dict):
     def update(self, __m) -> None:
         super().update(__m)
 
-        logging.debug(
-            "DictFile %s updated. %s",
-            self.file_name, str(self)
-        )
+        logging.debug('DictFile %s updated', self.file_name)
 
         save_file(self.file_name, self)
 
     def pop(self, key) -> None:
         item = super().pop(key)
 
-        logging.debug(
-            "DictFile %s popped. %s",
-            self.file_name, str(item)
-        )
+        logging.debug('DictFile %s popped.', self.file_name)
 
         save_file(self.file_name, self)
 
