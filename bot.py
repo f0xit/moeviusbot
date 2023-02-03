@@ -15,15 +15,12 @@ class Bot(commands.Bot):
 
         self.load_files_into_attrs()
 
-        self.guild: discord.Guild
-
         logging.info('Bot initialized!')
 
     def load_files_into_attrs(self) -> None:
         """This function fills the bot's attributes with data from files.
         """
         self.settings = DictFile('settings')
-        self.state = DictFile('state')
         self.squads = DictFile('squads')
         self.channels: dict[str, discord.TextChannel] = {}
 
@@ -40,19 +37,19 @@ class Bot(commands.Bot):
             'Finding guild with ID:%s...', self.settings['server_id']
         )
 
-        self.guild = self.get_guild(int(self.settings['server_id']))
-        if self.guild is None:
+        guild: discord.Guild = self.get_guild(int(self.settings['server_id']))
+        if guild is None:
             raise RuntimeError('Guild not found!')
 
         logging.info(
-            'Guild found! [ID:%s] %s', self.guild.id, self.guild.name
+            'Guild found! [ID:%s] %s', guild.id, guild.name
         )
 
         logging.info('Analyzing channels...')
 
         categories = {
             None if cat[0] is None else cat[0].name: cat[1]
-            for cat in self.guild.by_category()
+            for cat in guild.by_category()
         }
 
         try:
