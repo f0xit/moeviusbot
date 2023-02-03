@@ -5,6 +5,7 @@ import math
 import discord
 from discord.ext import commands
 from bot import Bot
+from tools.json_tools import DictFile
 from tools.textfile_tools import lines_from_textfile
 
 
@@ -20,6 +21,7 @@ class Misc(commands.Cog, name='Sonstiges'):
         self.bot = bot
         self.fragen = lines_from_textfile('fragen.txt')
         self.bible = lines_from_textfile('moevius-bibel.txt')
+        self.responses = DictFile('responses')
 
     @commands.command(
         name='ps5',
@@ -95,3 +97,27 @@ class Misc(commands.Cog, name='Sonstiges'):
         await ctx.send(
             'Die Ult ist aktuell deaktiviert, bitte bleiben Sie in der Leitung, Krah Krah!'
         )
+
+    @commands.Cog.listener()
+    async def on_message(self, message: discord.Message) -> None:
+        if message.author == self.bot.user:
+            return
+
+        # Requests from file
+        if message.content[1:] in self.responses['req'].keys():
+            response = self.responses['req'][message.content[1:]]
+            for res in response['res']:
+                await message.channel.send(res.format(**locals(), **globals()))
+            logging.info(response['log'].format(**locals(), **globals()))
+
+        # Responses from file
+        else:
+            for key in self.responses['res'].keys():
+                if re.search(key, message.content):
+                    response = self.responses['res'][key]
+                    for res in response['res']:
+                        await message.channel.send(
+                            content=res.format(**locals(), **globals()), tts=False
+                        )
+                    logging.info(response['log'].format(
+                        **locals(), **globals()))

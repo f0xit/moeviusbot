@@ -24,7 +24,6 @@ class Bot(commands.Bot):
         """
         self.settings = DictFile('settings')
         self.state = DictFile('state')
-        self.responses = DictFile('responses')
         self.squads = DictFile('squads')
         self.channels: dict[str, discord.TextChannel] = {}
 
