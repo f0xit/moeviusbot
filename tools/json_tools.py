@@ -102,8 +102,8 @@ class DictFile(dict):
                 )
             else:
                 logging.debug(
-                    'Loaded data from file %s. %s',
-                    self.file_name, str(data_from_file)
+                    'Loaded data from file %s. %s keys.',
+                    self.file_name, len(data_from_file.keys())
                 )
                 self.update(data_from_file)
 
