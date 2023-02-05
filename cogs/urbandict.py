@@ -1,3 +1,4 @@
+'''Cog for the urban dictionary command'''
 import logging
 import json
 from typing import Tuple
@@ -10,6 +11,11 @@ from bot import Bot
 
 
 async def setup(bot: Bot) -> None:
+    '''Setup function to load the cog when added to the bot.
+
+    Args:
+        bot (Bot): Discord bot.
+    '''
     await bot.add_cog(UrbanDict(bot))
     logging.info("Cog: UrbanDict loaded.")
 
@@ -98,6 +104,8 @@ async def request_try_these(term: str) -> list[str] | None:
 
 
 class UrbanDict(commands.Cog, name='UrbanDict'):
+    '''Urban dictionary cog.'''
+
     def __init__(self, bot: Bot) -> None:
         self.bot = bot
 
