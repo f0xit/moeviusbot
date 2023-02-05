@@ -37,16 +37,16 @@ class Administration(commands.Cog, name='Administration'):
             await ctx.send('Die Extension wurde geladen.')
             logging.info('Extension loaded: %s', extension)
         except commands.ExtensionNotFound:
-            await ctx.send(f'Fehler: Extension konnte nicht gefunden werden!')
+            await ctx.send('Fehler: Extension konnte nicht gefunden werden!')
             logging.warning('Extension not existing: %s', extension)
         except commands.ExtensionAlreadyLoaded:
-            await ctx.send(f'Fehler: Extension bereits geladen!')
+            await ctx.send('Fehler: Extension bereits geladen!')
             logging.warning('Extension already loaded: %s', extension)
         except commands.NoEntryPointError:
-            await ctx.send(f'Fehler: Extension hat keine Setup-Funktion!')
+            await ctx.send('Fehler: Extension hat keine Setup-Funktion!')
             logging.warning('Extension has no setup function: %s', extension)
         except commands.ExtensionFailed:
-            await ctx.send(f'Fehler: Extension Setup fehlgeschlagen!')
+            await ctx.send('Fehler: Extension Setup fehlgeschlagen!')
             logging.warning('Extension setup failed: %s', extension)
 
     async def unload_ext(self, ctx: commands.Context, extension: str) -> None:
@@ -61,10 +61,10 @@ class Administration(commands.Cog, name='Administration'):
             await ctx.send('Die Extension wurde entfernt.')
             logging.info('Extension unloaded: %s', extension)
         except commands.ExtensionNotFound:
-            await ctx.send(f'Fehler: Extension konnte nicht gefunden werden!')
+            await ctx.send('Fehler: Extension konnte nicht gefunden werden!')
             logging.warning('Extension not existing: %s', extension)
         except commands.ExtensionNotLoaded:
-            await ctx.send(f'Fehler: Extension nicht geladen!')
+            await ctx.send('Fehler: Extension nicht geladen!')
             logging.warning('Extension not loaded: %s', extension)
 
     @commands.group(
