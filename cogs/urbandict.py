@@ -40,7 +40,10 @@ async def request_ud_definition(term: str) -> Tuple[str, str]:
     """
     api_url = 'http://api.urbandictionary.com/v0/define?term='
 
-    response = requests.get(format_url(api_url, term))
+    response = requests.get(
+        format_url(api_url, term),
+        timeout=10
+    )
 
     if response.status_code != 200:
         return '', ''
@@ -75,7 +78,10 @@ async def request_try_these(term: str) -> list[str] | None:
     """
     page_url = 'https://www.urbandictionary.com/define.php?term='
 
-    response = requests.get(format_url(page_url, term))
+    response = requests.get(
+        format_url(page_url, term),
+        timeout=10
+    )
 
     if response.status_code != 404:
         return
