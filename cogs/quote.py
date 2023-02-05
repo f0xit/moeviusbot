@@ -59,6 +59,49 @@ class Quote(commands.Cog, name='Quote'):
     async def cog_unload(self) -> None:
         self.daily_quote.cancel()
 
+    async def send_quote(
+        self,
+        channel: discord.TextChannel,
+        /,
+        content: str | None = None,
+        title: str = 'Zitat',
+        tries: int = 3000
+    ) -> None:
+        '''Posts a random quote into a discord channel using an embed.
+
+        Args:
+            channel (discord.TextChannel): A discord text channel.
+            content (str | None, optional): Message above the embed. Defaults to None.
+            title (str, optional): The title of the posted embed. Defaults to 'Zitat'.
+            tries (int, optional): Tries the markov model uses to find a quote. Defaults to 3000.
+        '''
+        quote = self.text_model.make_sentence(tries=tries)
+
+        if quote is None:
+            logging.warning('No quote found!')
+            await channel.send(
+                'Ich habe wirklich alles versucht, aber ich konnte einfach '
+                'kein Zitat finden, Krah Krah!'
+            )
+            return
+
+        quote = quote.replace('>', '')
+
+        await channel.send(
+            content=content,
+            embed=discord.Embed(
+                title=title,
+                colour=discord.Colour(0xff00ff),
+                description=quote,
+                timestamp=dt.datetime.utcfromtimestamp(
+                    random.randint(0, int(dt.datetime.now().timestamp()))
+                )
+            ).set_footer(text=self.quote_by)
+        )
+
+        logging.info('Quote successful.')
+        logging.debug('%s - Author: %s', quote, self.quote_by)
+
     @commands.group(
         name='zitat',
         aliases=['z'],
@@ -74,35 +117,7 @@ class Quote(commands.Cog, name='Quote'):
             self.quote_by
         )
 
-        quote = self.text_model.make_sentence(tries=500)
-
-        if quote is None:
-            logging.warning('No quote found.')
-            await ctx.send(
-                'Ich habe wirklich alles versucht, aber ich konnte einfach '
-                'kein Zitat finden, Krah Krah!'
-            )
-
-            return
-
-        # No Discord Quotes allowed in Quotes
-        quote.replace('>', '')
-
-        await ctx.send(
-            embed=discord.Embed(
-                title="Zitat",
-                colour=discord.Colour(0xff00ff),
-                description=str(quote),
-                timestamp=dt.datetime.utcfromtimestamp(
-                    random.randint(0, int(dt.datetime.now().timestamp()))
-                )
-            ).set_footer(text=self.quote_by)
-        )
-
-        logging.info(
-            'Quote successful.'
-        )
-        logging.debug('%s - Author: %s', quote, self.quote_by)
+        await self.send_quote(ctx.channel)
 
     @is_super_user()
     @_quote.command(
@@ -185,33 +200,15 @@ class Quote(commands.Cog, name='Quote'):
     async def daily_quote(self) -> None:
         logging.info('It\'s 9 AM, time for a daily quote!')
 
-        channel = self.bot.guild.get_channel(580143021790855178)
-
-        quote = self.text_model.make_sentence(tries=3000)
-
-        if not quote:
-            channel.send(
-                'Ich habe leider kein Zitat finden können, Krah Krah!'
-            )
-            logging.error('No daily quote found.')
+        if (channel := self.bot.get_channel(580143021790855178)) is None:
+            logging.warning('Channel for daily quote not found!')
             return
 
-        # No Discord Quotes allowed in Quotes
-        quote.replace('>', '')
-
-        await channel.send(
-            content='Guten Morgen, Krah Krah!',
-            embed=discord.Embed(
-                title='Zitat des Tages',
-                colour=discord.Colour(0xff00ff),
-                description=str(quote),
-                timestamp=dt.datetime.utcfromtimestamp(
-                    random.randint(0, int(dt.datetime.now().timestamp()))
-                )
-            ).set_footer(text=self.quote_by)
+        await self.send_quote(
+            channel,
+            ontent='Guten Morgen, Krah Krah!',
+            title='Zitat des Tages'
         )
-        logging.info('Quote of the day!')
-        logging.debug('%s - Author: %s', quote, self.quote_by)
 
     @daily_quote.before_loop
     async def _before_daily_quote(self):
