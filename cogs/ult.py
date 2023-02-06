@@ -3,9 +3,11 @@ import random
 import discord
 from discord.ext import commands
 from bot import Bot
+from tools.json_tools import DictFile
 
 
 async def setup(bot: Bot) -> None:
+    '''Setup function for the cog.'''
     # await bot.add_cog(Ult(bot))
     # logging.info("Cog: Ult geladen.")
     pass
@@ -14,6 +16,7 @@ async def setup(bot: Bot) -> None:
 class Ult(commands.Cog, name='Ult'):
     def __init__(self, bot: Bot) -> None:
         self.bot = bot
+        self.state = DictFile('state')
 
     async def add_ult_charge(self, amount: int) -> None:
         if amount <= 0:

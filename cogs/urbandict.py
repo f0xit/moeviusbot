@@ -11,11 +11,7 @@ from bot import Bot
 
 
 async def setup(bot: Bot) -> None:
-    '''Setup function to load the cog when added to the bot.
-
-    Args:
-        bot (Bot): Discord bot.
-    '''
+    '''Setup function for the cog.'''
     await bot.add_cog(UrbanDict(bot))
     logging.info("Cog: UrbanDict loaded.")
 

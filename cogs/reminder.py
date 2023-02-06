@@ -7,6 +7,7 @@ from bot import Bot
 
 
 async def setup(bot: Bot) -> None:
+    '''Setup function for the cog.'''
     await bot.add_cog(Reminder(bot))
     logging.info("Cog: Reminder loaded.")
 

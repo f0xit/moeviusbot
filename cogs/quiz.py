@@ -6,11 +6,11 @@ import discord
 from discord.ext import commands
 from bot import Bot
 from myfunc import gcts
-import tools.json_tools as json_tools
 from tools.check_tools import is_super_user
 
 
 async def setup(bot: Bot) -> None:
+    '''Setup function for the cog.'''
     await bot.add_cog(Quiz(bot))
     logging.info("Cog: Quiz geladen.")
 
