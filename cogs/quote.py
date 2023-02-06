@@ -1,3 +1,4 @@
+'''Cog for random quote generation'''
 import logging
 import random
 import datetime as dt
@@ -13,6 +14,7 @@ from tools.check_tools import is_super_user
 
 
 async def setup(bot: Bot) -> None:
+    '''Setup function for the cog.'''
     await bot.add_cog(Quote(bot))
     logging.info("Cog: Quote loaded.")
 
@@ -51,6 +53,8 @@ def build_markov(size: int = 3) -> Tuple[str, markovify.NewlineText]:
 
 
 class Quote(commands.Cog, name='Quote'):
+    '''This cog includes commands for random quote generation'''
+
     def __init__(self, bot: Bot) -> None:
         self.bot = bot
         self.quote_by, self.text_model = build_markov()
@@ -191,6 +195,8 @@ class Quote(commands.Cog, name='Quote'):
         brief='Generiert das Modell für zufällige Zitate.'
     )
     async def _build_markov(self, ctx: commands.Context, size: int = 3) -> None:
+        '''Generiert das Modell für zufällige Zitate.'''
+
         await ctx.send('Markov Update wird gestartet.')
 
         self.quote_by, self.text_model = build_markov(size)
@@ -206,7 +212,7 @@ class Quote(commands.Cog, name='Quote'):
 
         await self.send_quote(
             channel,
-            ontent='Guten Morgen, Krah Krah!',
+            content='Guten Morgen, Krah Krah!',
             title='Zitat des Tages'
         )
 
