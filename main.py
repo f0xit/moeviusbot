@@ -122,6 +122,7 @@ class Administration(commands.Cog, name='Administration'):
 
         page -= 1
         log_output = log_lines[(chunk_size*page):(chunk_size)*(page + 1)]
+        log_output.reverse()
 
         await ctx.send(
             f'{path[5:]} - Seite {page + 1}/{number_of_pages}:\n```{"".join(log_output)}```'
