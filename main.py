@@ -124,11 +124,7 @@ class Administration(commands.Cog, name='Administration'):
         log_output = log_lines[(chunk_size*page):(chunk_size)*(page + 1)]
 
         await ctx.send(
-            content=f'{path[5:]} - Seite {page + 1}/{number_of_pages}',
-            embed=discord.Embed(
-                colour=discord.Colour(0xff00ff),
-                description='```'+''.join(log_output)+'```'
-            )
+            f'{path[5:]} - Seite {page + 1}/{number_of_pages}:\n```{"".join(log_output)}```'
         )
 
     @_bot.command(
