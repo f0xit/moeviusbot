@@ -79,6 +79,18 @@ class Administration(commands.Cog, name='Administration'):
                 'Mit !help bot siehst du, welche Optionen verfügbar sind.'
             )
 
+    @is_super_user()
+    @_bot.command(
+        name='pull',
+        aliases=['-p']
+    )
+    async def _git_pull(self, ctx: commands.Context) -> None:
+        console_output = subprocess.check_output(
+            'git pull', shell=True
+        ).strip().decode('ascii')
+
+        await ctx.send(f'```{console_output}```')
+
     @_bot.command(
         name='version',
         aliases=['-v']
