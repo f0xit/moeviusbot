@@ -1,3 +1,4 @@
+'''Cog for text correction and the opposite'''
 import logging
 import random
 import re
@@ -8,11 +9,14 @@ from bot import Bot
 
 
 async def setup(bot: Bot) -> None:
+    '''Setup function for the cog.'''
     await bot.add_cog(Wurstfinger(bot))
     logging.info("Cog: Wurstfinger geladen.")
 
 
 class Wurstfinger(commands.Cog, name='Wurstfinger'):
+    '''This cog contains command for text correction and the opposite'''
+
     def __init__(self, bot: Bot) -> None:
         self.bot = bot
         self.speller = Speller()
