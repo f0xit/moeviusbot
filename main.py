@@ -97,7 +97,7 @@ class Administration(commands.Cog, name='Administration'):
         name='log',
         aliases=['-l']
     )
-    async def _git_pull(self, ctx: commands.Context, page: int = 1, file: str = '') -> None:
+    async def _show_log(self, ctx: commands.Context, page: int = 1, file: str = '') -> None:
         chunk_size = 15
 
         path = 'logs/moevius.log'
