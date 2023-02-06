@@ -12,6 +12,7 @@ from bot import Bot
 from tools.logger_tools import LoggerTools
 from tools.check_tools import is_super_user
 from tools.py_version_tool import check_python_version
+from tools.textfile_tools import lines_from_textfile
 
 check_python_version()
 
@@ -90,6 +91,45 @@ class Administration(commands.Cog, name='Administration'):
         ).strip().decode('ascii')
 
         await ctx.send(f'```{console_output}```')
+
+    @is_super_user()
+    @_bot.command(
+        name='log',
+        aliases=['-l']
+    )
+    async def _git_pull(self, ctx: commands.Context, page: int = 1, file: str = '') -> None:
+        chunk_size = 15
+
+        path = 'logs/moevius.log'
+        if file:
+            path += '.' + file
+
+        log_lines = lines_from_textfile(path)
+        if log_lines is None:
+            await ctx.send(
+                'Dieses Log-File scheint es nicht zu geben, Krah Krah! Format: YYYY_MM_DD'
+            )
+            return
+
+        number_of_pages = len(log_lines) // chunk_size + 1
+
+        if not 1 <= page <= number_of_pages:
+            await ctx.send(
+                f'Diese Seite gibt es nicht, Krah Krah! Bereich: 1 bis {number_of_pages}')
+            return
+
+        log_lines.reverse()
+
+        page -= 1
+        log_output = log_lines[(chunk_size*page):(chunk_size)*(page + 1)]
+
+        await ctx.send(
+            content=f'{path[5:]} - Seite {page + 1}/{number_of_pages}',
+            embed=discord.Embed(
+                colour=discord.Colour(0xff00ff),
+                description='```'+''.join(log_output)+'```'
+            )
+        )
 
     @_bot.command(
         name='version',
