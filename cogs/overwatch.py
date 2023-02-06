@@ -183,7 +183,7 @@ class Overwatch(commands.Cog, name='Overwatch'):
             return
 
         await ctx.send(
-            discord.Embed(
+            embed=discord.Embed(
                 title=f"Heldenupdates vom {output_array[0]}, Krah Krah!",
                 colour=discord.Colour(0xff00ff),
                 description='\n'.join(output_array[1:-1])
