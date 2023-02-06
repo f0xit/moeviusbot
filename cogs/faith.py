@@ -1,3 +1,4 @@
+'''Cog for the faith point mechanic'''
 import logging
 import discord
 from discord.ext import commands
@@ -7,11 +8,14 @@ from tools.json_tools import DictFile
 
 
 async def setup(bot: Bot) -> None:
+    '''Setup function for the cog'''
     await bot.add_cog(Faith(bot))
     logging.info('Cog: Faith loaded')
 
 
 class Faith(commands.Cog, name='Faith'):
+    '''This cog includes everything related to the faith mechanic'''
+
     def __init__(self, bot: Bot) -> None:
         self.bot = bot
         self.faith = DictFile('faith')
@@ -48,30 +52,14 @@ class Faith(commands.Cog, name='Faith'):
             self.bot.settings['faith_on_react']
         )
 
-    @is_super_user()
     @commands.group(
         name='faith',
-        brief='Wie treu sind wohl die Jünger des Mövius'
+        brief='Wie treu sind die Jünger des Mövius.'
     )
     async def _faith(self, ctx: commands.Context) -> None:
-        '''Dieses Kommando zeigt dir, wie viel 🕊-Glaubenspunkte die Jünger von Mövius gerade haben.
-
-        ?faith  Alle Jünger des Mövius und ihre 🕊 werden angezeigt.
-
-        Admin Kommandos:
-        !faith [add, -a, +] <id> <n>  Erhöht den Glauben von einem User mit der id um n🕊.
-        !faith [rem, -r, -] <id> <n>  Reudziert den Glauben von einem User mit der id um n🕊.
-        !faith [set, -s, =] <id> <n>  Setzt den Glauben von einem User mit der id auf n🕊.'''
+        '''Zeigt alle Jünger des Mövius und ihre 🕊 an.'''
 
         if ctx.invoked_subcommand is not None:
-            return
-
-        if ctx.prefix == '!':
-            await ctx.send(
-                'Was möchtest du mit dem Bot anfangen? '
-                'Mit !help faith siehst du, welche Optionen verfügbar sind.'
-            )
-
             return
 
         members = {
@@ -104,12 +92,25 @@ class Faith(commands.Cog, name='Faith'):
         logging.info('Faith displayed.')
 
     @is_super_user()
-    @_faith.command(name='add', aliases=['-a', '+'])
-    async def _add_faith(self, ctx: commands.Context, member: discord.Member, amount: int) -> None:
-        if ctx.prefix == '?':
-            return
+    @_faith.command(
+        name='add',
+        aliases=['-a', '+'],
+        brief='Gibt einem User 🕊️-Punkte.'
+    )
+    async def _add_faith(
+        self,
+        ctx: commands.Context,
+        member: discord.Member = commands.parameter(
+            description='Server Mitglied. Möglicher Input: ID, Mention, Name.'
+        ),
+        amount: int = commands.parameter(
+            description='Menge an 🕊️-Punkten als ganze Zahl.'
+        )
+    ) -> None:
+        '''Gibt einem User 🕊️-Punkte.'''
 
         logging.info('Manual faith added by %s', ctx.author.name)
+
         await self.add_faith(member, amount)
 
         await ctx.send(
@@ -117,10 +118,22 @@ class Faith(commands.Cog, name='Faith'):
         )
 
     @is_super_user()
-    @_faith.command(name='remove', aliases=['-r', '-'])
-    async def _rem_faith(self, ctx: commands.Context, member: discord.Member, amount: int) -> None:
-        if ctx.prefix == '?':
-            return
+    @_faith.command(
+        name='remove',
+        aliases=['-r', '-'],
+        brief='Entfernt einem User 🕊️-Punkte.'
+    )
+    async def _rem_faith(
+        self,
+        ctx: commands.Context,
+        member: discord.Member = commands.parameter(
+            description='Server Mitglied. Möglicher Input: ID, Mention, Name.'
+        ),
+        amount: int = commands.parameter(
+            description='Menge an 🕊️-Punkten als ganze Zahl.'
+        )
+    ) -> None:
+        '''Entfernt einem User 🕊️-Punkte.'''
 
         logging.info('Manual faith removed by %s', ctx.author.name)
         await self.add_faith(member, amount*(-1))
@@ -130,10 +143,22 @@ class Faith(commands.Cog, name='Faith'):
         )
 
     @is_super_user()
-    @_faith.command(name='set', aliases=['-s', '='])
-    async def _set_faith(self, ctx: commands.Context, member: discord.Member, amount: int) -> None:
-        if ctx.prefix == '?':
-            return
+    @_faith.command(
+        name='set',
+        aliases=['-s', '='],
+        brief='Setzt die 🕊️-Punkte eines Users auf einen bestimmten Wert.'
+    )
+    async def _set_faith(
+        self,
+        ctx: commands.Context,
+        member: discord.Member = commands.parameter(
+            description='Server Mitglied. Möglicher Input: ID, Mention, Name.'
+        ),
+        amount: int = commands.parameter(
+            description='Menge an 🕊️-Punkten als ganze Zahl.'
+        )
+    ) -> None:
+        '''Setzt die 🕊️-Punkte eines Users auf einen bestimmten Wert.'''
 
         logging.info('Manual faith set by %s', ctx.author.name)
         self.faith.update({str(member.id): amount})
@@ -142,6 +167,9 @@ class Faith(commands.Cog, name='Faith'):
 
     @commands.Cog.listener()
     async def on_command_completion(self, ctx: commands.Context):
+        '''Checks wether the completed command is in the faith_by_command-list
+        and add the amount of faith points to the user who invoked the command.'''
+
         if ctx.command.qualified_name not in self.bot.settings['faith_by_command']:
             logging.warning(
                 'Command %s not in Settings.',
@@ -154,14 +182,16 @@ class Faith(commands.Cog, name='Faith'):
             ctx.command.qualified_name
         )
 
-        amount = self.bot.settings['faith_by_command'][ctx.command.qualified_name]
+        amount: int = self.bot.settings['faith_by_command'][ctx.command.qualified_name]
 
         await self.add_faith(ctx.author, amount)
 
     @ commands.Cog.listener()
     async def on_raw_reaction_add(self, payload: discord.RawReactionActionEvent):
+        '''Adds faith points somone added to a message.'''
         await self.faith_on_react(payload)
 
     @ commands.Cog.listener()
     async def on_raw_reaction_remove(self, payload: discord.RawReactionActionEvent):
+        '''Removes faith points somone added to a message.'''
         await self.faith_on_react(payload)
