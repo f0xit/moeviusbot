@@ -75,6 +75,8 @@ class Gartic(commands.Cog, name='Gartic'):
         self,
         ctx: commands.Context
     ) -> None:
+        '''Zeigt ein zufälliges Gartic-Gemälde aus dem Archiv.'''
+
         generate_random_painting()
 
         await ctx.send(
