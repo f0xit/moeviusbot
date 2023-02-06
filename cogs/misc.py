@@ -1,3 +1,4 @@
+'''Cog for miscellaneous fun commands'''
 import logging
 import random
 import re
@@ -10,12 +11,13 @@ from tools.textfile_tools import lines_from_textfile
 
 
 async def setup(bot: Bot) -> None:
+    '''Setup function for the cog.'''
     await bot.add_cog(Misc(bot))
     logging.info("Cog: Misc loaded.")
 
 
 class Misc(commands.Cog, name='Sonstiges'):
-    '''Ein paar spaßige Kommandos für zwischendurch.'''
+    '''This cog includes some miscellaneous fun commands'''
 
     def __init__(self, bot: Bot):
         self.bot = bot
@@ -28,6 +30,8 @@ class Misc(commands.Cog, name='Sonstiges'):
         brief='Vergleicht die erste Zahl aus der vorherigen Nachricht mit dem  Preis einer PS5.'
     )
     async def _ps5(self, ctx: commands.Context):
+        '''Vergleicht die erste Zahl aus der vorherigen Nachricht mit dem  Preis einer PS5.'''
+
         ps5_price = 499
 
         message = [msg async for msg in ctx.channel.history(limit=2)][1].content
@@ -54,6 +58,8 @@ class Misc(commands.Cog, name='Sonstiges'):
         brief='Stellt eine zufällige Frage.'
     )
     async def _frage(self, ctx: commands.Context):
+        '''Stellt eine zufällige Frage.'''
+
         frage = random.choice(self.fragen)
 
         await ctx.send(
@@ -73,6 +79,8 @@ class Misc(commands.Cog, name='Sonstiges'):
         brief='Präsentiert die Weisheiten des Krächzers.'
     )
     async def _bibel(self, ctx: commands.Context):
+        '''Präsentiert die Weisheiten des Krächzers.'''
+
         quote = random.choice(self.bible)
 
         await ctx.send(
@@ -91,7 +99,7 @@ class Misc(commands.Cog, name='Sonstiges'):
         aliases=['Q', 'q'],
         brief='Die ultimative Fähigkeit von Mövius dem Krächzer.'
     )
-    async def _ult(self, ctx: commands.Context, *args) -> None:
+    async def _ult(self, ctx: commands.Context) -> None:
         '''Platzhalter: Das Ult-Kommando ist aktuell deaktiviert'''
 
         await ctx.send(
@@ -100,6 +108,8 @@ class Misc(commands.Cog, name='Sonstiges'):
 
     @commands.Cog.listener()
     async def on_message(self, message: discord.Message) -> None:
+        '''Listens for words in the responses-file and replies as defined.'''
+
         if message.author == self.bot.user:
             return
 
