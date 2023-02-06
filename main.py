@@ -11,7 +11,7 @@ from myfunc import strfdelta
 from bot import Bot
 from tools.logger_tools import LoggerTools
 from tools.check_tools import is_super_user
-from tools.py_version_tool import check_python_version
+from tools.py_version_tools import check_python_version
 from tools.textfile_tools import lines_from_textfile
 
 check_python_version()
