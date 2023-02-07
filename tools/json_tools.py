@@ -3,6 +3,7 @@
 import json
 import logging
 import os
+from typing import Any
 
 
 def load_file(file_path: str, /, encoding: str = 'utf-8') -> dict | None:
@@ -111,7 +112,7 @@ class DictFile(dict):
             'DictFile %s initialized succesfully.', self.file_name
         )
 
-    def __setitem__(self, __key, __value) -> None:
+    def __setitem__(self, __key: str, __value: Any) -> None:
         super().__setitem__(__key, __value)
 
         logging.debug(
