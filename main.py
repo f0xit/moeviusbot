@@ -137,6 +137,7 @@ class Administration(commands.Cog, name='Administration'):
             'git describe --tags', shell=True
         ).strip().decode('ascii')
 
+        version_string = ''
         try:
             res = console_output.split('-')
             version_string = res[0].removeprefix('v')
@@ -174,7 +175,7 @@ class Administration(commands.Cog, name='Administration'):
         name='reload',
         aliases=['-r']
     )
-    async def _reload(self, ctx: commands.Context) -> None:
+    async def _reload_bot(self, ctx: commands.Context) -> None:
         if ctx.prefix == '?':
             return
 
@@ -264,7 +265,11 @@ class Administration(commands.Cog, name='Administration'):
             "%s - %s - %s",
             ctx.author.name, ctx.message.content, error
         )
-        await self.bot.get_user(247117682875432960).send(
+
+        if (hans := self.bot.get_user(247117682875432960)) is None:
+            return
+
+        await hans.send(
             f"```*ERROR*\n{ctx.author.name}\n{ctx.message.content}\n{error}```"
         )
 

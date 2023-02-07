@@ -4,7 +4,7 @@ import json
 from typing import Tuple
 from urllib.parse import quote as urlquote
 import requests
-from bs4 import BeautifulSoup
+from bs4 import BeautifulSoup, NavigableString
 import discord
 from discord.ext import commands
 from bot import Bot
@@ -91,6 +91,9 @@ async def request_try_these(term: str) -> list[str] | None:
     soup = BeautifulSoup(response.content, 'html.parser')
 
     if not (div := soup.find('div', class_='try-these')):
+        return
+
+    if isinstance(div, NavigableString):
         return
 
     if not (items := div.find_all('li')[:10]):

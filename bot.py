@@ -22,7 +22,7 @@ class Bot(commands.Bot):
         """
         self.settings = DictFile('settings')
         self.squads = DictFile('squads')
-        self.channels: dict[str, discord.TextChannel] = {}
+        self.channels: dict[str, discord.TextChannel | None] = {}
 
     def analyze_guild(self) -> None:
         """This function analyzes the the channels in the discord guild
@@ -37,8 +37,7 @@ class Bot(commands.Bot):
             'Finding guild with ID:%s...', self.settings['server_id']
         )
 
-        guild: discord.Guild = self.get_guild(int(self.settings['server_id']))
-        if guild is None:
+        if (guild := self.get_guild(int(self.settings['server_id']))) is None:
             raise RuntimeError('Guild not found!')
 
         logging.info(
@@ -56,6 +55,7 @@ class Bot(commands.Bot):
             self.channels['stream'] = [
                 chan for chan in categories[None]
                 if chan.name == self.settings['channels']['stream']
+                and chan.type == discord.ChannelType.text
             ][0]
         except KeyError as err_msg:
             logging.warning(
@@ -69,6 +69,12 @@ class Bot(commands.Bot):
             )
             self.channels['stream'] = None
 
+        if self.channels['stream'] is None:
+            logging.error(
+                'Stream channel not found!'
+            )
+            return
+
         logging.info(
             'Stream channel found. [ID: %s] %s',
             self.channels['stream'].id,
@@ -78,6 +84,7 @@ class Bot(commands.Bot):
         try:
             self.channels.update({
                 chan.name: chan for chan in list(categories['Spiele'])
+                if chan.type == discord.ChannelType.text
             })
         except KeyError as err_msg:
             logging.warning(

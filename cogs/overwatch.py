@@ -1,7 +1,7 @@
 '''Cog for overwatch related commands'''
 import random
 import logging
-from enum import Enum
+from enum import Enum, auto
 import discord
 from discord.ext import commands
 import requests
@@ -25,7 +25,7 @@ async def setup(bot: Bot) -> None:
     logging.info('Cog: Overwatch geladen.')
 
 
-def append_to_output(input_string: str) -> None:
+def append_to_output(input_string: str) -> list[str]:
     '''This function will be replaced soon.'''
     return ["- " + i for i in input_string.split('\n') if i != '']
 
@@ -64,7 +64,7 @@ class Overwatch(commands.Cog, name='Overwatch'):
 
     async def random_hero_for_user(
         self,
-        requested_role: Role = None
+        requested_role: Role | None = None
     ) -> str:
         '''This function returns the name of a random overwatch hero. The randomizer
         can be filtered by the role.
@@ -89,7 +89,7 @@ class Overwatch(commands.Cog, name='Overwatch'):
 
     async def random_hero_for_group(
         self,
-        author: discord.User | discord.Member
+        author: discord.Member
     ) -> list[str] | None:
         '''This function returns random heroes for a group of player that are in the
         same voice channel with the author.
@@ -102,10 +102,13 @@ class Overwatch(commands.Cog, name='Overwatch'):
             for every user in the voice channel.
         '''
 
-        if author.voice is not None:
-            members = author.voice.channel.members
-        else:
+        if author.voice is None:
             return
+
+        if author.voice.channel is None:
+            return
+
+        members = author.voice.channel.members
 
         heroes = list(self.heroes.keys())
         random.shuffle(heroes)
@@ -204,6 +207,9 @@ class Overwatch(commands.Cog, name='Overwatch'):
 
         Für eine spezifische Rolle, verwende bitte !owd, !ows oder !owt.'''
 
+        if not isinstance(ctx.author, discord.Member):
+            return
+
         if who == 'me' or ctx.author.voice is None:
             logging.info(
                 '%s requested a random hero for themselves.',
@@ -217,8 +223,10 @@ class Overwatch(commands.Cog, name='Overwatch'):
                 '%s requested a random hero for everyone.',
                 ctx.author.name
             )
+            if (group_output := await self.random_hero_for_group(ctx.author)) is None:
+                return
             await ctx.channel.send(
-                PROMT + ', '.join(await self.random_hero_for_group(ctx.author))
+                PROMT + ', '.join(group_output)
             )
 
     @ commands.command(

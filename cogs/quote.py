@@ -1,4 +1,5 @@
 '''Cog for random quote generation'''
+from dis import disco
 import logging
 import random
 import datetime as dt
@@ -19,7 +20,7 @@ async def setup(bot: Bot) -> None:
     logging.info("Cog: Quote loaded.")
 
 
-def build_markov(size: int = 3) -> Tuple[str, markovify.NewlineText]:
+def build_markov(size: int = 3) -> Tuple[str, markovify.NewlineText | None]:
     """Generates a markov model from the channel_messages.txt file and
     returns it.
 
@@ -36,7 +37,9 @@ def build_markov(size: int = 3) -> Tuple[str, markovify.NewlineText]:
     logging.debug('Markov build started with size %s...', size)
     start_time = time.time()
 
-    channel_messages = lines_from_textfile('channel_messages.txt')
+    if (channel_messages := lines_from_textfile('channel_messages.txt')) is None:
+        return '', None
+
     author = channel_messages.pop(0)
 
     model = markovify.NewlineText(
@@ -65,7 +68,7 @@ class Quote(commands.Cog, name='Quote'):
 
     async def send_quote(
         self,
-        channel: discord.TextChannel,
+        channel: discord.TextChannel | discord.DMChannel,
         /,
         content: str | None = None,
         title: str = 'Zitat',
@@ -79,6 +82,9 @@ class Quote(commands.Cog, name='Quote'):
             title (str, optional): The title of the posted embed. Defaults to 'Zitat'.
             tries (int, optional): Tries the markov model uses to find a quote. Defaults to 3000.
         '''
+        if self.text_model is None:
+            return
+
         quote = self.text_model.make_sentence(tries=tries)
 
         if quote is None:
@@ -150,7 +156,8 @@ class Quote(commands.Cog, name='Quote'):
         start_time = time.time()
         sentences = [quote_by]
 
-        rammgut = self.bot.get_guild(323922215584268290)  # Hard coded Rammgut
+        if (rammgut := self.bot.get_guild(323922215584268290)) is None:
+            return
 
         number_of_channels = len(channels := rammgut.text_channels)
 
@@ -208,6 +215,9 @@ class Quote(commands.Cog, name='Quote'):
 
         if (channel := self.bot.get_channel(580143021790855178)) is None:
             logging.warning('Channel for daily quote not found!')
+            return
+
+        if not isinstance(channel, (discord.TextChannel, discord.DMChannel)):
             return
 
         await self.send_quote(

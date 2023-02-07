@@ -36,9 +36,10 @@ class Misc(commands.Cog, name='Sonstiges'):
 
         message = [msg async for msg in ctx.channel.history(limit=2)][1].content
 
-        number = float(
-            re.search(r"\d+(,\d+)?", message).group(0).replace(',', '.')
-        )
+        if (re_match := re.search(r"\d+(,\d+)?", message)) is None:
+            return
+
+        number = float(re_match.group(0).replace(',', '.'))
 
         quot_ps5 = number / ps5_price
 
@@ -60,6 +61,9 @@ class Misc(commands.Cog, name='Sonstiges'):
     async def _frage(self, ctx: commands.Context):
         '''Stellt eine zufällige Frage.'''
 
+        if self.fragen is None:
+            return
+
         frage = random.choice(self.fragen)
 
         await ctx.send(
@@ -80,6 +84,9 @@ class Misc(commands.Cog, name='Sonstiges'):
     )
     async def _bibel(self, ctx: commands.Context):
         '''Präsentiert die Weisheiten des Krächzers.'''
+
+        if self.bible is None:
+            return
 
         quote = random.choice(self.bible)
 

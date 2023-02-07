@@ -38,10 +38,14 @@ class Faith(commands.Cog, name='Faith'):
             amount *= -1
 
         channel = self.bot.get_channel(payload.channel_id)
-        faith_given_to = (await channel.fetch_message(payload.message_id)).author
-        faith_given_by = self.bot.get_user(payload.user_id)
+        if not isinstance(channel, discord.abc.MessageableChannel):
+            return
 
+        faith_given_to = (await channel.fetch_message(payload.message_id)).author
         await self.add_faith(faith_given_to, amount)
+
+        if (faith_given_by := self.bot.get_user(payload.user_id)) is None:
+            return
         await self.add_faith(faith_given_by, 1)
 
         logging.info(
@@ -169,6 +173,9 @@ class Faith(commands.Cog, name='Faith'):
     async def on_command_completion(self, ctx: commands.Context):
         '''Checks wether the completed command is in the faith_by_command-list
         and add the amount of faith points to the user who invoked the command.'''
+
+        if ctx.command is None:
+            return
 
         if ctx.command.qualified_name not in self.bot.settings['faith_by_command']:
             logging.warning(
