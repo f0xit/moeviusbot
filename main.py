@@ -251,6 +251,8 @@ class Administration(commands.Cog, name='Administration'):
                     and f"cogs.{filename[:-3]}" not in self.bot.extensions.keys()):
                 await self.bot.load_extension(f"cogs.{filename[:-3]}")
 
+        await self.bot.tree.sync()
+
     @commands.Cog.listener()
     async def on_message(self, message: discord.Message) -> None:
         if message.author == self.bot.user:
