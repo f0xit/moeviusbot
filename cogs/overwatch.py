@@ -1,7 +1,7 @@
 '''Cog for overwatch related commands'''
 import random
 import logging
-from enum import Enum, auto
+from enum import Enum
 import discord
 from discord.ext import commands
 import requests
