@@ -137,7 +137,6 @@ class Administration(commands.Cog, name='Administration'):
             'git describe --tags', shell=True
         ).strip().decode('ascii')
 
-        version_string = ''
         try:
             res = console_output.split('-')
             version_string = res[0].removeprefix('v')
@@ -151,8 +150,6 @@ class Administration(commands.Cog, name='Administration'):
             logging.error(
                 'Something is wrong with the version string: %s', console_output
             )
-            await ctx.send(f'Bot läuft auf Version {console_output}')
-            logging.info('Version %s', version_string)
 
     @_bot.command(
         name='uptime',
@@ -176,9 +173,6 @@ class Administration(commands.Cog, name='Administration'):
         aliases=['-r']
     )
     async def _reload_bot(self, ctx: commands.Context) -> None:
-        if ctx.prefix == '?':
-            return
-
         logging.warning('%s hat einen Reload gestartet.', ctx.author.name)
         await ctx.send('Reload wird gestartet.')
 
@@ -199,7 +193,6 @@ class Administration(commands.Cog, name='Administration'):
             'Aktuell sind folgende Extensions geladen:\n'
             ', '.join(self.bot.extensions.keys())
         )
-        await ctx.send('Mit !help ext siehst du, welche Optionen verfügbar sind.')
         logging.info(
             'Extensions active: %s',
             ', '.join(self.bot.extensions.keys())
@@ -212,9 +205,6 @@ class Administration(commands.Cog, name='Administration'):
         brief='Lädt eine Extension in den Bot.'
     )
     async def _load(self, ctx: commands.Context, extension: str) -> None:
-        if ctx.prefix == '?':
-            return
-
         await self.load_ext(ctx, extension)
 
     @is_super_user()
@@ -224,9 +214,6 @@ class Administration(commands.Cog, name='Administration'):
         brief='Entfernt eine Extension aus dem Bot.'
     )
     async def _unload(self, ctx: commands.Context, extension: str) -> None:
-        if ctx.prefix == '?':
-            return
-
         await self.unload_ext(ctx, extension)
 
     @is_super_user()
@@ -236,9 +223,6 @@ class Administration(commands.Cog, name='Administration'):
         brief='Lädt eine Extension neu.'
     )
     async def _reload(self, ctx: commands.Context, extension: str) -> None:
-        if ctx.prefix == '?':
-            return
-
         await self.unload_ext(ctx, extension)
         await self.load_ext(ctx, extension)
 
