@@ -24,7 +24,7 @@ class Bot(commands.Bot):
         self.squads = DictFile('squads')
         self.channels: dict[str, discord.TextChannel | None] = {}
 
-    def analyze_guild(self) -> None:
+    async def analyze_guild(self) -> None:
         """This function analyzes the the channels in the discord guild
         specified in the bot's settings as 'server_id' and stores them in the
         bot's channels-attribute.

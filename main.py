@@ -183,7 +183,7 @@ class Administration(commands.Cog, name='Administration'):
         await ctx.send('Reload wird gestartet.')
 
         self.bot.load_files_into_attrs()
-        self.bot.analyze_guild()
+        await self.bot.analyze_guild()
 
     @is_super_user()
     @commands.group(
@@ -244,7 +244,7 @@ class Administration(commands.Cog, name='Administration'):
 
     @commands.Cog.listener()
     async def on_ready(self) -> None:
-        self.bot.analyze_guild()
+        await self.bot.analyze_guild()
 
         await asyncio.gather(*map(
             self.bot.load_extension,
@@ -286,12 +286,12 @@ class Administration(commands.Cog, name='Administration'):
         logging.info(
             'New channel created: [ID:%s] %s', channel.id, channel.name
         )
-        self.bot.analyze_guild()
+        await self.bot.analyze_guild()
 
     @commands.Cog.listener()
     async def on_guild_channel_delete(self, channel: discord.abc.GuildChannel) -> None:
         logging.info('Channel deleted: [ID:%s] %s', channel.id, channel.name)
-        self.bot.analyze_guild()
+        await self.bot.analyze_guild()
 
     @commands.Cog.listener()
     async def on_guild_channel_update(
@@ -303,7 +303,7 @@ class Administration(commands.Cog, name='Administration'):
             'Channel updated: [ID:%s] %s > %s',
             after.id, before.name, after.name
         )
-        self.bot.analyze_guild()
+        await self.bot.analyze_guild()
 
 
 def main() -> None:
