@@ -1,5 +1,5 @@
 from discord.ext import commands
-from json_tools import load_file
+from tools.json_tools import load_file
 
 
 def is_super_user():
