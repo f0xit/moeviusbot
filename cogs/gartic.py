@@ -77,7 +77,7 @@ class Gartic(commands.Cog, name='Gartic'):
     ) -> None:
         '''Zeigt ein zufälliges Gartic-Gemälde aus dem Archiv.'''
 
-        generate_random_painting()
+        await generate_random_painting()
 
         await ctx.send(
             file=discord.File('gartic_output.png')
@@ -86,9 +86,13 @@ class Gartic(commands.Cog, name='Gartic'):
     @tasks.loop(time=dt.time(19, 30, tzinfo=get_local_timezone()))
     async def daily_gartic(self) -> None:
         '''Posts a daily gartic image to the right channel.'''
-        generate_random_painting()
+
+        await generate_random_painting()
 
         channel = self.bot.get_channel(815702384688234538)
+
+        if channel is None or not isinstance(channel, discord.TextChannel):
+            return
 
         await channel.send(
             "Guten Abend, Krah Krah! Hier kommt das tägliche "
