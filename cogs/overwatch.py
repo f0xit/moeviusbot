@@ -2,9 +2,9 @@
 import random
 import logging
 from enum import Enum
+import aiohttp
 import discord
 from discord.ext import commands
-import requests
 from bs4 import BeautifulSoup
 from bot import Bot
 
@@ -21,37 +21,69 @@ class Role(Enum):
 async def setup(bot: Bot) -> None:
     '''Setup function for the cog.'''
 
-    await bot.add_cog(Overwatch(bot))
+    overwatch_cog = Overwatch(bot)
+    overwatch_cog.heroes = await load_overwatch_heroes()
+    await bot.add_cog(overwatch_cog)
     logging.info('Cog: Overwatch geladen.')
 
 
 def append_to_output(input_string: str) -> list[str]:
     '''This function will be replaced soon.'''
+
     return ["- " + i for i in input_string.split('\n') if i != '']
 
 
-def load_overwatch_heroes() -> dict[str, str]:
+async def async_request_html(url: str) -> str:
+    '''_summary_
+
+    Args:
+        url (str): _description_
+
+    Returns:
+        str: _description_
+    '''
+
+    if not url:
+        logging.error('Empty URL!')
+        return ''
+
+    logging.debug('Requesting %s...', url)
+
+    async with aiohttp.ClientSession() as session:
+        async with session.get(url) as response:
+            if response.status != 200:
+                logging.error(
+                    'Request returned status code %s!',
+                    response.status
+                )
+                return ''
+
+            logging.debug('Request successful.')
+            return await response.text()
+
+
+async def load_overwatch_heroes() -> dict[str, str]:
     '''Parses the hero list from the overwatch website and stores it in a dict.
 
     Returns:
         dict[str, str]: Dictionary of all overwatch heroes. Key is name, value is role.
     '''
 
+    logging.info('Loading Overwatch heroes...')
+
     hero_url = 'https://playoverwatch.com/de-de/heroes/'
-    response = requests.get(hero_url, timeout=10)
-
-    if response.status_code != 200:
-        return {}
-
-    overwatch_soup = BeautifulSoup(response.content, 'html.parser')
+    overwatch_soup = BeautifulSoup(await async_request_html(hero_url), 'html.parser')
 
     cells = overwatch_soup.find_all(
         'blz-hero-card', class_='heroCard'
     )
 
-    logging.info('Overwatch-Heroes loaded.')
+    logging.info('Overwatch heroes loaded: %s heroes.', len(cells))
 
-    return {cell.attrs["data-hero-id"].title(): cell.attrs["data-role"].title() for cell in cells}
+    return {
+        cell.attrs["data-hero-id"].title(): cell.attrs["data-role"].title()
+        for cell in cells
+    }
 
 
 class Overwatch(commands.Cog, name='Overwatch'):
@@ -60,7 +92,7 @@ class Overwatch(commands.Cog, name='Overwatch'):
     def __init__(self, bot: Bot) -> None:
         self.bot = bot
 
-        self.heroes = load_overwatch_heroes()
+        self.heroes = {}
 
     async def random_hero_for_user(
         self,
@@ -76,6 +108,9 @@ class Overwatch(commands.Cog, name='Overwatch'):
         Returns:
             str: The name of a random hero.
         '''
+
+        if not self.heroes:
+            self.heroes = await load_overwatch_heroes()
 
         if requested_role is None:
             return random.choice(
@@ -110,6 +145,9 @@ class Overwatch(commands.Cog, name='Overwatch'):
 
         members = author.voice.channel.members
 
+        if not self.heroes:
+            self.heroes = await load_overwatch_heroes()
+
         heroes = list(self.heroes.keys())
         random.shuffle(heroes)
 
@@ -123,13 +161,9 @@ class Overwatch(commands.Cog, name='Overwatch'):
     async def _owpn(self, ctx: commands.Context) -> None:
         '''Liefert dir, falls vorhanden, die neusten Änderungen bei Helden aus den Patchnotes.'''
 
-        patch_notes_page = requests.get(
-            'https://playoverwatch.com/de-de/news/patch-notes/live',
-            timeout=10
-        )
-        patch_notes_soup = BeautifulSoup(
-            patch_notes_page.content, 'html.parser'
-        )
+        patch_notes_url = 'https://playoverwatch.com/de-de/news/patch-notes/live'
+        patch_notes_soup = BeautifulSoup(await async_request_html(patch_notes_url), 'html.parser')
+
         latest_patch = patch_notes_soup.find_all(
             'div', class_='PatchNotes-patch'
         )[0].contents
