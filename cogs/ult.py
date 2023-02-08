@@ -23,16 +23,16 @@ class Ult(commands.Cog, name='Ult'):
             logging.warning('Invalid amount of Ult charge.')
             return
 
-        if self.bot.state['ult_charge'] >= 100:
+        if self.state['ult_charge'] >= 100:
             logging.info('Ult ready!')
             return
 
-        self.bot.state['ult_charge'] = min(
-            self.bot.state['ult_charge'] + amount, 100)
+        self.state['ult_charge'] = min(
+            self.state['ult_charge'] + amount, 100)
 
         await self.bot.change_presence(
             activity=discord.Game(
-                f'Charge: {int(self.bot.state["ult_charge"])}%')
+                f'Charge: {int(self.state["ult_charge"])}%')
         )
 
         logging.debug('Ult charge added: %s', amount)
@@ -57,42 +57,42 @@ class Ult(commands.Cog, name='Ult'):
 
         if ctx.prefix == '?':
             # Output charge
-            if self.bot.state['ult_charge'] < 90:
+            if self.state['ult_charge'] < 90:
                 await ctx.send(
                     "Meine ultimative Fähigkeit lädt sich auf, Krah Krah! "
-                    f"[{int(self.bot.state['ult_charge'])}%]"
+                    f"[{int(self.state['ult_charge'])}%]"
                 )
-            elif self.bot.state['ult_charge'] < 100:
+            elif self.state['ult_charge'] < 100:
                 await ctx.send(
                     "Meine ultimative Fähigkeit ist fast bereit, Krah Krah! "
-                    f"[{int(self.bot.state['ult_charge'])}%]"
+                    f"[{int(self.state['ult_charge'])}%]"
                 )
             else:
                 await ctx.send(
                     "Meine ultimative Fähigkeit ist bereit, Krah Krah! "
-                    f"[{int(self.bot.state['ult_charge'])}%]"
+                    f"[{int(self.state['ult_charge'])}%]"
                 )
 
             logging.info(
                 "%s hat nach meiner Ult-Charge gefragt: %s%%",
                 ctx.author.name,
-                self.bot.state['ult_charge']
+                self.state['ult_charge']
             )
         elif ctx.prefix == '!':
             # Do something
             if len(args) == 0:
                 # Ultimate is triggered
 
-                if self.bot.state['ult_charge'] < 100:
+                if self.state['ult_charge'] < 100:
                     # Not enough charge
                     await ctx.send(
                         "Meine ultimative Fähigkeit ist noch nicht bereit, Krah Krah! "
-                        f"[{int(self.bot.state['ult_charge'])}%]"
+                        f"[{int(self.state['ult_charge'])}%]"
                     )
                     logging.warning(
                         "%s wollte meine Ult aktivieren. Charge: %s%%",
                         ctx.author.name,
-                        self.bot.state['ult_charge']
+                        self.state['ult_charge']
                     )
                 else:
                     # Ult is ready
@@ -106,34 +106,36 @@ class Ult(commands.Cog, name='Ult'):
                         games = list(self.bot.channels.keys())[1:]
                         game = random.choice(games).replace('-', ' ').title()
 
-                        await Reminder.process_event_command(
-                            self, game_type, ctx, (event_time, game), ult=True
-                        )
+                        # await Reminder.process_event_command(
+                        #     self, game_type, ctx, (event_time, game), ult=True
+                        # )
                     elif action_id == 2:
                         # Random questions
-                        await Fun._frage(self, ctx)
+                        # await Fun._frage(self, ctx)
+                        pass
                     elif action_id == 3:
                         # Random bible quote
-                        await Fun._bibel(self, ctx)
+                        # await Fun._bibel(self, ctx)
+                        pass
 
-                    # Reset charge
-                    self.bot.state['ult_charge'] = 0
+                        # Reset charge
+                    self.state['ult_charge'] = 0
 
-                    await moevius.change_presence(activity=discord.Game(
-                        f"Charge: {int(self.bot.state['ult_charge'])}%")
+                    await self.bot.change_presence(activity=discord.Game(
+                        f"Charge: {int(self.state['ult_charge'])}%")
                     )
             else:
                 # Charge is manipulated by a user
                 if ctx.author.name in self.bot.settings['super-users']:
                     # Only allowed if super user
                     if args[0] in ['add', '-a', '+']:
-                        await add_ult_charge(int(args[1]))
+                        await self.add_ult_charge(int(args[1]))
                     elif args[0] in ['set', '-s', '=']:
-                        self.bot.state['ult_charge'] = max(
+                        self.state['ult_charge'] = max(
                             min(int(args[1]), 100), 0)
 
-                        await moevius.change_presence(activity=discord.Game(
-                            f"Charge: {int(self.bot.state['ult_charge'])}%")
+                        await self.bot.change_presence(activity=discord.Game(
+                            f"Charge: {int(self.state['ult_charge'])}%")
                         )
                 else:
                     await ctx.send('Nanana, das darfst du nicht, Krah Krah!')
@@ -142,5 +144,5 @@ class Ult(commands.Cog, name='Ult'):
     async def on_ready(self) -> None:
         await self.bot.change_presence(
             activity=discord.Game(
-                f"Charge: {int(self.bot.state['ult_charge'])}%")
+                f"Charge: {int(self.state['ult_charge'])}%")
         )
