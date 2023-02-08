@@ -258,6 +258,10 @@ class Administration(commands.Cog, name='Administration'):
 
         await self.bot.tree.sync()
 
+        logging.info('Bot ready!')
+        startup_duration = (dt.datetime.now() - STARTUP_TIME).total_seconds()
+        logging.debug('Startup took %.4f seconds.', startup_duration)
+
     @commands.Cog.listener()
     async def on_message(self, message: discord.Message) -> None:
         if message.author == self.bot.user:
