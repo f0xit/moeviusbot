@@ -246,11 +246,15 @@ class Administration(commands.Cog, name='Administration'):
     async def on_ready(self) -> None:
         self.bot.analyze_guild()
 
-        for filename in os.listdir('./cogs'):
-            if (filename.endswith('.py')
+        await asyncio.gather(*map(
+            self.bot.load_extension,
+            [
+                f"cogs.{filename[:-3]}" for filename in os.listdir('./cogs')
+                if (filename.endswith('.py')
                     and not filename.startswith('__')
-                    and f"cogs.{filename[:-3]}" not in self.bot.extensions.keys()):
-                await self.bot.load_extension(f"cogs.{filename[:-3]}")
+                    and f"cogs.{filename[:-3]}" not in self.bot.extensions.keys())
+            ]
+        ))
 
         await self.bot.tree.sync()
 
