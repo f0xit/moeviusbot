@@ -1,5 +1,4 @@
 '''Cog for random quote generation'''
-from dis import disco
 import logging
 import random
 import datetime as dt
@@ -82,6 +81,7 @@ class Quote(commands.Cog, name='Quote'):
             title (str, optional): The title of the posted embed. Defaults to 'Zitat'.
             tries (int, optional): Tries the markov model uses to find a quote. Defaults to 3000.
         '''
+
         if self.text_model is None:
             return
 
@@ -119,6 +119,12 @@ class Quote(commands.Cog, name='Quote'):
     )
     async def _quote(self, ctx: commands.Context):
         if ctx.invoked_subcommand is not None:
+            return
+
+        if (
+            not isinstance(ctx.channel, discord.TextChannel)
+            or not isinstance(ctx.channel, discord.TextChannel)
+        ):
             return
 
         logging.info(
@@ -211,6 +217,8 @@ class Quote(commands.Cog, name='Quote'):
 
     @tasks.loop(time=dt.time(9, tzinfo=get_local_timezone()))
     async def daily_quote(self) -> None:
+        '''_summary_'''
+
         logging.info('It\'s 9 AM, time for a daily quote!')
 
         if (channel := self.bot.get_channel(580143021790855178)) is None:
