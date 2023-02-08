@@ -20,6 +20,22 @@ STARTUP_TIME = dt.datetime.now()
 LOG_TOOL = LoggerTools(level="DEBUG")
 
 
+class Confirm(discord.ui.View):
+    # When the confirm button is pressed, set the inner value to `True` and
+    # stop the View from listening to more input.
+    # We also send the user an ephemeral message that we're confirming their choice.
+    @discord.ui.button(label='A', style=discord.ButtonStyle.blurple)
+    async def pick_a(self, interaction: discord.Interaction, button: discord.ui.Button):
+        await interaction.response.send_message('A')
+        self.stop()
+
+    # This one is similar to the confirmation button except sets the inner value to `False`
+    @discord.ui.button(label='B', style=discord.ButtonStyle.blurple)
+    async def pick_b(self, interaction: discord.Interaction, button: discord.ui.Button):
+        await interaction.response.send_message('B')
+        self.stop()
+
+
 class Administration(commands.Cog, name='Administration'):
     '''Diese Kategorie erfordert bestimmte Berechtigungen'''
 
@@ -288,6 +304,16 @@ class Administration(commands.Cog, name='Administration'):
             after.id, before.name, after.name
         )
         await self.bot.analyze_guild()
+
+    @commands.command()
+    async def ask(self, ctx: commands.Context):
+        """Asks the user a question to confirm something."""
+        view = Confirm()
+        msg = await ctx.send('Pick A or B', view=view)
+        await view.wait()
+        view.clear_items()
+        await msg.edit(view=view)
+        view.stop()
 
 
 def main() -> None:
