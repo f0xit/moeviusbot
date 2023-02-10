@@ -3,17 +3,17 @@ import logging
 import json
 from typing import Tuple
 from urllib.parse import quote as urlquote
-import requests
 from bs4 import BeautifulSoup, NavigableString
 import discord
 from discord.ext import commands
 from bot import Bot
+from tools.request_tools import async_request_html
 
 
 async def setup(bot: Bot) -> None:
     '''Setup function for the cog.'''
     await bot.add_cog(UrbanDict(bot))
-    logging.info("Cog: UrbanDict loaded.")
+    logging.info('Cog loaded: UrbanDict.')
 
 
 def format_url(url: str, term: str) -> str:
@@ -42,15 +42,9 @@ async def request_ud_definition(term: str) -> Tuple[str, str]:
     """
     api_url = 'http://api.urbandictionary.com/v0/define?term='
 
-    response = requests.get(
-        format_url(api_url, term),
-        timeout=10
+    data = json.loads(
+        await async_request_html(format_url(api_url, term))
     )
-
-    if response.status_code != 200:
-        return '', ''
-
-    data = json.loads(response.text)
 
     if not data['list']:
         return '', ''
@@ -80,15 +74,13 @@ async def request_try_these(term: str) -> list[str] | None:
     """
     page_url = 'https://www.urbandictionary.com/define.php?term='
 
-    response = requests.get(
-        format_url(page_url, term),
-        timeout=10
+    soup = BeautifulSoup(
+        await async_request_html(
+            format_url(page_url, term),
+            404
+        ),
+        'html.parser'
     )
-
-    if response.status_code != 404:
-        return
-
-    soup = BeautifulSoup(response.content, 'html.parser')
 
     if not (div := soup.find('div', class_='try-these')):
         return
@@ -107,6 +99,9 @@ class UrbanDict(commands.Cog, name='UrbanDict'):
 
     def __init__(self, bot: Bot) -> None:
         self.bot = bot
+
+    async def cog_unload(self) -> None:
+        logging.info('Cog unloaded: UrbanDict.')
 
     @commands.command(
         name='urbandict',

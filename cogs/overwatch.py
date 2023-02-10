@@ -2,11 +2,11 @@
 import random
 import logging
 from enum import Enum
-import aiohttp
 import discord
 from discord.ext import commands
 from bs4 import BeautifulSoup
 from bot import Bot
+from tools.request_tools import async_request_html
 
 PROMT = 'Random Heroes? Kein Problem, Krah Krah!\n'
 
@@ -31,35 +31,6 @@ def append_to_output(input_string: str) -> list[str]:
     '''This function will be replaced soon.'''
 
     return ["- " + i for i in input_string.split('\n') if i != '']
-
-
-async def async_request_html(url: str) -> str:
-    '''_summary_
-
-    Args:
-        url (str): _description_
-
-    Returns:
-        str: _description_
-    '''
-
-    if not url:
-        logging.error('Empty URL!')
-        return ''
-
-    logging.debug('Requesting %s...', url)
-
-    async with aiohttp.ClientSession() as session:
-        async with session.get(url) as response:
-            if response.status != 200:
-                logging.error(
-                    'Request returned status code %s!',
-                    response.status
-                )
-                return ''
-
-            logging.debug('Request successful.')
-            return await response.text()
 
 
 async def load_overwatch_heroes() -> dict[str, str]:
