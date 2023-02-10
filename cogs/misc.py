@@ -3,17 +3,19 @@ import logging
 import random
 import re
 import math
+from bs4 import BeautifulSoup
 import discord
 from discord.ext import commands
 from bot import Bot
 from tools.json_tools import DictFile
+from tools.request_tools import async_request_html
 from tools.textfile_tools import lines_from_textfile
 
 
 async def setup(bot: Bot) -> None:
     '''Setup function for the cog.'''
     await bot.add_cog(Misc(bot))
-    logging.info("Cog: Misc loaded.")
+    logging.info('Cog loaded: Misc.')
 
 
 class Misc(commands.Cog, name='Sonstiges'):
@@ -25,6 +27,9 @@ class Misc(commands.Cog, name='Sonstiges'):
         self.bible = lines_from_textfile('moevius-bibel.txt')
         self.responses = DictFile('responses')
 
+    async def cog_unload(self) -> None:
+        logging.info('Cog unloaded: Misc.')
+
     @commands.command(
         name='ps5',
         brief='Vergleicht die erste Zahl aus der vorherigen Nachricht mit dem  Preis einer PS5.'
@@ -32,7 +37,16 @@ class Misc(commands.Cog, name='Sonstiges'):
     async def _ps5(self, ctx: commands.Context):
         '''Vergleicht die erste Zahl aus der vorherigen Nachricht mit dem  Preis einer PS5.'''
 
-        ps5_price = 499
+        ps5_url = 'https://direct.playstation.com/de-de/buy-consoles/playstation5-console'
+        ps5_soup = BeautifulSoup(await async_request_html(ps5_url), 'html.parser')
+
+        price_tag = ps5_soup.find_all('span', class_='product-price')[0]
+        price_sup_tag = ps5_soup.find_all('sup', class_='product-price-sup')[1]
+
+        if price_tag is None or price_sup_tag is None:
+            return
+
+        ps5_price = float(price_tag.text) + float(price_sup_tag.text) / 100
 
         message = [msg async for msg in ctx.channel.history(limit=2)][1].content
 
