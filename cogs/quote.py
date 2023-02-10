@@ -16,7 +16,7 @@ from tools.check_tools import is_super_user
 async def setup(bot: Bot) -> None:
     '''Setup function for the cog.'''
     await bot.add_cog(Quote(bot))
-    logging.info("Cog: Quote loaded.")
+    logging.info('Cog loaded: Quote.')
 
 
 def build_markov(size: int = 3) -> Tuple[str, markovify.NewlineText | None]:
@@ -64,6 +64,7 @@ class Quote(commands.Cog, name='Quote'):
 
     async def cog_unload(self) -> None:
         self.daily_quote.cancel()
+        logging.info('Cog unloaded: Quote.')
 
     async def send_quote(
         self,

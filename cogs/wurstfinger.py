@@ -11,7 +11,7 @@ from bot import Bot
 async def setup(bot: Bot) -> None:
     '''Setup function for the cog.'''
     await bot.add_cog(Wurstfinger(bot))
-    logging.info("Cog: Wurstfinger geladen.")
+    logging.info('Cog loaded: Wurstfinger.')
 
 
 class Wurstfinger(commands.Cog, name='Wurstfinger'):
@@ -54,7 +54,8 @@ class Wurstfinger(commands.Cog, name='Wurstfinger'):
             ' ': ['c', 'v', 'b', 'n', 'm']
         }
 
-        logging.debug("Wurstfinger-Settings geladen.")
+    async def cog_unload(self) -> None:
+        logging.info('Cog unloaded: UrbanDict.')
 
     @commands.command(
         name='schnenk',
