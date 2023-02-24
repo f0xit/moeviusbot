@@ -18,6 +18,7 @@ check_python_version()
 
 STARTUP_TIME = dt.datetime.now()
 LOG_TOOL = LoggerTools(level="DEBUG")
+discord.utils.setup_logging(root=False)
 
 
 class Confirm(discord.ui.View):
