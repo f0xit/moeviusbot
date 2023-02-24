@@ -4,4 +4,3 @@ discord.py==2.1.1
 markovify==0.9.4
 Pillow==9.4.0
 python-dotenv==0.21.1
-requests==2.28.2
