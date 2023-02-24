@@ -317,7 +317,7 @@ class Administration(commands.Cog, name='Administration'):
         view.stop()
 
 
-def main() -> None:
+async def main() -> None:
     load_dotenv()
 
     if (discord_token := os.getenv('DISCORD_TOKEN')) is None:
@@ -326,9 +326,9 @@ def main() -> None:
         logging.info('Discord token loaded successfully.')
 
     moevius = Bot()
-    asyncio.run(moevius.add_cog(Administration(moevius)))
-    moevius.run(discord_token)
+    await moevius.add_cog(Administration(moevius))
+    await moevius.start(discord_token)
 
 
 if __name__ == "__main__":
-    main()
+    asyncio.run(main())
