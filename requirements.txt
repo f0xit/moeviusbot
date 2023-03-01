@@ -1,6 +1,6 @@
 autocorrect==2.6.1
 beautifulsoup4==4.11.2
-discord.py==2.1.1
+discord.py==2.2.0
 markovify==0.9.4
 Pillow==9.4.0
 python-dotenv==1.0.0
