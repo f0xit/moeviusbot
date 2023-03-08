@@ -84,7 +84,7 @@ class Wurstfinger(commands.Cog, name='Wurstfinger'):
             finally:
                 output += character
 
-        await ctx.send(f"Oder wie Schnenk, es sagen würde:\n{output} Krah Krah!")
+        await ctx.send(f"Oder wie Schnenk es sagen würde:\n{output} Krah Krah!")
 
     @commands.command(
         name='wurstfinger'
