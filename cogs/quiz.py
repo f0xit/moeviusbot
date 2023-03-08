@@ -1,8 +1,10 @@
 '''Quiz module'''
 import logging
 import random
+
 import discord
 from discord.ext import commands
+
 from bot import Bot
 from myfunc import gcts
 from tools.check_tools import is_super_user
@@ -54,8 +56,8 @@ class Quiz(commands.Cog, name='Quiz'):
                     "question": question['question'],
                     "category": question['category'],
                     "answers": dict(zip(
-                        ['A', 'B', 'C', 'D'],
-                        question['answers']
+                        ['A', 'B', 'C', 'D'], question['answers'],
+                        strict=True
                     ))
                 }
 
@@ -79,8 +81,8 @@ class Quiz(commands.Cog, name='Quiz'):
         )
         return ({
             "content": f"**Frage {self.game_stage + 1} - "
-            + f"{self.stages[self.game_stage]}🕊**\n"
-            + f"Kategorie: {self.question['category']}",
+            f"{self.stages[self.game_stage]}🕊**\n"
+            f"Kategorie: {self.question['category']}",
             "embed": embed
         })
 
@@ -146,9 +148,8 @@ class Quiz(commands.Cog, name='Quiz'):
 
         await ctx.send(
             "Hallo und herzlich Willkommen zu Wer Wird Mövionär! "
-            + "Heute mit dabei: "
-            + self.player.display_name
-            + ". Los geht's, Krah Krah!"
+            f"Heute mit dabei: {self.player.display_name}."
+            "Los geht's, Krah Krah!"
         )
 
         await self.get_random_question()
@@ -199,8 +200,8 @@ class Quiz(commands.Cog, name='Quiz'):
         with open('logs/quiz_report.log', 'a+', encoding='utf-8') as file:
             file.write(
                 f"[{gcts()}] {ctx.author.name}: "
-                + f"Grund: {' '.join(args)} - "
-                + f"Frage: {self.question['question']}\n"
+                f"Grund: {' '.join(args)} - "
+                f"Frage: {self.question['question']}\n"
             )
 
         await ctx.send("Deine Meldung wurde abgeschickt.")

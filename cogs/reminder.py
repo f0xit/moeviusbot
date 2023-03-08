@@ -1,9 +1,11 @@
-import logging
 import datetime as dt
+import logging
+
 import discord
 from discord.ext import commands, tasks
-from event import Event
+
 from bot import Bot
+from event import Event
 
 
 async def setup(bot: Bot) -> None:
@@ -149,7 +151,7 @@ class Reminder(commands.Cog, name='Events'):
             # Post the info
             await ctx.send(
                 f"{begin_string} beginnt um {self.events[event_type].event_time} Uhr. "
-                + f"{game_str}Mit dabei sind bisher: {members}, Krah Krah!"
+                f"{game_str}Mit dabei sind bisher: {members}, Krah Krah!"
             )
             logging.info(
                 "%s hat nach einem Event %s gefragt. Die Infos dazu wurden rausgehauen.",

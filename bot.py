@@ -1,7 +1,9 @@
 '''This module contains the bot class that inherits from discord's default bot.'''
 import logging
+
 import discord
 from discord.ext import commands
+
 from tools.json_tools import DictFile
 
 

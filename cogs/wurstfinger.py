@@ -3,8 +3,10 @@ import logging
 import random
 import re
 import time
-from discord.ext import commands
+
 from autocorrect import Speller
+from discord.ext import commands
+
 from bot import Bot
 
 

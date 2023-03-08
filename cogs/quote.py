@@ -1,16 +1,18 @@
 '''Cog for random quote generation'''
+import datetime as dt
 import logging
 import random
-import datetime as dt
 import time
 from typing import Tuple
+
 import discord
-from discord.ext import commands, tasks
 import markovify
+from discord.ext import commands, tasks
+
 from bot import Bot
+from tools.check_tools import is_super_user
 from tools.dt_tools import get_local_timezone
 from tools.textfile_tools import lines_from_textfile, lines_to_textfile
-from tools.check_tools import is_super_user
 
 
 async def setup(bot: Bot) -> None:

@@ -1,11 +1,13 @@
 '''Cog for miscellaneous fun commands'''
 import logging
+import math
 import random
 import re
-import math
-from bs4 import BeautifulSoup
+
 import discord
+from bs4 import BeautifulSoup
 from discord.ext import commands
+
 from bot import Bot
 from tools.json_tools import DictFile
 from tools.request_tools import async_request_html

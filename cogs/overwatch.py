@@ -1,10 +1,12 @@
 '''Cog for overwatch related commands'''
-import random
 import logging
+import random
 from enum import Enum
+
 import discord
-from discord.ext import commands
 from bs4 import BeautifulSoup
+from discord.ext import commands
+
 from bot import Bot
 from tools.request_tools import async_request_html
 

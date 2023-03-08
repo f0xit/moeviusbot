@@ -1,11 +1,13 @@
 '''Cog for the urban dictionary command'''
-import logging
 import json
+import logging
 from typing import Tuple
 from urllib.parse import quote as urlquote
-from bs4 import BeautifulSoup, NavigableString
+
 import discord
+from bs4 import BeautifulSoup, NavigableString
 from discord.ext import commands
+
 from bot import Bot
 from tools.request_tools import async_request_html
 

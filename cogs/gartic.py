@@ -1,13 +1,15 @@
 '''Cog for the faith point mechanic'''
-import os
-import re
-import random
-import math
-import logging
 import datetime as dt
-from PIL import Image
+import logging
+import math
+import os
+import random
+import re
+
 import discord
 from discord.ext import commands, tasks
+from PIL import Image
+
 from bot import Bot
 from tools.dt_tools import get_local_timezone
 

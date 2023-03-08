@@ -1,10 +1,21 @@
 '''Cog for the faith point mechanic'''
 import logging
+
 import discord
 from discord.ext import commands
+
 from bot import Bot
 from tools.check_tools import is_super_user
 from tools.json_tools import DictFile
+
+default_fields = {
+    "member": commands.parameter(
+        description='Server Mitglied. Möglicher Input: ID, Mention, Name.'
+    ),
+    "points": commands.parameter(
+        description='Menge an 🕊️-Punkten als ganze Zahl.'
+    )
+}
 
 
 async def setup(bot: Bot) -> None:
@@ -110,12 +121,8 @@ class Faith(commands.Cog, name='Faith'):
     async def _add_faith(
         self,
         ctx: commands.Context,
-        member: discord.Member = commands.parameter(
-            description='Server Mitglied. Möglicher Input: ID, Mention, Name.'
-        ),
-        amount: int = commands.parameter(
-            description='Menge an 🕊️-Punkten als ganze Zahl.'
-        )
+        member: discord.Member = default_fields["member"],
+        amount: int = default_fields["points"]
     ) -> None:
         '''Gibt einem User 🕊️-Punkte.'''
 
@@ -136,12 +143,8 @@ class Faith(commands.Cog, name='Faith'):
     async def _rem_faith(
         self,
         ctx: commands.Context,
-        member: discord.Member = commands.parameter(
-            description='Server Mitglied. Möglicher Input: ID, Mention, Name.'
-        ),
-        amount: int = commands.parameter(
-            description='Menge an 🕊️-Punkten als ganze Zahl.'
-        )
+        member: discord.Member = default_fields["member"],
+        amount: int = default_fields["points"]
     ) -> None:
         '''Entfernt einem User 🕊️-Punkte.'''
 
@@ -161,12 +164,8 @@ class Faith(commands.Cog, name='Faith'):
     async def _set_faith(
         self,
         ctx: commands.Context,
-        member: discord.Member = commands.parameter(
-            description='Server Mitglied. Möglicher Input: ID, Mention, Name.'
-        ),
-        amount: int = commands.parameter(
-            description='Menge an 🕊️-Punkten als ganze Zahl.'
-        )
+        member: discord.Member = default_fields["member"],
+        amount: int = default_fields["points"]
     ) -> None:
         '''Setzt die 🕊️-Punkte eines Users auf einen bestimmten Wert.'''
 

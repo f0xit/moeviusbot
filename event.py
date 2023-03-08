@@ -1,6 +1,8 @@
 '''This module contains the event class'''
 import logging
-from discord import User, Member
+
+from discord import Member, User
+
 from tools import json_tools
 
 

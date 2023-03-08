@@ -1,9 +1,9 @@
 '''This module contains the classes and functions for handling events in the reminder part
 of the discord bot'''
 
+import datetime as dt
 from dataclasses import dataclass, field
 from enum import Enum
-import datetime as dt
 
 
 class EventType(Enum):
