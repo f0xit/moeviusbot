@@ -1,46 +1,35 @@
+'''This module contains the classes and functions for handling events in the reminder part
+of the discord bot'''
+
 from dataclasses import dataclass, field
 from enum import Enum
 import datetime as dt
 
 
 class EventType(Enum):
+    '''Enum of the supported event types'''
     GAME = "Game"
     STREAM = "Stream"
 
 
+@dataclass
 class Event:
-    '''Class to represent events like streams and games'''
+    '''Datalass to represent events like streams and games'''
 
-    def __init__(
-        self,
-        event_title: str,
-        event_type: EventType,
-        event_dt: dt.datetime,
-        /,
-        event_game: str = '',
-
-    ) -> None:
-        self._event_id = 0
-        self._event_title = event_title
-        self._event_type = event_type
-        self._event_dt = event_dt
-        self._event_game = event_game
-        self._event_members: list[int] = []
+    event_title: str
+    event_type: EventType
+    event_dt: dt.datetime
+    event_id: int = field(default=0, init=False)
+    event_game: str = field(default='')
+    event_members: list[int] = field(default_factory=list[int], init=False)
 
     def __repr__(self) -> str:
         return str(self.__dict__)
 
     @property
-    def event_id(self) -> int:
-        return self._event_id
-
-    @property
     def is_past(self) -> bool:
-        return self._event_dt < dt.datetime.now()
-
-    @event_id.setter
-    def event_id(self, id) -> None:
-        self._event_id = id
+        '''Is True if the event is in the past'''
+        return self.event_dt < dt.datetime.now()
 
 
 class EventList(list[Event]):
@@ -48,7 +37,8 @@ class EventList(list[Event]):
 
     @property
     def max_event_id(self) -> int:
-        if not len(self):
+        '''Returns the highest event id in the event list'''
+        if not self:
             return 0
 
         return max(event.event_id for event in self)
@@ -61,11 +51,15 @@ class EventManager:
     past_events: EventList = field(default_factory=EventList)
 
     @property
-    def highest_id(self) -> int:
+    def max_event_id(self) -> int:
+        '''Returns the highest event id in the event lists of past and upcoming events'''
+
         return max(self.upcoming_events.max_event_id, self.past_events.max_event_id)
 
     def add_event(self, event: Event) -> None:
-        event.event_id = self.highest_id + 1
+        '''Adds an event to the corresponding list'''
+
+        event.event_id = self.max_event_id + 1
 
         if event.is_past:
             self.past_events.append(event)
@@ -100,4 +94,4 @@ event_manager.add_event(
 )
 
 print(event_manager)
-print(event_manager.highest_id)
+print(event_manager.max_event_id)
