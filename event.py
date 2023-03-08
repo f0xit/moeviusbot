@@ -34,7 +34,7 @@ class Event:
         Args:
             new_member (User | Member): The added member
         """
-        if new_member.id in self.event_members.keys():
+        if new_member.id in self.event_members:
             return
 
         self.event_members[new_member.id] = new_member.display_name

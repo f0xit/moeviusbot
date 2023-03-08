@@ -94,7 +94,7 @@ class Reminder(commands.Cog, name='Events'):
         if event_type != 'game':
             return
 
-        if ctx.channel.name in self.bot.squads.keys():
+        if ctx.channel.name in self.bot.squads:
             members = [
                 f'<@{member}> '
                 for member in self.bot.squads[ctx.channel.name].values()
@@ -386,10 +386,7 @@ class Reminder(commands.Cog, name='Events'):
         match args[0]:
             case "add" | "a" | "+":
                 for arg in args[1:]:
-                    if arg == 'me':
-                        member = ctx.author
-                    else:
-                        member = self.bot.get_user(int(arg[2:-1]))
+                    member = ctx.author if arg == 'me' else self.bot.get_user(int(arg[2:-1]))
 
                     if member is None:
                         await ctx.send(f"Ich kenne {arg} nicht, verlinke ihn bitte mit @.")
@@ -401,7 +398,7 @@ class Reminder(commands.Cog, name='Events'):
                         )
                         continue
 
-                    if member.name in self.bot.squads[ctx.channel.name].keys():
+                    if member.name in self.bot.squads[ctx.channel.name]:
                         await ctx.send(
                             f"{member.name} scheint schon im Squad zu sein, Krah Krah!"
                         )
@@ -426,10 +423,7 @@ class Reminder(commands.Cog, name='Events'):
 
             case "rem" | "r" | "-":
                 for arg in args[1:]:
-                    if arg == 'me':
-                        member = ctx.author
-                    else:
-                        member = self.bot.get_user(int(arg[2:-1]))
+                    member = ctx.author if arg == 'me' else self.bot.get_user(int(arg[2:-1]))
 
                     if member is None:
                         await ctx.send(f"Ich kenne {arg} nicht, verlinke ihn bitte mit @.")
@@ -476,9 +470,7 @@ class Reminder(commands.Cog, name='Events'):
             if event.event_time == self.time_now:
                 logging.info("Ein Event beginnt: %s!", event.event_type)
 
-                members = " ".join(
-                    [f"<@{id}>" for id in event.event_members.keys()]
-                )
+                members = " ".join([f"<@{id}>" for id in event.event_members])
 
                 if event.event_type == 'stream':
                     if event.event_game == 'bot':

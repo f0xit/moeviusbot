@@ -73,10 +73,9 @@ class Quiz(commands.Cog, name='Quiz'):
         embed = discord.Embed(
             title=self.question['question'],
             colour=discord.Colour(0xff00ff),
-            description="\n".join([*map(
-                lambda a: f"{a[0]}: {a[1]['text']}",
-                self.question['answers'].items()
-            )])
+            description="\n".join([
+                f"{a[0]}: {a[1]['text']}" for a in self.question['answers'].items()
+            ])
         )
         return ({
             "content": f"**Frage {self.game_stage + 1} - "
@@ -106,7 +105,7 @@ class Quiz(commands.Cog, name='Quiz'):
         if (ranking := load_file('json/quiz_ranking.json')) is None:
             return
 
-        if player_id in ranking.keys():
+        if player_id in ranking:
             ranking[player_id]['name'] = self.player.display_name
             ranking[player_id]['points'] += amount
             ranking[player_id]['tries'] += 1

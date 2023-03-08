@@ -135,7 +135,7 @@ class Misc(commands.Cog, name='Sonstiges'):
             return
 
         # Requests from file
-        if message.content[1:] in self.responses['req'].keys():
+        if message.content[1:] in self.responses['req']:
             response = self.responses['req'][message.content[1:]]
             for res in response['res']:
                 await message.channel.send(res.format(**locals(), **globals()))
@@ -143,7 +143,7 @@ class Misc(commands.Cog, name='Sonstiges'):
 
         # Responses from file
         else:
-            for key in self.responses['res'].keys():
+            for key in self.responses['res']:
                 if re.search(key, message.content):
                     response = self.responses['res'][key]
                     for res in response['res']:
