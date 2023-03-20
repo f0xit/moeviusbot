@@ -3,11 +3,11 @@ import datetime as dt
 import logging
 import random
 import time
-from typing import Tuple
 
 import discord
 import markovify
 from discord.ext import commands, tasks
+from result import Err, Ok, Result, UnwrapError
 
 from bot import Bot
 from tools.check_tools import is_super_user
@@ -17,43 +17,17 @@ from tools.textfile_tools import lines_from_textfile, lines_to_textfile
 
 async def setup(bot: Bot) -> None:
     '''Setup function for the cog.'''
-    await bot.add_cog(Quote(bot))
+
+    quote_cog = Quote(bot)
+
+    match await quote_cog.build_markov():
+        case Ok(value):
+            logging.info(value)
+        case Err(err_msg):
+            logging.error(err_msg)
+
+    await bot.add_cog(quote_cog)
     logging.info('Cog loaded: Quote.')
-
-
-def build_markov(size: int = 3) -> Tuple[str, markovify.NewlineText | None]:
-    """Generates a markov model from the channel_messages.txt file and
-    returns it.
-
-    Args:
-        size (int, optional):
-            The number of words per slice in the model. Defaults to 3.
-
-    Returns:
-        Tuple[str, markovify.NewlineText]:
-            The first item contains the author of the messages, the second
-            item is the model itself.
-    """
-
-    logging.debug('Markov build started with size %s...', size)
-    start_time = time.time()
-
-    if (channel_messages := lines_from_textfile('channel_messages.txt')) is None:
-        return '', None
-
-    author = channel_messages.pop(0)
-
-    model = markovify.NewlineText(
-        '\n'.join(channel_messages), state_size=size
-    )
-
-    logging.info(
-        'Markov generation finished. Size: %s Duration: %s',
-        size,
-        time.time() - start_time
-    )
-
-    return author, model
 
 
 class Quote(commands.Cog, name='Quote'):
@@ -61,12 +35,38 @@ class Quote(commands.Cog, name='Quote'):
 
     def __init__(self, bot: Bot) -> None:
         self.bot = bot
-        self.quote_by, self.text_model = build_markov()
+        self.quote_by = '',
+        self.text_model = None
         self.daily_quote.start()
 
     async def cog_unload(self) -> None:
         self.daily_quote.cancel()
         logging.info('Cog unloaded: Quote.')
+
+    async def build_markov(self, size: int = 3) -> Result[str, str]:
+        '''Generates a markov model from the channel_messages.txt file and
+        returns it.
+
+        Args:
+            size (int, optional):
+                The number of words per slice in the model. Defaults to 3.
+
+        Returns:
+            Tuple[str, markovify.NewlineText]:
+                The first item contains the author of the messages, the second
+                item is the model itself.'''
+
+        start_time = time.time()
+
+        try:
+            channel_messages = (await lines_from_textfile('channel_messages.txt')).unwrap()
+        except UnwrapError as err_msg:
+            return Err(str(err_msg))
+
+        self.quote_by = channel_messages.pop(0)
+        self.text_model = markovify.NewlineText('\n'.join(channel_messages), state_size=size)
+
+        return Ok(f'Generation finished. Size: {size} Duration: {time.time() - start_time}')
 
     async def send_quote(
         self,
@@ -121,13 +121,7 @@ class Quote(commands.Cog, name='Quote'):
         brief='Zitiert eine weise Persönlichkeit.'
     )
     async def _quote(self, ctx: commands.Context):
-        if ctx.invoked_subcommand is not None:
-            return
-
-        if (
-            not isinstance(ctx.channel, discord.TextChannel)
-            or not isinstance(ctx.channel, discord.TextChannel)
-        ):
+        if ctx.invoked_subcommand is not None or not isinstance(ctx.channel, discord.TextChannel):
             return
 
         logging.info(
@@ -189,7 +183,7 @@ class Quote(commands.Cog, name='Quote'):
                 continue
 
         number_of_sentences = len(sentences) - 1
-        lines_to_textfile('channel_messages.txt', sentences)
+        await lines_to_textfile('channel_messages.txt', sentences)
 
         await ctx.send(
             f'History Download abgeschlossen! {number_of_sentences} Sätze in {number_of_channels} '
@@ -214,8 +208,7 @@ class Quote(commands.Cog, name='Quote'):
         '''Generiert das Modell für zufällige Zitate.'''
 
         await ctx.send('Markov Update wird gestartet.')
-
-        self.quote_by, self.text_model = build_markov(size)
+        await self.build_markov(size)
         await ctx.send('Markov Update abgeschlossen.')
 
     @tasks.loop(time=dt.time(9, tzinfo=get_local_timezone()))

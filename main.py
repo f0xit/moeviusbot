@@ -8,6 +8,7 @@ import sys
 import discord
 from discord.ext import commands
 from dotenv import load_dotenv
+from result import UnwrapError
 
 from bot import Bot
 from myfunc import strfdelta
@@ -107,11 +108,15 @@ class Administration(commands.Cog, name='Administration'):
         if file:
             path += '.' + file
 
-        log_lines = lines_from_textfile(path)
-        if log_lines is None:
-            await ctx.send(
-                'Dieses Log-File scheint es nicht zu geben, Krah Krah! Format: YYYY_MM_DD'
-            )
+        try:
+            if (log_lines := (await lines_from_textfile(path)).unwrap()) is None:
+                await ctx.send(
+                    'Dieses Log-File scheint es nicht zu geben, Krah Krah! Format: YYYY_MM_DD'
+                )
+                return
+
+        except UnwrapError as err_msg:
+            logging.error(err_msg)
             return
 
         number_of_pages = len(log_lines) // chunk_size + 1

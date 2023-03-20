@@ -1,41 +1,26 @@
 '''This tool contains functions to help reading text-files.'''
+from result import Err, Ok, Result
 
-import logging
 
+async def lines_from_textfile(filepath: str, /, encoding: str = 'utf-8') -> Result[list[str], str]:
+    '''Returns a list of srings that represent the lines of a textfile.'''
 
-def lines_from_textfile(filepath: str, /, encoding: str = 'utf-8') -> list[str] | None:
-    """Returns a list of srings that represent the lines of a textfile.
-
-    Args:
-        filepath (str): The path to the file
-        encoding (str, optional): The file's encoding. Defaults to 'utf-8'.
-
-    Returns:
-        list[str] | None: A list with strings, representing each line of the read file.
-    """
     try:
         with open(filepath, 'r', encoding=encoding) as file:
             output: list[str] = file.readlines()
-            logging.debug(
-                'Text file %s read. %s lines.',
-                filepath, len(output)
-            )
-            return output
+            return Ok(output)
     except OSError as err_msg:
-        logging.error(
-            'Failed reading file %s with error: %s',
-            filepath, err_msg
-        )
-        return None
+        return Err(f'Failed reading file {filepath} with error: {err_msg}')
 
 
-def lines_to_textfile(filepath: str, lines: list[str], /, encoding: str = 'utf-8') -> None:
-    """_summary_
+async def lines_to_textfile(
+    filepath: str, lines: list[str], /, encoding: str = 'utf-8'
+) -> Result[str, str]:
+    '''Writes a list of strings as lines into a textfile.'''
 
-    Args:
-        filepath (str): _description_
-        lines (list[str]): _description_
-        encoding (str, optional): _description_. Defaults to 'utf-8'.
-    """
-    with open(filepath, 'w', encoding=encoding) as file:
-        print(*lines, sep='\n', file=file)
+    try:
+        with open(filepath, 'w', encoding=encoding) as file:
+            print(*lines, sep='\n', file=file)
+            return Ok(f'Text file {filepath} written. {len(lines)} lines.')
+    except OSError as err_msg:
+        return Err(f'Failed reading file {filepath} with error: {err_msg}')
