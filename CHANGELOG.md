@@ -1,5 +1,30 @@
 # Changelog
 
+## 0.8.1
+
+### Under the hood
+As usual, most changes happened internally to achieve better type safety, improve the code style or performance or simply to try out new concepts.
+- The main function in the main file is now asynchronous. https://github.com/f0xit/moeviusbot/commit/e872f9696430e6e0d0e262b8e1e29e048e5011e3
+- All HTTP requests are now handled by a new helper tool that uses aiohttp. https://github.com/f0xit/moeviusbot/commit/383a3e47d37570ccf5620f989c625ea30571a5bf
+- A new event_tools module was tested to improve many details in the reminder part of the bot. I'm still not sure wether .json-files are the way to go. Maybe a SQLite DB is the better option. https://github.com/f0xit/moeviusbot/commit/9bfa8033649470539cf38d8abd1b0196a2cc3280 https://github.com/f0xit/moeviusbot/commit/3e8fea320a7797b1b193c3c050565d9a64e4d756
+- The gartic cog now uses a cache folder to achieve a cleaner root directory. https://github.com/f0xit/moeviusbot/commit/f6206e6bb04e61323d7553e5b6030cb08fd845c7
+- The ps5 command has no longer a hard coded price for the PlayStation 5, it now fetches the actual price from Sony's website. https://github.com/f0xit/moeviusbot/commit/776ae7c524dbd35b44766560629b1115d94ed790
+- I started to use ruff to improve the code style. https://github.com/f0xit/moeviusbot/commit/747f6c790910353e78d7e8672caa4cc03220001c https://github.com/f0xit/moeviusbot/commit/0a19ac22f59a6daac2ee11ab84edf010f086221e https://github.com/f0xit/moeviusbot/commit/0eb2d9aefce9639182bffc39357e973bb8be6e88
+- Personally I'm a big fan of the result type in Rust so I started using a python package that implements this functionality https://github.com/f0xit/moeviusbot/commit/2ba3dcc16589d5d1751f550a3f8e0a81793bc2fe https://github.com/f0xit/moeviusbot/commit/233d1805c5450283763fe9b8105644c2d1fb2d7d https://github.com/f0xit/moeviusbot/commit/cbf34ad53178948d0340ad0332571e3dccb80e0b https://github.com/f0xit/moeviusbot/commit/5d7e2a9c46a2f2dc86fba4d8c6fdb788cd16bb52
+- The file myfunc.py file is now gone. https://github.com/f0xit/moeviusbot/commit/c83ba30374f1a80fb8561df337cb9ab20c3ef271
+  - The gcts function is no longer needed
+  - The strfdelta function moved to the dt_tools module
+- And of course many small things here and there
+
+### Added
+- Commands in the reminder cog are now hybrid commands which means, that they can be invoked also via slash. https://github.com/f0xit/moeviusbot/commit/99ec6d058542d26f5fcbd7db76937194d9d7fd1a
+  - This is still a test, so bugs are likely to be encountered.
+  - In the future, this can be expanded to other commands, but the reminder cog is by far the most used and useful one.
+- There is now a separate dev_requirements.txt file that is only needed for working on the bot. It contains packages like ruff or bandit.
+
+### Fixed
+- Typos, mainly names of instance variables, left over from the big refactoring have been fixed
+
 ## 0.8 - Big refactoring
 
 This is the first version bump since Oct '20. Many things were changed and added during that time. I'll try to list the results here.
