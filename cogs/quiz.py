@@ -6,7 +6,6 @@ import discord
 from discord.ext import commands
 
 from bot import Bot
-from myfunc import gcts
 from tools.check_tools import is_super_user
 from tools.json_tools import load_file, save_file
 
@@ -199,7 +198,6 @@ class Quiz(commands.Cog, name='Quiz'):
     async def _report(self, ctx: commands.Context, *args) -> None:
         with open('logs/quiz_report.log', 'a+', encoding='utf-8') as file:
             file.write(
-                f"[{gcts()}] {ctx.author.name}: "
                 f"Grund: {' '.join(args)} - "
                 f"Frage: {self.question['question']}\n"
             )

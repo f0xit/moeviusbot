@@ -11,8 +11,8 @@ from dotenv import load_dotenv
 from result import UnwrapError
 
 from bot import Bot
-from myfunc import strfdelta
 from tools.check_tools import is_super_user
+from tools.dt_tools import strfdelta
 from tools.logger_tools import LoggerTools
 from tools.py_version_tools import check_python_version
 from tools.textfile_tools import lines_from_textfile
@@ -159,27 +159,17 @@ class Administration(commands.Cog, name='Administration'):
                 'Something is wrong with the version string: %s', console_output
             )
 
-    @_bot.command(
-        name='uptime',
-        aliases=['-u']
-    )
+    @_bot.command(name='uptime', aliases=['-u'])
     async def _uptime(self, ctx: commands.Context) -> None:
         uptime = (dt.datetime.now() - STARTUP_TIME)
-        uptimestr = strfdelta(
-            uptime, '{days} Tage {hours}:{minutes}:{seconds}')
+        uptime_str = strfdelta(uptime)
 
-        await ctx.send(f'Uptime: {uptimestr} seit {STARTUP_TIME.strftime("%Y.%m.%d %H:%M:%S")}')
-        logging.info(
-            'Uptime: %s seit %s',
-            uptimestr,
-            STARTUP_TIME.strftime('%Y.%m.%d %H:%M:%S')
-        )
+        await ctx.send(f'Uptime: {uptime_str} seit {STARTUP_TIME.strftime("%Y.%m.%d %H:%M:%S")}')
+
+        logging.info('Uptime: %s seit %s', uptime_str, STARTUP_TIME.strftime('%Y.%m.%d %H:%M:%S'))
 
     @is_super_user()
-    @_bot.command(
-        name='reload',
-        aliases=['-r']
-    )
+    @_bot.command(name='reload', aliases=['-r'])
     async def _reload_bot(self, ctx: commands.Context) -> None:
         logging.warning('%s hat einen Reload gestartet.', ctx.author.name)
         await ctx.send('Reload wird gestartet.')
@@ -188,11 +178,7 @@ class Administration(commands.Cog, name='Administration'):
         await self.bot.analyze_guild()
 
     @is_super_user()
-    @commands.group(
-        name='extensions',
-        aliases=['ext'],
-        brief='Verwaltet die Extensions des Bots.'
-    )
+    @commands.group(name='extensions', aliases=['ext'], brief='Verwaltet die Extensions des Bots.')
     async def _extensions(self, ctx: commands.Context) -> None:
         if ctx.invoked_subcommand is not None:
             return
