@@ -7,6 +7,7 @@ from urllib.parse import quote as urlquote
 import discord
 from bs4 import BeautifulSoup, NavigableString
 from discord.ext import commands
+from result import Err, Ok, Result, UnwrapError
 
 from bot import Bot
 from tools.request_tools import async_request_html
@@ -14,6 +15,7 @@ from tools.request_tools import async_request_html
 
 async def setup(bot: Bot) -> None:
     '''Setup function for the cog.'''
+
     await bot.add_cog(UrbanDict(bot))
     logging.info('Cog loaded: UrbanDict.')
 
@@ -28,28 +30,25 @@ def format_url(url: str, term: str) -> str:
     Returns:
         str: The formatted url including the search term
     """
+
     return url + urlquote(term.replace(' ', '+'))
 
 
-async def request_ud_definition(term: str) -> Tuple[str, str]:
+async def request_ud_definition(term: str) -> Result[Tuple[str, str], str]:
     """Uses the urban dictionary API and returns the first definition
-    and the corresponding example sentence. Returns a Tuple of empty
-    strings, if no definition exists.
+    and the corresponding example sentence."""
 
-    Args:
-        term (str): The search term for the API.
-
-    Returns:
-        Tuple[str, str]: (definition, example)
-    """
     api_url = 'http://api.urbandictionary.com/v0/define?term='
 
-    data = json.loads(
-        await async_request_html(format_url(api_url, term))
-    )
+    try:
+        data = json.loads(
+            (await async_request_html(format_url(api_url, term))).unwrap()
+        )
+    except UnwrapError as err_msg:
+        return Err(f'API-Request failed: {err_msg}')
 
     if not data['list']:
-        return '', ''
+        return Ok(('', ''))
 
     first_result: dict[str, str] = data['list'][0]
 
@@ -60,40 +59,33 @@ async def request_ud_definition(term: str) -> Tuple[str, str]:
         {ord(c): None for c in '[]'}
     )
 
-    return definition, example
+    return Ok((definition, example))
 
 
-async def request_try_these(term: str) -> list[str] | None:
+async def request_try_these(term: str) -> Result[list[str], str]:
     """Scrapes the urban dictionary website to find existing definitions,
-    when the search term doesn't have one.
+    when the search term doesn't have one."""
 
-    Args:
-        term (str): The search term.
-
-    Returns:
-        list[str] | None: A list of existing terms to try.
-            None if nothing was found.
-    """
     page_url = 'https://www.urbandictionary.com/define.php?term='
 
-    soup = BeautifulSoup(
-        await async_request_html(
-            format_url(page_url, term),
-            404
-        ),
-        'html.parser'
-    )
+    try:
+        soup = BeautifulSoup(
+            (await async_request_html(format_url(page_url, term), 404)).unwrap(),
+            'html.parser'
+        )
+    except UnwrapError as err_msg:
+        return Err(f'API-Request failed: {err_msg}')
 
     if not (div := soup.find('div', class_='try-these')):
-        return
+        return Err('No try-these found.')
 
     if isinstance(div, NavigableString):
-        return
+        return Err('Div is navigable string, should be tag.')
 
     if not (items := div.find_all('li')[:10]):
-        return
+        return Err('Could not find list items.')
 
-    return [item.text for item in items]
+    return Ok([item.text for item in items])
 
 
 class UrbanDict(commands.Cog, name='UrbanDict'):
@@ -119,12 +111,16 @@ class UrbanDict(commands.Cog, name='UrbanDict'):
             term
         )
 
-        definition, example = await request_ud_definition(term)
+        try:
+            definition, example = (await request_ud_definition(term)).unwrap()
+
+        except UnwrapError as err_msg:
+            logging.error(err_msg)
+            return
 
         if definition:
-            logging.debug(
-                'Definition found.'
-            )
+            logging.debug('Definition found.')
+
             await ctx.send(embed=discord.Embed(
                 title=f"{term.title()}",
                 colour=discord.Colour(0xff00ff),
@@ -133,21 +129,24 @@ class UrbanDict(commands.Cog, name='UrbanDict'):
                 ),
                 description=f'{definition}\n\n*{example}*'
             ))
-        elif (try_these := await request_try_these(term)):
-            logging.debug(
-                'No definition found, but a list of try-these.'
-            )
-            await ctx.send(
-                content='Hey, ich habe habe dazu nichts gefunden, '
-                'aber versuch\'s doch mal hiermit:',
-                embed=discord.Embed(
-                    title=f'Suchvorschläge für {term.title()}',
-                    colour=discord.Colour(0xff00ff),
-                    description='\n'.join(try_these)
-                )
-            )
-        else:
-            logging.debug(
-                'No definition found.'
-            )
+
+            return
+
+        logging.debug('No definition found, but a list of try-these.')
+
+        try:
+            try_these = (await request_try_these(term)).unwrap()
+        except UnwrapError as err_msg:
+            logging.info('No definition found: %s', err_msg)
             await ctx.send('Dazu kann ich nun wirklich gar nichts sagen, Krah Krah!')
+            return
+
+        await ctx.send(
+            content='Hey, ich habe habe dazu nichts gefunden, '
+            'aber versuch\'s doch mal hiermit:',
+            embed=discord.Embed(
+                title=f'Suchvorschläge für {term.title()}',
+                colour=discord.Colour(0xff00ff),
+                description='\n'.join(try_these)
+            )
+        )

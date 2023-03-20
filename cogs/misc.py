@@ -7,6 +7,7 @@ import re
 import discord
 from bs4 import BeautifulSoup
 from discord.ext import commands
+from result import UnwrapError
 
 from bot import Bot
 from tools.json_tools import DictFile
@@ -16,6 +17,7 @@ from tools.textfile_tools import lines_from_textfile
 
 async def setup(bot: Bot) -> None:
     '''Setup function for the cog.'''
+
     await bot.add_cog(Misc(bot))
     logging.info('Cog loaded: Misc.')
 
@@ -39,23 +41,36 @@ class Misc(commands.Cog, name='Sonstiges'):
     async def _ps5(self, ctx: commands.Context):
         '''Vergleicht die erste Zahl aus der vorherigen Nachricht mit dem  Preis einer PS5.'''
 
+        message = [msg async for msg in ctx.channel.history(limit=2)][1].content
+
+        if (re_match := re.search(r"\d+(,\d+)?", message)) is None:
+            logging.error('No number found in message!')
+            return
+
+        try:
+            number = float(re_match.group(0).replace(',', '.'))
+        except ValueError as err_msg:
+            logging.error('Unable to parse float: %s', err_msg)
+            return
+
         ps5_url = 'https://direct.playstation.com/de-de/buy-consoles/playstation5-console'
-        ps5_soup = BeautifulSoup(await async_request_html(ps5_url), 'html.parser')
+
+        try:
+            ps5_result = (await async_request_html(ps5_url)).unwrap()
+        except UnwrapError as err_msg:
+            logging.error('Request failed: %s', err_msg)
+            return
+
+        ps5_soup = BeautifulSoup(ps5_result, 'html.parser')
 
         price_tag = ps5_soup.find_all('span', class_='product-price')[0]
         price_sup_tag = ps5_soup.find_all('sup', class_='product-price-sup')[1]
 
         if price_tag is None or price_sup_tag is None:
+            logging.error('Price Tag for PS5 not found on website!')
             return
 
         ps5_price = float(price_tag.text) + float(price_sup_tag.text) / 100
-
-        message = [msg async for msg in ctx.channel.history(limit=2)][1].content
-
-        if (re_match := re.search(r"\d+(,\d+)?", message)) is None:
-            return
-
-        number = float(re_match.group(0).replace(',', '.'))
 
         quot_ps5 = number / ps5_price
 
@@ -78,6 +93,7 @@ class Misc(commands.Cog, name='Sonstiges'):
         '''Stellt eine zufällige Frage.'''
 
         if self.fragen is None:
+            logging.error('No questions loaded!')
             return
 
         frage = random.choice(self.fragen)
@@ -102,6 +118,7 @@ class Misc(commands.Cog, name='Sonstiges'):
         '''Präsentiert die Weisheiten des Krächzers.'''
 
         if self.bible is None:
+            logging.error('No bible loaded!')
             return
 
         quote = random.choice(self.bible)
