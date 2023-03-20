@@ -1,8 +1,7 @@
 '''Cog for text correction and the opposite'''
+import io
 import logging
 import random
-import re
-import time
 
 from autocorrect import Speller
 from discord.ext import commands
@@ -59,25 +58,19 @@ class Wurstfinger(commands.Cog, name='Wurstfinger'):
     async def cog_unload(self) -> None:
         logging.info('Cog unloaded: UrbanDict.')
 
-    @commands.command(
-        name='schnenk',
-        aliases=['Schnenk']
-    )
+    @commands.command(name='schnenk', aliases=['Schnenk'])
     async def _schnenk(self, ctx: commands.Context, percent: int = 5) -> None:
-        output = ""
+        output = io.StringIO()
         message = [message async for message in ctx.channel.history(limit=2)][1].content
 
         for character in message:
-            uppercase = False
-
-            if re.match(r'^[A-Z]$', character):
-                uppercase = True
-            elif re.match(r'^[1-9]$', character):
-                output += character
+            if character.isdecimal():
+                output.write(character)
                 continue
 
             try:
                 if random.randint(1, round(100/max(min(percent, 100), 1))) == 1:
+                    uppercase = character.isupper()
                     character = random.choice(
                         self.substitute[character.lower()])
                     if uppercase:
@@ -85,24 +78,14 @@ class Wurstfinger(commands.Cog, name='Wurstfinger'):
             except KeyError:
                 pass
             finally:
-                output += character
+                output.write(character)
 
-        await ctx.send(f"Oder wie Schnenk, es sagen würde:\n{output} Krah Krah!")
+        await ctx.send(f"Oder wie Schnenk, es sagen würde:\n{output.getvalue()} Krah Krah!")
 
-    @commands.command(
-        name='wurstfinger'
-    )
+    @commands.command(name='wurstfinger')
     async def _wurstfinger(self, ctx: commands.Context) -> None:
-        start_time = time.time()
-
         message = [msg async for msg in ctx.channel.history(limit=2)][1].content
         correction = self.speller(message)
 
-        logging.info(
-            'Wurstfinger: "%s" → "%s", Dauer: %s',
-            message,
-            correction,
-            time.time() - start_time
-        )
-
         await ctx.send(f"Meintest du vielleicht: {correction}")
+        logging.info('Wurstfinger: "%s" → "%s".', message, correction)
