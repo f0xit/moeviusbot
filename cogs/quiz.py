@@ -70,7 +70,7 @@ class Quiz(commands.Cog, name='Quiz'):
             dict[str, Any]: _description_'''
 
         if not isinstance(self.question['answers'], dict):
-            return
+            return None
 
         embed = discord.Embed(
             title=self.question['question'],
@@ -104,7 +104,7 @@ class Quiz(commands.Cog, name='Quiz'):
 
         player_id = str(self.player.id)
 
-        if (ranking := load_file('json/quiz_ranking.json')) is None:
+        if (ranking := load_file('json/quiz_ranking.json').unwrap()) is None:
             return
 
         if player_id in ranking:
@@ -141,7 +141,7 @@ class Quiz(commands.Cog, name='Quiz'):
         self.channel = ctx.channel
         self.game_stage = 0
 
-        self.quiz = load_file('json/quiz.json')
+        self.quiz = load_file('json/quiz.json').unwrap()
 
         if self.quiz is None:
             return
@@ -231,7 +231,7 @@ class Quiz(commands.Cog, name='Quiz'):
         brief='Zeigt das Leaderboard an.'
     )
     async def _rank(self, ctx: commands.Context) -> None:
-        if (ranking := load_file('json/quiz_ranking.json')) is None:
+        if (ranking := load_file('json/quiz_ranking.json').unwrap()) is None:
             return
 
         sorted_ranking = dict(sorted(

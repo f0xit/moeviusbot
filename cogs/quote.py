@@ -221,7 +221,7 @@ class Quote(commands.Cog, name='Quote'):
             logging.warning('Channel for daily quote not found!')
             return
 
-        if not isinstance(channel, (discord.TextChannel, discord.DMChannel)):
+        if not isinstance(channel, discord.TextChannel | discord.DMChannel):
             return
 
         await self.send_quote(

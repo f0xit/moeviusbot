@@ -3,7 +3,7 @@ import logging
 
 from discord import Member, User
 
-from tools import json_tools
+from tools.json_tools import load_file, save_file
 
 
 class Event:
@@ -52,9 +52,9 @@ class Event:
         self.save()
 
     def save(self) -> None:
-        """Saves the event to a json-file
-        """
-        if json_tools.save_file(self.event_type + '.json', self.__dict__):
+        """Saves the event to a json-file"""
+
+        if save_file(self.event_type + '.json', self.__dict__).is_ok():
             logging.info(
                 'Event saved. Type: %s - Name: %s - Time: %s - Members: %s',
                 self.event_type,
@@ -72,9 +72,9 @@ class Event:
             )
 
     def load(self) -> None:
-        """Loads the event from a json-file if possible
-        """
-        if (data := json_tools.load_file(self.event_type + '.json')) is None:
+        """Loads the event from a json-file if possible"""
+
+        if (data := load_file(self.event_type + '.json').unwrap()) is None:
             logging.error(
                 'Event could not be loaded!'
             )
