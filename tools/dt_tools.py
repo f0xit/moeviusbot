@@ -1,3 +1,5 @@
+'''This module contains some helper functions for datetime'''
+
 import datetime as dt
 
 

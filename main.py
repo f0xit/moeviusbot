@@ -104,9 +104,7 @@ class Administration(commands.Cog, name='Administration'):
     async def _show_log(self, ctx: commands.Context, page: int = 1, file: str = '') -> None:
         chunk_size = 15
 
-        path = 'logs/moevius.log'
-        if file:
-            path += '.' + file
+        path = f'logs/moevius.log.{file}' if file else 'logs/moevius.log'
 
         try:
             if (log_lines := (await lines_from_textfile(path)).unwrap()) is None:

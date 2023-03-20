@@ -106,16 +106,9 @@ class Quiz(commands.Cog, name='Quiz'):
         if (ranking := load_file('json/quiz_ranking.json').unwrap()) is None:
             return
 
-        if player_id in ranking:
-            ranking[player_id]['name'] = self.player.display_name
-            ranking[player_id]['points'] += amount
-            ranking[player_id]['tries'] += 1
-        else:
-            ranking[player_id] = {
-                "name": self.player.display_name,
-                "points": amount,
-                "tries": 1
-            }
+        ranking[player_id]['name'] = self.player.display_name
+        ranking[player_id]['points'] = ranking[player_id].get('points') + amount
+        ranking[player_id]['tries'] = ranking[player_id].get('tries') + 1
 
         save_file('json/quiz_ranking.json', ranking)
 
