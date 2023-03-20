@@ -146,7 +146,7 @@ class Misc(commands.Cog, name='Sonstiges'):
                 )
             )
 
-        except UnwrapError | discord.HTTPException | discord.Forbidden as err_msg:
+        except UnwrapError as err_msg:
             return Err(str(err_msg))
 
         return Ok(description)
