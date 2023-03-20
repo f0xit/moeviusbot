@@ -1,16 +1,27 @@
 '''Cog for the faith point mechanic'''
 import logging
+
 import discord
 from discord.ext import commands
+
 from bot import Bot
 from tools.check_tools import is_super_user
 from tools.json_tools import DictFile
+
+default_fields = {
+    "member": commands.parameter(
+        description='Server Mitglied. Möglicher Input: ID, Mention, Name.'
+    ),
+    "points": commands.parameter(
+        description='Menge an 🕊️-Punkten als ganze Zahl.'
+    )
+}
 
 
 async def setup(bot: Bot) -> None:
     '''Setup function for the cog'''
     await bot.add_cog(Faith(bot))
-    logging.info('Cog: Faith loaded')
+    logging.info('Cog loaded: Faith.')
 
 
 class Faith(commands.Cog, name='Faith'):
@@ -20,9 +31,13 @@ class Faith(commands.Cog, name='Faith'):
         self.bot = bot
         self.faith = DictFile('faith')
 
+    async def cog_unload(self) -> None:
+        logging.info('Cog unloaded: Faith.')
+
     async def add_faith(self, member: discord.User | discord.Member, amount: int) -> None:
         '''Adds a specified amount of faith points to the specified member'''
-        member_id: str = str(member.id)
+
+        member_id = str(member.id)
 
         self.faith[member_id] = self.faith.get(member_id, 0) + amount
 
@@ -30,15 +45,17 @@ class Faith(commands.Cog, name='Faith'):
 
     async def faith_on_react(self, payload: discord.RawReactionActionEvent) -> None:
         '''Processes reaction events to grant faith points'''
+
         if payload.emoji.name != 'Moevius':
             return
 
-        amount = self.bot.settings["faith_on_react"]
-        if payload.event_type == "REACTION_REMOVE":
+        amount = self.bot.settings['faith_on_react']
+
+        if payload.event_type == 'REACTION_REMOVE':
             amount *= -1
 
         channel = self.bot.get_channel(payload.channel_id)
-        if not isinstance(channel, discord.abc.MessageableChannel):
+        if not isinstance(channel, discord.TextChannel):
             return
 
         faith_given_to = (await channel.fetch_message(payload.message_id)).author
@@ -89,7 +106,7 @@ class Faith(commands.Cog, name='Faith'):
 
         await ctx.send(
             embed=discord.Embed(
-                title="Die treuen Jünger des Mövius und ihre Punkte",
+                title='Die treuen Jünger des Mövius und ihre Punkte',
                 colour=discord.Colour(0xff00ff), description=output
             )
         )
@@ -104,12 +121,8 @@ class Faith(commands.Cog, name='Faith'):
     async def _add_faith(
         self,
         ctx: commands.Context,
-        member: discord.Member = commands.parameter(
-            description='Server Mitglied. Möglicher Input: ID, Mention, Name.'
-        ),
-        amount: int = commands.parameter(
-            description='Menge an 🕊️-Punkten als ganze Zahl.'
-        )
+        member: discord.Member = default_fields["member"],
+        amount: int = default_fields["points"]
     ) -> None:
         '''Gibt einem User 🕊️-Punkte.'''
 
@@ -130,12 +143,8 @@ class Faith(commands.Cog, name='Faith'):
     async def _rem_faith(
         self,
         ctx: commands.Context,
-        member: discord.Member = commands.parameter(
-            description='Server Mitglied. Möglicher Input: ID, Mention, Name.'
-        ),
-        amount: int = commands.parameter(
-            description='Menge an 🕊️-Punkten als ganze Zahl.'
-        )
+        member: discord.Member = default_fields["member"],
+        amount: int = default_fields["points"]
     ) -> None:
         '''Entfernt einem User 🕊️-Punkte.'''
 
@@ -155,12 +164,8 @@ class Faith(commands.Cog, name='Faith'):
     async def _set_faith(
         self,
         ctx: commands.Context,
-        member: discord.Member = commands.parameter(
-            description='Server Mitglied. Möglicher Input: ID, Mention, Name.'
-        ),
-        amount: int = commands.parameter(
-            description='Menge an 🕊️-Punkten als ganze Zahl.'
-        )
+        member: discord.Member = default_fields["member"],
+        amount: int = default_fields["points"]
     ) -> None:
         '''Setzt die 🕊️-Punkte eines Users auf einen bestimmten Wert.'''
 

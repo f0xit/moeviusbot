@@ -5,8 +5,14 @@ import logging
 import os
 from typing import Any
 
+from result import Err, Ok, Result
 
-def load_file(file_path: str, /, encoding: str = 'utf-8') -> dict | None:
+
+def load_file(
+    file_path: str,
+    /,
+    encoding: str = 'utf-8'
+) -> Result[dict, str]:
     """Opens the file under the specified path and converts it to a dict.
     If the file could not be found or the file path is empty, the function returns None.
 
@@ -15,25 +21,25 @@ def load_file(file_path: str, /, encoding: str = 'utf-8') -> dict | None:
         encoding (str, optional): _description_. Defaults to 'utf-8'.
 
     Returns:
-        dict | None: _description_
-    """
+        dict | None: _description_"""
 
     if str(file_path) == '':
-        logging.warning('Can\'t save file, file_path is empty.')
-        return None
+        return Err('Can\'t save file, file_path is empty.')
 
     try:
         with open(file_path, 'r', encoding=encoding) as file:
-            logging.debug('File %s opened succesfully.', file_path)
-            return json.load(file)
+            return Ok(json.load(file))
     except OSError as err_msg:
-        logging.error(
-            'Could not read file %s! Exception: %s', file_path, err_msg
-        )
-        return None
+        return Err(f'Could not read file {file_path}! Exception: {err_msg}')
 
 
-def save_file(file_path: str, content: dict, /, indent: int = 4, encoding: str = 'utf-8') -> bool:
+def save_file(
+    file_path: str,
+    content: dict,
+    /,
+    indent: int = 4,
+    encoding: str = 'utf-8'
+) -> Result[str, str]:
     """Writes the content dict into a file under the specified path.
 
     If the file could not be found or the file path is empty, the function returns False,
@@ -49,19 +55,14 @@ def save_file(file_path: str, content: dict, /, indent: int = 4, encoding: str =
     """
 
     if str(file_path) == '':
-        logging.warning('Can\'t save file, file_path is empty.')
-        return False
+        return Err('Can\'t save file, file_path is empty.')
 
     try:
         with open(file_path, 'w', encoding=encoding) as file:
             json.dump(content, file, indent=indent)
-            logging.debug('File %s saved succesfully.', file_path)
-            return True
+            return Ok(f'File {file_path} saved succesfully.')
     except OSError as err_msg:
-        logging.error(
-            'Could not write file %s! Exception: %s', file_path, err_msg
-        )
-        return False
+        return Err(f'Could not read file {file_path}! Exception: {err_msg}')
 
 
 class DictFile(dict):
@@ -97,16 +98,18 @@ class DictFile(dict):
             )
 
         if load_from_file:
-            if (data_from_file := load_file(self.file_name)) is None:
-                logging.debug(
-                    'Can\'t load data from file %s', self.file_name
-                )
-            else:
-                logging.debug(
-                    'Loaded data from file %s. %s keys.',
-                    self.file_name, len(data_from_file.keys())
-                )
-                self.update(data_from_file)
+            match load_file(self.file_name):
+                case Ok(value):
+                    self.update(value)
+
+                    logging.debug(
+                        'Loaded data from file %s. %s keys.',
+                        self.file_name, len(value.keys())
+                    )
+
+                case Err(err_msg):
+                    logging.error(err_msg)
+                    return
 
         logging.info(
             'DictFile %s initialized succesfully.', self.file_name
@@ -129,7 +132,7 @@ class DictFile(dict):
 
         save_file(self.file_name, self)
 
-    def pop(self, key) -> None:
+    def pop(self, key):
         item = super().pop(key)
 
         logging.debug('DictFile %s popped.', self.file_name)

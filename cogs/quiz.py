@@ -1,10 +1,11 @@
 '''Quiz module'''
 import logging
 import random
+
 import discord
 from discord.ext import commands
+
 from bot import Bot
-from myfunc import gcts
 from tools.check_tools import is_super_user
 from tools.json_tools import load_file, save_file
 
@@ -54,8 +55,8 @@ class Quiz(commands.Cog, name='Quiz'):
                     "question": question['question'],
                     "category": question['category'],
                     "answers": dict(zip(
-                        ['A', 'B', 'C', 'D'],
-                        question['answers']
+                        ['A', 'B', 'C', 'D'], question['answers'],
+                        strict=True
                     ))
                 }
 
@@ -68,20 +69,19 @@ class Quiz(commands.Cog, name='Quiz'):
             dict[str, Any]: _description_'''
 
         if not isinstance(self.question['answers'], dict):
-            return
+            return None
 
         embed = discord.Embed(
             title=self.question['question'],
             colour=discord.Colour(0xff00ff),
-            description="\n".join([*map(
-                lambda a: f"{a[0]}: {a[1]['text']}",
-                self.question['answers'].items()
-            )])
+            description="\n".join([
+                f"{a[0]}: {a[1]['text']}" for a in self.question['answers'].items()
+            ])
         )
         return ({
             "content": f"**Frage {self.game_stage + 1} - "
-            + f"{self.stages[self.game_stage]}🕊**\n"
-            + f"Kategorie: {self.question['category']}",
+            f"{self.stages[self.game_stage]}🕊**\n"
+            f"Kategorie: {self.question['category']}",
             "embed": embed
         })
 
@@ -103,19 +103,12 @@ class Quiz(commands.Cog, name='Quiz'):
 
         player_id = str(self.player.id)
 
-        if (ranking := load_file('json/quiz_ranking.json')) is None:
+        if (ranking := load_file('json/quiz_ranking.json').unwrap()) is None:
             return
 
-        if player_id in ranking.keys():
-            ranking[player_id]['name'] = self.player.display_name
-            ranking[player_id]['points'] += amount
-            ranking[player_id]['tries'] += 1
-        else:
-            ranking[player_id] = {
-                "name": self.player.display_name,
-                "points": amount,
-                "tries": 1
-            }
+        ranking[player_id]['name'] = self.player.display_name
+        ranking[player_id]['points'] = ranking[player_id].get('points') + amount
+        ranking[player_id]['tries'] = ranking[player_id].get('tries') + 1
 
         save_file('json/quiz_ranking.json', ranking)
 
@@ -140,16 +133,15 @@ class Quiz(commands.Cog, name='Quiz'):
         self.channel = ctx.channel
         self.game_stage = 0
 
-        self.quiz = load_file('json/quiz.json')
+        self.quiz = load_file('json/quiz.json').unwrap()
 
         if self.quiz is None:
             return
 
         await ctx.send(
             "Hallo und herzlich Willkommen zu Wer Wird Mövionär! "
-            + "Heute mit dabei: "
-            + self.player.display_name
-            + ". Los geht's, Krah Krah!"
+            f"Heute mit dabei: {self.player.display_name}."
+            "Los geht's, Krah Krah!"
         )
 
         await self.get_random_question()
@@ -199,9 +191,8 @@ class Quiz(commands.Cog, name='Quiz'):
     async def _report(self, ctx: commands.Context, *args) -> None:
         with open('logs/quiz_report.log', 'a+', encoding='utf-8') as file:
             file.write(
-                f"[{gcts()}] {ctx.author.name}: "
-                + f"Grund: {' '.join(args)} - "
-                + f"Frage: {self.question['question']}\n"
+                f"Grund: {' '.join(args)} - "
+                f"Frage: {self.question['question']}\n"
             )
 
         await ctx.send("Deine Meldung wurde abgeschickt.")
@@ -231,7 +222,7 @@ class Quiz(commands.Cog, name='Quiz'):
         brief='Zeigt das Leaderboard an.'
     )
     async def _rank(self, ctx: commands.Context) -> None:
-        if (ranking := load_file('json/quiz_ranking.json')) is None:
+        if (ranking := load_file('json/quiz_ranking.json').unwrap()) is None:
             return
 
         sorted_ranking = dict(sorted(

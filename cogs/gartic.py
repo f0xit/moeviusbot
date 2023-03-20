@@ -1,13 +1,15 @@
 '''Cog for the faith point mechanic'''
-import os
-import re
-import random
-import math
-import logging
 import datetime as dt
-from PIL import Image
+import logging
+import math
+import os
+import random
+import re
+
 import discord
 from discord.ext import commands, tasks
+from PIL import Image
+
 from bot import Bot
 from tools.dt_tools import get_local_timezone
 
@@ -15,46 +17,46 @@ from tools.dt_tools import get_local_timezone
 async def setup(bot: Bot) -> None:
     '''Setup function for the cog.'''
     await bot.add_cog(Gartic(bot))
-    logging.info('Cog: Gartic geladen.')
+    logging.info('Cog loaded: Gartic.')
 
 
 async def generate_random_painting() -> None:
     '''Generates a combination of prompt and drawing from a random gartic phone game.'''
 
-    gartic_rounds = [
-        round for round in os.listdir("gartic")
+    gartic_round = random.choice([
+        round for round in os.listdir('gartic')
         if re.match(r"^\d{3}$", round)
-    ]
+    ])
 
-    gartic_round = random.choice(gartic_rounds)
-
-    gartic_stories = [
-        story for story in os.listdir(f"gartic/{gartic_round}")
+    gartic_story = random.choice([
+        story for story in os.listdir(f'gartic/{gartic_round}')
         if re.match(r"^album_.*\.gif$", story)
-    ]
+    ])
 
-    gartic_story = random.choice(gartic_stories)
-
-    story_gif = Image.open(f"gartic/{gartic_round}/{gartic_story}")
+    story_gif = Image.open(f'gartic/{gartic_round}/{gartic_story}')
 
     position = random.randint(0, math.floor(story_gif.n_frames/2) - 1)
 
+    if not os.path.exists('cache'):
+        os.makedirs('cache')
+        logging.warning('Created cache directory')
+
     story_gif.seek(2*position)
-    story_gif.save("gartic_text.png")
+    story_gif.save('cache/gartic_text.png')
     story_gif.seek(2*position + 1)
-    story_gif.save("gartic_image.png")
+    story_gif.save('cache/gartic_image.png')
 
     output_image = Image.new(
         'RGB', (story_gif.width, 2*story_gif.height)
     )
 
-    image_top = Image.open("gartic_text.png")
-    image_bottom = Image.open("gartic_image.png")
+    image_top = Image.open('cache/gartic_text.png')
+    image_bottom = Image.open('cache/gartic_image.png')
 
     output_image.paste(im=image_top, box=(0, 0))
     output_image.paste(im=image_bottom, box=(0, story_gif.height))
 
-    output_image.save("gartic_output.png")
+    output_image.save('cache/gartic_output.png')
 
 
 class Gartic(commands.Cog, name='Gartic'):
@@ -66,6 +68,7 @@ class Gartic(commands.Cog, name='Gartic'):
 
     async def cog_unload(self) -> None:
         self.daily_gartic.cancel()
+        logging.info('Cog unloaded: Gartic.')
 
     @commands.command(
         name='gartic',
@@ -80,7 +83,7 @@ class Gartic(commands.Cog, name='Gartic'):
         await generate_random_painting()
 
         await ctx.send(
-            file=discord.File('gartic_output.png')
+            file=discord.File('cache/gartic_output.png')
         )
 
     @tasks.loop(time=dt.time(19, 30, tzinfo=get_local_timezone()))
@@ -95,9 +98,9 @@ class Gartic(commands.Cog, name='Gartic'):
             return
 
         await channel.send(
-            "Guten Abend, Krah Krah! Hier kommt das tägliche "
-            + "Highlight aus dem Gartic Phone-Archiv, Krah Krah!",
-            file=discord.File('gartic_output.png')
+            'Guten Abend, Krah Krah! Hier kommt das tägliche '
+            'Highlight aus dem Gartic Phone-Archiv, Krah Krah!',
+            file=discord.File('cache/gartic_output.png')
         )
 
     @daily_gartic.before_loop

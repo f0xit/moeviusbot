@@ -1,7 +1,9 @@
 '''This module contains the event class'''
 import logging
-from discord import User, Member
-from tools import json_tools
+
+from discord import Member, User
+
+from tools.json_tools import load_file, save_file
 
 
 class Event:
@@ -34,7 +36,7 @@ class Event:
         Args:
             new_member (User | Member): The added member
         """
-        if new_member.id in self.event_members.keys():
+        if new_member.id in self.event_members:
             return
 
         self.event_members[new_member.id] = new_member.display_name
@@ -50,9 +52,9 @@ class Event:
         self.save()
 
     def save(self) -> None:
-        """Saves the event to a json-file
-        """
-        if json_tools.save_file(self.event_type + '.json', self.__dict__):
+        """Saves the event to a json-file"""
+
+        if save_file(self.event_type + '.json', self.__dict__).is_ok():
             logging.info(
                 'Event saved. Type: %s - Name: %s - Time: %s - Members: %s',
                 self.event_type,
@@ -70,9 +72,9 @@ class Event:
             )
 
     def load(self) -> None:
-        """Loads the event from a json-file if possible
-        """
-        if (data := json_tools.load_file(self.event_type + '.json')) is None:
+        """Loads the event from a json-file if possible"""
+
+        if (data := load_file(self.event_type + '.json').unwrap()) is None:
             logging.error(
                 'Event could not be loaded!'
             )

@@ -1,16 +1,19 @@
 import asyncio
-import os
-import sys
-import logging
-import subprocess
 import datetime as dt
-from dotenv import load_dotenv
+import logging
+import os
+import subprocess
+import sys
+
 import discord
 from discord.ext import commands
-from myfunc import strfdelta
+from dotenv import load_dotenv
+from result import UnwrapError
+
 from bot import Bot
-from tools.logger_tools import LoggerTools
 from tools.check_tools import is_super_user
+from tools.dt_tools import strfdelta
+from tools.logger_tools import LoggerTools
 from tools.py_version_tools import check_python_version
 from tools.textfile_tools import lines_from_textfile
 
@@ -18,6 +21,7 @@ check_python_version()
 
 STARTUP_TIME = dt.datetime.now()
 LOG_TOOL = LoggerTools(level="DEBUG")
+discord.utils.setup_logging(root=False)
 
 
 class Administration(commands.Cog, name='Administration'):
@@ -100,15 +104,17 @@ class Administration(commands.Cog, name='Administration'):
     async def _show_log(self, ctx: commands.Context, page: int = 1, file: str = '') -> None:
         chunk_size = 15
 
-        path = 'logs/moevius.log'
-        if file:
-            path += '.' + file
+        path = f'logs/moevius.log.{file}' if file else 'logs/moevius.log'
 
-        log_lines = lines_from_textfile(path)
-        if log_lines is None:
-            await ctx.send(
-                'Dieses Log-File scheint es nicht zu geben, Krah Krah! Format: YYYY_MM_DD'
-            )
+        try:
+            if (log_lines := (await lines_from_textfile(path)).unwrap()) is None:
+                await ctx.send(
+                    'Dieses Log-File scheint es nicht zu geben, Krah Krah! Format: YYYY_MM_DD'
+                )
+                return
+
+        except UnwrapError as err_msg:
+            logging.error(err_msg)
             return
 
         number_of_pages = len(log_lines) // chunk_size + 1
@@ -151,27 +157,17 @@ class Administration(commands.Cog, name='Administration'):
                 'Something is wrong with the version string: %s', console_output
             )
 
-    @_bot.command(
-        name='uptime',
-        aliases=['-u']
-    )
+    @_bot.command(name='uptime', aliases=['-u'])
     async def _uptime(self, ctx: commands.Context) -> None:
         uptime = (dt.datetime.now() - STARTUP_TIME)
-        uptimestr = strfdelta(
-            uptime, '{days} Tage {hours}:{minutes}:{seconds}')
+        uptime_str = strfdelta(uptime)
 
-        await ctx.send(f'Uptime: {uptimestr} seit {STARTUP_TIME.strftime("%Y.%m.%d %H:%M:%S")}')
-        logging.info(
-            'Uptime: %s seit %s',
-            uptimestr,
-            STARTUP_TIME.strftime('%Y.%m.%d %H:%M:%S')
-        )
+        await ctx.send(f'Uptime: {uptime_str} seit {STARTUP_TIME.strftime("%Y.%m.%d %H:%M:%S")}')
+
+        logging.info('Uptime: %s seit %s', uptime_str, STARTUP_TIME.strftime('%Y.%m.%d %H:%M:%S'))
 
     @is_super_user()
-    @_bot.command(
-        name='reload',
-        aliases=['-r']
-    )
+    @_bot.command(name='reload', aliases=['-r'])
     async def _reload_bot(self, ctx: commands.Context) -> None:
         logging.warning('%s hat einen Reload gestartet.', ctx.author.name)
         await ctx.send('Reload wird gestartet.')
@@ -180,11 +176,7 @@ class Administration(commands.Cog, name='Administration'):
         await self.bot.analyze_guild()
 
     @is_super_user()
-    @commands.group(
-        name='extensions',
-        aliases=['ext'],
-        brief='Verwaltet die Extensions des Bots.'
-    )
+    @commands.group(name='extensions', aliases=['ext'], brief='Verwaltet die Extensions des Bots.')
     async def _extensions(self, ctx: commands.Context) -> None:
         if ctx.invoked_subcommand is not None:
             return
@@ -290,7 +282,7 @@ class Administration(commands.Cog, name='Administration'):
         await self.bot.analyze_guild()
 
 
-def main() -> None:
+async def main() -> None:
     load_dotenv()
 
     if (discord_token := os.getenv('DISCORD_TOKEN')) is None:
@@ -299,9 +291,9 @@ def main() -> None:
         logging.info('Discord token loaded successfully.')
 
     moevius = Bot()
-    asyncio.run(moevius.add_cog(Administration(moevius)))
-    moevius.run(discord_token)
+    await moevius.add_cog(Administration(moevius))
+    await moevius.start(discord_token)
 
 
 if __name__ == "__main__":
-    main()
+    asyncio.run(main())

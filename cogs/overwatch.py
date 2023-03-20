@@ -1,28 +1,37 @@
 '''Cog for overwatch related commands'''
-import random
 import logging
+import random
 from enum import Enum
-import aiohttp
+
 import discord
-from discord.ext import commands
 from bs4 import BeautifulSoup
+from discord.ext import commands
+from result import Err, Ok, Result, UnwrapError
+
 from bot import Bot
+from tools.request_tools import async_request_html
 
 PROMT = 'Random Heroes? Kein Problem, Krah Krah!\n'
 
 
 class Role(Enum):
     '''Enum of current Overwatch classes'''
-    TANK = 'Tank'
-    DAMAGE = 'Damage'
-    SUPPORT = 'Support'
+
+    NONE = 0
+    TANK = 1
+    DAMAGE = 2
+    SUPPORT = 3
 
 
 async def setup(bot: Bot) -> None:
     '''Setup function for the cog.'''
 
     overwatch_cog = Overwatch(bot)
-    overwatch_cog.heroes = await load_overwatch_heroes()
+
+    if (await overwatch_cog.load_overwatch_heroes()).is_err():
+        logging.error('Loading heroes failed: %s')
+        return
+
     await bot.add_cog(overwatch_cog)
     logging.info('Cog: Overwatch geladen.')
 
@@ -33,125 +42,78 @@ def append_to_output(input_string: str) -> list[str]:
     return ["- " + i for i in input_string.split('\n') if i != '']
 
 
-async def async_request_html(url: str) -> str:
-    '''_summary_
-
-    Args:
-        url (str): _description_
-
-    Returns:
-        str: _description_
-    '''
-
-    if not url:
-        logging.error('Empty URL!')
-        return ''
-
-    logging.debug('Requesting %s...', url)
-
-    async with aiohttp.ClientSession() as session:
-        async with session.get(url) as response:
-            if response.status != 200:
-                logging.error(
-                    'Request returned status code %s!',
-                    response.status
-                )
-                return ''
-
-            logging.debug('Request successful.')
-            return await response.text()
-
-
-async def load_overwatch_heroes() -> dict[str, str]:
-    '''Parses the hero list from the overwatch website and stores it in a dict.
-
-    Returns:
-        dict[str, str]: Dictionary of all overwatch heroes. Key is name, value is role.
-    '''
-
-    logging.info('Loading Overwatch heroes...')
-
-    hero_url = 'https://playoverwatch.com/de-de/heroes/'
-    overwatch_soup = BeautifulSoup(await async_request_html(hero_url), 'html.parser')
-
-    cells = overwatch_soup.find_all(
-        'blz-hero-card', class_='heroCard'
-    )
-
-    logging.info('Overwatch heroes loaded: %s heroes.', len(cells))
-
-    return {
-        cell.attrs["data-hero-id"].title(): cell.attrs["data-role"].title()
-        for cell in cells
-    }
-
-
 class Overwatch(commands.Cog, name='Overwatch'):
     '''This cog includes some overwatch related commands'''
 
     def __init__(self, bot: Bot) -> None:
         self.bot = bot
 
-        self.heroes = {}
+        self.heroes: dict[str, str] = {}
 
-    async def random_hero_for_user(
-        self,
-        requested_role: Role | None = None
-    ) -> str:
+    async def load_overwatch_heroes(self) -> Result[str, str]:
+        '''Parses the hero list from the overwatch website and stores it in a dict.'''
+
+        logging.info('Loading Overwatch heroes...')
+
+        hero_url = 'https://playoverwatch.com/de-de/heroes/'
+
+        try:
+            hero_result = (await async_request_html(hero_url)).unwrap()
+        except UnwrapError as err_msg:
+            logging.error('Request failed: %s', err_msg)
+            return Err(f'Requesting hero list failed: {err_msg}')
+
+        overwatch_soup = BeautifulSoup(hero_result, 'html.parser')
+
+        cells = overwatch_soup.find_all('blz-hero-card', class_='heroCard')
+
+        if cells is None:
+            return Err('Finding heroes on website failed!')
+
+        self.heroes = {
+            cell.attrs["data-hero-id"].title(): cell.attrs["data-role"].title()
+            for cell in cells
+        }
+
+        logging.info('Overwatch heroes loaded: %s heroes.', len(cells))
+        return Ok(f'Overwatch heroes loaded: {len(cells)} heroes.')
+
+    async def random_hero_for_user(self, requested_role: Role = Role.NONE) -> Result[str, str]:
         '''This function returns the name of a random overwatch hero. The randomizer
-        can be filtered by the role.
+        can be filtered by the role.'''
 
-        Args:
-            requested_role (Role, optional): The hero's role, being either Tank, Damage
-            or Support. When Role is None, every hero can be chosen randomly. Defaults to None.
+        if (not self.heroes) and (await self.load_overwatch_heroes()).is_err():
+            return Err('Loading heroes failed.')
 
-        Returns:
-            str: The name of a random hero.
-        '''
-
-        if not self.heroes:
-            self.heroes = await load_overwatch_heroes()
-
-        if requested_role is None:
-            return random.choice(
+        if requested_role == Role.NONE:
+            return Ok(random.choice(
                 list(self.heroes.keys())
-            )
+            ))
 
-        return random.choice([
+        return Ok(random.choice([
             hero for hero, role in self.heroes.items()
             if Role(role) is requested_role
-        ])
+        ]))
 
     async def random_hero_for_group(
         self,
         author: discord.Member
-    ) -> list[str] | None:
+    ) -> Result[list[str], str]:
         '''This function returns random heroes for a group of player that are in the
-        same voice channel with the author.
+        same voice channel with the author.'''
 
-        Args:
-            author (discord.User | discord.Member): The message author.
-
-        Returns:
-            list[str] | None: A list of string, formated like display_name: hero_name
-            for every user in the voice channel.
-        '''
-
-        if author.voice is None:
-            return
-
-        if author.voice.channel is None:
-            return
+        if author.voice is None or author.voice.channel is None:
+            return Err('User not in voice channel!')
 
         members = author.voice.channel.members
 
-        if not self.heroes:
-            self.heroes = await load_overwatch_heroes()
+        if (not self.heroes) and (await self.load_overwatch_heroes()).is_err():
+            return Err('Loading heroes failed.')
 
         heroes = list(self.heroes.keys())
         random.shuffle(heroes)
 
-        return [f"{member.display_name}: {heroes.pop()}" for member in members]
+        return Ok([f"{member.display_name}: {heroes.pop()}" for member in members])
 
     @commands.command(
         name='owpatchnotes',
@@ -162,7 +124,14 @@ class Overwatch(commands.Cog, name='Overwatch'):
         '''Liefert dir, falls vorhanden, die neusten Änderungen bei Helden aus den Patchnotes.'''
 
         patch_notes_url = 'https://playoverwatch.com/de-de/news/patch-notes/live'
-        patch_notes_soup = BeautifulSoup(await async_request_html(patch_notes_url), 'html.parser')
+
+        try:
+            patch_notes_result = (await async_request_html(patch_notes_url)).unwrap()
+        except UnwrapError as err_msg:
+            logging.error('Request failed: %s', err_msg)
+            return
+
+        patch_notes_soup = BeautifulSoup(patch_notes_result, 'html.parser')
 
         latest_patch = patch_notes_soup.find_all(
             'div', class_='PatchNotes-patch'
@@ -249,61 +218,76 @@ class Overwatch(commands.Cog, name='Overwatch'):
                 '%s requested a random hero for themselves.',
                 ctx.author.name
             )
-            await ctx.channel.send(
-                PROMT + await self.random_hero_for_user()
-            )
+
+            try:
+                await ctx.channel.send(
+                    PROMT + (await self.random_hero_for_user()).unwrap()
+                )
+            except UnwrapError as err_msg:
+                logging.error(err_msg)
         else:
             logging.info(
                 '%s requested a random hero for everyone.',
                 ctx.author.name
             )
-            if (group_output := await self.random_hero_for_group(ctx.author)) is None:
-                return
-            await ctx.channel.send(
-                PROMT + ', '.join(group_output)
-            )
+
+            try:
+                await ctx.channel.send(
+                    PROMT + ', '.join((await self.random_hero_for_group(ctx.author)).unwrap())
+                )
+            except UnwrapError as err_msg:
+                logging.error(err_msg)
 
     @ commands.command(
         brief='Gibt dir einen zufälligen Overwatch-DPS.'
     )
     async def owd(self, ctx: commands.Context) -> None:
-        '''Gibt dir einen zufälligen Overwatch-DPS.
-        Dieses Kommando ist ein Alias für !ow me Damage.'''
+        '''Gibt dir einen zufälligen Overwatch-DPS.'''
 
         logging.info(
-            '%s requested a random hero for themselves. Role: Damage.',
+            '%s requested a random hero for themselves, Role: Damage.',
             ctx.author.name
         )
-        await ctx.channel.send(
-            PROMT + await self.random_hero_for_user(Role.DAMAGE)
-        )
+
+        try:
+            await ctx.channel.send(
+                PROMT + (await self.random_hero_for_user(Role.DAMAGE)).unwrap()
+            )
+        except UnwrapError as err_msg:
+            logging.error(err_msg)
 
     @ commands.command(
         brief='Gibt dir einen zufälligen Overwatch-Support.'
     )
     async def ows(self, ctx: commands.Context) -> None:
-        '''Gibt dir einen zufälligen Overwatch-Support.
-        Dieses Kommando ist ein Alias für !ow me Support.'''
+        '''Gibt dir einen zufälligen Overwatch-Support.'''
 
         logging.info(
-            '%s requested a random hero for themselves. Role: Support.',
+            '%s requested a random hero for themselves, Role: Support.',
             ctx.author.name
         )
-        await ctx.channel.send(
-            PROMT + await self.random_hero_for_user(Role.SUPPORT)
-        )
+
+        try:
+            await ctx.channel.send(
+                PROMT + (await self.random_hero_for_user(Role.SUPPORT)).unwrap()
+            )
+        except UnwrapError as err_msg:
+            logging.error(err_msg)
 
     @ commands.command(
         brief='Gibt dir einen zufälligen Overwatch-Tank.'
     )
     async def owt(self, ctx: commands.Context) -> None:
-        '''Gibt dir einen zufälligen Overwatch-Tank.
-        Dieses Kommando ist ein Alias für !ow me Tank.'''
+        '''Gibt dir einen zufälligen Overwatch-Tank.'''
 
         logging.info(
-            '%s requested a random hero for themselves. Role: Tank.',
+            '%s requested a random hero for themselves, Role: Tank.',
             ctx.author.name
         )
-        await ctx.channel.send(
-            PROMT + await self.random_hero_for_user(Role.TANK)
-        )
+
+        try:
+            await ctx.channel.send(
+                PROMT + (await self.random_hero_for_user(Role.TANK)).unwrap()
+            )
+        except UnwrapError as err_msg:
+            logging.error(err_msg)

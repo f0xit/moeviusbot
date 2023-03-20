@@ -1,9 +1,11 @@
-import logging
-import random
 import datetime as dt
+import logging
+
+import discord
 from discord.ext import commands, tasks
-from event import Event
+
 from bot import Bot
+from event import Event
 
 
 async def setup(bot: Bot) -> None:
@@ -37,161 +39,79 @@ class Reminder(commands.Cog, name='Events'):
         self,
         event_type: str,
         ctx: commands.Context,
-        args,
-        ult=False
+        event_time: str,
+        event_game: str
     ) -> None:
-        # Check for super-user
-        if (
-            event_type == 'stream'
-            and ctx.author.name not in self.bot.settings['super-users']
-            and not ult
-        ):
-            await ctx.send('Nanana, das darfst du nicht, Krah Krah!')
-            logging.warning(
-                '%s wollte den Stream-Reminder einstellen.',
-                ctx.author.name
-            )
+        if not isinstance(ctx.channel, discord.TextChannel):
             return
 
-        # No argument => Reset stream
-        if len(args) == 0:
-            self.events[event_type].reset()
-
-            # Feedback
-            # TODO: Wenn ein Reminder resettet wird, lass es alle im richtigen Channel wissen
-            await ctx.send(
-                "Danke, "
-                + ctx.author.display_name
-                + ", ich habe den Reminder zurückgesetzt, Krah Krah!"
-            )
-
-            logging.info(
-                "Event resettet: %s - %s",
-                ctx.author.name,
-                event_type
-            )
-
-        # One or more arguments => Set or update stream
-        else:
-            # TODO: Wenn es ein Update gibt, informiere die Teilnehmer
-            # First argument: Time
-            event_time = args[0]
-
-            # Second argument: Game
-            game = ''
-
-            # Check for second argument
-            if len(args) == 1:
-                # In case of a game, check for the channel
-                if event_type == 'game':
-                    # Is the channel a game channel?
-                    if ctx.channel.name in self.bot.channels:
-                        # Save the channel for later posts
-                        self.bot.channels['game'] = ctx.channel
-                        game = ctx.channel.name.replace('-', ' ').title()
-                    else:
-                        await ctx.send('Hey, das ist kein Spiele-Channel, Krah Krah!')
-                        logging.warning(
-                            '%s wollte einen Game-Reminder im Channel %s erstellen.',
-                            ctx.author.name,
-                            ctx.channel.name
-                        )
-                        return
-            # More than one argument
-            else:
-                game = ' '.join(args[1:])
-                if event_type == 'game':
-                    self.bot.channels['game'] = self.bot.guild.get_channel(
-                        379345471719604236)
-
-            # Update event
-            logging.info(
-                "%s hat das Event %s geupdatet.", ctx.author.name, event_type
-            )
-            self.events[event_type].update_event(
-                '25:00' if ult else event_time, game
-            )
-
-            # Add creator to the watchlist
-            logging.debug(
-                "%s wurde zum Event %s hinzugefügt.", ctx.author.name, event_type
-            )
-            self.events[event_type].add_member(ctx.author)
-
-            # Direct feedback for the creator
-            # Stream
-            if event_type == 'stream':
-                if ctx.channel != self.bot.channels['stream']:
-                    await ctx.send(
-                        f"Ich habe einen Stream-Reminder für {event_time} "
-                        "Uhr eingerichtet, Krah Krah!"
-                    )
-
-                if ult:
-                    adj = random.choice([
-                        'geile',
-                        'saftige',
-                        'knackige',
-                        'wohlgeformte',
-                        'kleine aber feine',
-                        'prall gefüllte'
-                    ])
-                    obj = random.choice([
-                        'Möhren',
-                        'Pflaumen',
-                        'Melonen',
-                        'Oliven',
-                        'Nüsse',
-                        'Schinken'
-                    ])
-                    vrb = random.choice([
-                        'mit Öl bepinselt und massiert',
-                        'vernascht',
-                        'gebürstet',
-                        'gefüllt',
-                        'gebuttert',
-                        'geknetet'
-                    ])
-                    guest = f'<@{ctx.author.id}>'
-                    game = f". Heute werden {adj} {obj} {vrb}, mit dabei als " \
-                        f"Special-Guest: {guest}"
-
-                # Announce the event in the right channel
-                if game == 'bot':
-                    await self.bot.get_channel(580143021790855178).send(
-                        "Macht euch bereit für einen Stream, "
-                        + f"um {event_time} Uhr wird am Bot gebastelt, Krah Krah!"
-                    )
-                else:
-                    await self.bot.channels['stream'].send(
-                        '**Kochstudio!**\n' if ult else ''
-                        + '**Macht euch bereit für einen Stream!**\n'
-                        + f'Wann? {event_time} Uhr\n'
-                        + f'Was? {game}\n'
-                        + 'Gebt mir ein !join, Krah Krah!'
-                    )
-            # Game
-            else:
-                await ctx.send(
-                    '**Macht euch bereit für ein Ründchen Coop!**\n'
-                    + f'Wann? {event_time} Uhr\n'
-                    + f'Was? {game}\n'
-                    + 'Gebt mir ein !join, Krah Krah!'
+        if event_type == 'game':
+            if ctx.channel.name not in self.bot.channels:
+                await ctx.send('Hey, das ist kein Spiele-Channel, Krah Krah!')
+                logging.warning(
+                    '%s wollte einen Game-Reminder im Channel %s erstellen.',
+                    ctx.author.name,
+                    ctx.channel.name
                 )
-                if ctx.channel.name in self.bot.squads.keys():
-                    members = [
-                        f'<@{member}> '
-                        for member in self.bot.squads[ctx.channel.name].values()
-                        if member != ctx.author.id
-                    ]
-                    if members:
-                        await ctx.send(
-                            "Das gilt insbesondere für das Squad, Krah Krah!\n"
-                            + " ".join(members)
-                        )
+                return
+
+            self.bot.channels['game'] = ctx.channel
+            event_game = ctx.channel.name.replace('-', ' ').title()
+
+        logging.info(
+            "%s hat das Event %s geupdatet.",
+            ctx.author.name,
+            event_type
+        )
+        self.events[event_type].update_event(event_time, event_game)
+
+        logging.debug(
+            "%s wurde zum Event %s hinzugefügt.",
+            ctx.author.name,
+            event_type
+        )
+        self.events[event_type].add_member(ctx.author)
+
+        if event_type == 'stream' and ctx.channel != self.bot.channels['stream']:
+            await ctx.send(
+                f"Ich habe einen Stream-Reminder für {event_time} "
+                "Uhr eingerichtet, Krah Krah!"
+            )
+
+        if (output_channel := self.bot.channels[event_type]) is None:
+            return
+
+        await output_channel.send(
+            '**Macht euch bereit für einen Stream!**\n'
+            if event_type == 'stream' else '**Macht euch bereit für ein Ründchen Coop!**\n'
+            f'Wann? {event_time} Uhr\n'
+            f'Was? {event_game}\n'
+            'Gebt mir ein !join, Krah Krah!'
+        )
+
+        logging.info(
+            'Event-Info was posted.'
+        )
+
+        if event_type != 'game':
+            return
+
+        if ctx.channel.name in self.bot.squads:
+            members = [
+                f'<@{member}> '
+                for member in self.bot.squads[ctx.channel.name].values()
+                if member != ctx.author.id
+            ]
+            if not members:
+                return
+
+            await ctx.send(
+                "Das gilt insbesondere für das Squad, Krah Krah!\n"
+                + " ".join(members)
+            )
 
             logging.info(
-                "Event-Info wurde mitgeteilt, das Squad wurde benachrichtigt."
+                'Squadd was informedd.'
             )
 
     # Process the Request for Event-Info
@@ -231,7 +151,7 @@ class Reminder(commands.Cog, name='Events'):
             # Post the info
             await ctx.send(
                 f"{begin_string} beginnt um {self.events[event_type].event_time} Uhr. "
-                + f"{game_str}Mit dabei sind bisher: {members}, Krah Krah!"
+                f"{game_str}Mit dabei sind bisher: {members}, Krah Krah!"
             )
             logging.info(
                 "%s hat nach einem Event %s gefragt. Die Infos dazu wurden rausgehauen.",
@@ -274,61 +194,68 @@ class Reminder(commands.Cog, name='Events'):
                 )
 
     # Commands
-    @commands.command(
+    @commands.hybrid_group(
         name='stream',
-        aliases=['s'],
-        brief='Infos und Einstellungen zum aktuellen Stream-Reminder.',
-        usage='(hh:mm) (game)'
+        fallback='show',
+        brief='Infos und Einstellungen zum aktuellen Stream-Reminder.'
     )
-    async def _stream(self, ctx: commands.Context, *args) -> None:
+    async def _stream(self, ctx: commands.Context) -> None:
         '''Hier kannst du alles über einen aktuellen Stream-Reminder herausfinden oder seine
-        Einstellungen anpassen
+        Einstellungen anpassen'''
 
-        ?stream             Sagt dir, ob ein Stream angekündigt wurde. Falls ja, erfährst du,
-                            wann und welches Spiel gestream wird. Außerdem kannst du sehen, wer
-                            sich bisher zum Stream angemeldet hat. Mehr dazu findest du in der
-                            Hilfe zum join-Kommando.
+        await self.process_event_info('stream', ctx)
 
-        !stream             resettet den aktuellen Reminder.
-        !stream hh:mm       stellt einen Reminder für die gewählte Uhrzeit ein.
-        !stream hh:mm       game stellt außerdem ein, welches Spiel gespielt wird.'''
-
-        # Stream command
-        if ctx.prefix == '!':
-            await self.process_event_command('stream', ctx, args)
-
-        # Stream info
-        elif ctx.prefix == '?':
-            await self.process_event_info('stream', ctx)
-
-    @commands.command(
-        name='game',
-        aliases=['g'],
-        brief='Infos und Einstellungen zum aktuellen Coop-Reminder.',
-        usage='(hh:mm) (game)'
+    @_stream.command(
+        name='add',
+        brief='Fügt ein Stream Event hinzu.'
     )
-    async def _game(self, ctx: commands.Context, *args) -> None:
+    async def _add_stream(self, ctx: commands.Context, time: str, game: str) -> None:
+        ''''''
+
+        await self.process_event_command('stream', ctx, time, game)
+
+    @_stream.command(
+        name='reset',
+        brief='Resettet ein Stream Event.'
+    )
+    async def _reset_stream(self, ctx: commands.Context) -> None:
+        ''''''
+
+        self.events['stream'].reset()
+
+    @commands.hybrid_group(
+        name='game',
+        fallback='show',
+        aliases=['g'],
+        brief='Infos und Einstellungen zum aktuellen Coop-Reminder.'
+    )
+    async def _game(self, ctx: commands.Context) -> None:
         '''Hier kannst du alles über einen aktuellen Coop-Reminder herausfinden oder
-        seine Einstellungen anpassen
+        seine Einstellungen anpassen'''
 
-        ?game               Sagt dir, ob eine Coop-Runde angekündigt wurde. Falls ja, erfährst du,
-                            wann und welches Spiel gestream wird. Außerdem kannst du sehen, wer
-                            sich bisher zum Coop angemeldet hat. Mehr dazu findest du in der
-                            Hilfe zum join-Kommando.
+        await self.process_event_info('game', ctx)
 
-        !game               resettet den aktuellen Reminder.
-        !game               hh:mm stellt einen Reminder für die gewählte Uhrzeit im Channel ein.
-        !game hh:mm game    stellt wahlweise ein Spiel ein, welches keinen eigenen Channel hat.'''
+    @_game.command(
+        name='add',
+        aliases=['-a', '+'],
+        brief='Fügt ein Stream Event hinzu.'
+    )
+    async def _add_game(self, ctx: commands.Context, time: str, game: str) -> None:
+        ''''''
 
-        # Game command
-        if ctx.prefix == '!':
-            await self.process_event_command('game', ctx, args)
+        await self.process_event_command('game', ctx, time, game)
 
-        # Game info
-        elif ctx.prefix == '?':
-            await self.process_event_info('game', ctx)
+    @_game.command(
+        name='reset',
+        aliases=['-r'],
+        brief='Fügt ein Stream Event hinzu.'
+    )
+    async def _reset_game(self, ctx: commands.Context) -> None:
+        ''''''
 
-    @commands.command(
+        self.events['game'].reset()
+
+    @commands.hybrid_command(
         name='join',
         aliases=['j'],
         brief='Tritt einem Event bei.'
@@ -345,12 +272,18 @@ class Reminder(commands.Cog, name='Events'):
             else:
                 await self.join_event('game', ctx)
 
-    @commands.command(
+    @commands.hybrid_command(
         name='hey',
         aliases=['h'],
         brief='Informiere das Squad über ein bevorstehendes Event.'
     )
     async def _hey(self, ctx: commands.Context) -> None:
+        if not isinstance(ctx.channel, discord.TextChannel):
+            return
+
+        if ctx.channel.category is None:
+            return
+
         if ctx.channel.category.name != "Spiele":
             await ctx.send('Hey, das ist kein Spiele-Channel, Krah Krah!')
             logging.warning(
@@ -371,7 +304,7 @@ class Reminder(commands.Cog, name='Events'):
         members = []
         for member in self.bot.squads[ctx.channel.name].values():
             if (member != ctx.author.id
-                    and str(member) not in self.events['game'].event_members.keys()
+                        and str(member) not in self.events['game'].event_members.keys()
                     ):
                 members.append(f'<@{member}>')
 
@@ -404,6 +337,9 @@ class Reminder(commands.Cog, name='Events'):
         !squad add User1 ...    fügt User hinzu. Du kannst auch mehrere User gleichzeitig
                                 hinzufügen. "add me" fügt dich hinzu.
         !squad rem User1 ...    entfernt den oder die User wieder.'''
+
+        if not isinstance(ctx.channel, discord.TextChannel):
+            return
 
         if ctx.channel.category is None:
             await ctx.send('Hey, das ist kein Spiele-Channel, Krah Krah!')
@@ -452,10 +388,7 @@ class Reminder(commands.Cog, name='Events'):
         match args[0]:
             case "add" | "a" | "+":
                 for arg in args[1:]:
-                    if arg == 'me':
-                        member = ctx.author
-                    else:
-                        member = self.bot.get_user(int(arg[2:-1]))
+                    member = ctx.author if arg == 'me' else self.bot.get_user(int(arg[2:-1]))
 
                     if member is None:
                         await ctx.send(f"Ich kenne {arg} nicht, verlinke ihn bitte mit @.")
@@ -467,7 +400,7 @@ class Reminder(commands.Cog, name='Events'):
                         )
                         continue
 
-                    if member.name in self.bot.squads[ctx.channel.name].keys():
+                    if member.name in self.bot.squads[ctx.channel.name]:
                         await ctx.send(
                             f"{member.name} scheint schon im Squad zu sein, Krah Krah!"
                         )
@@ -492,10 +425,7 @@ class Reminder(commands.Cog, name='Events'):
 
             case "rem" | "r" | "-":
                 for arg in args[1:]:
-                    if arg == 'me':
-                        member = ctx.author
-                    else:
-                        member = self.bot.get_user(int(arg[2:-1]))
+                    member = ctx.author if arg == 'me' else self.bot.get_user(int(arg[2:-1]))
 
                     if member is None:
                         await ctx.send(f"Ich kenne {arg} nicht, verlinke ihn bitte mit @.")
@@ -542,27 +472,39 @@ class Reminder(commands.Cog, name='Events'):
             if event.event_time == self.time_now:
                 logging.info("Ein Event beginnt: %s!", event.event_type)
 
-                members = " ".join(
-                    [f"<@{id}>" for id in event.event_members.keys()]
-                )
+                members = " ".join([f"<@{id}>" for id in event.event_members])
 
                 if event.event_type == 'stream':
                     if event.event_game == 'bot':
-                        await self.bot.get_channel(580143021790855178).send(
+                        output_channel = self.bot.get_channel(
+                            580143021790855178
+                        )
+                        if not isinstance(output_channel, discord.TextChannel):
+                            return
+
+                        await output_channel.send(
                             f"Oh, ist es denn schon {event.event_time} Uhr? "
                             "Dann ab auf https://www.twitch.tv/hanseichlp ... "
                             "es wird endlich wieder am Bot gebastelt, Krah Krah!"
                             f"Heute mit von der Partie: {members}", tts=False
                         )
                     else:
-                        await self.bot.channels['stream'].send(
+                        output_channel = self.bot.channels['stream']
+                        if not isinstance(output_channel, discord.TextChannel):
+                            return
+
+                        await output_channel.send(
                             f"Oh, ist es denn schon {event.event_time} Uhr? "
                             "Dann ab auf https://www.twitch.tv/schnenko/ ... "
                             "der Stream fängt an, Krah Krah! "
                             f"Heute mit von der Partie: {members}", tts=False
                         )
                 else:
-                    await self.bot.channels['game'].send(
+                    output_channel = self.bot.channels['game']
+                    if not isinstance(output_channel, discord.TextChannel):
+                        return
+
+                    await output_channel.send(
                         f"Oh, ist es denn schon {event.event_time} Uhr? Dann ab in den Voice-Chat, "
                         f"{event.event_game} fängt an, Krah Krah! "
                         f"Heute mit von der Partie: {members}", tts=False
