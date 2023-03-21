@@ -81,9 +81,10 @@ class Reminder(commands.Cog, name='Events'):
         if (output_channel := self.bot.channels[event_type]) is None:
             return
 
+        info_string = 'einen Stream' if event_type == 'stream' else 'ein Ründchen Coop'
+
         await output_channel.send(
-            '**Macht euch bereit für einen Stream!**\n'
-            if event_type == 'stream' else '**Macht euch bereit für ein Ründchen Coop!**\n'
+            f'**Macht euch bereit für {info_string}!**\n'
             f'Wann? {event_time} Uhr\n'
             f'Was? {event_game}\n'
             'Gebt mir ein !join, Krah Krah!'
