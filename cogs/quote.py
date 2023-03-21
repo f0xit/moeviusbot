@@ -35,7 +35,7 @@ class Quote(commands.Cog, name='Quote'):
 
     def __init__(self, bot: Bot) -> None:
         self.bot = bot
-        self.quote_by = '',
+        self.quote_by = ''
         self.text_model = None
         self.daily_quote.start()
 
