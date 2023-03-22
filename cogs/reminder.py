@@ -42,10 +42,7 @@ class Reminder(commands.Cog, name='Events'):
         event_time: str,
         event_game: str
     ) -> None:
-        if not isinstance(ctx.channel, discord.TextChannel):
-            return
-
-        if event_type == 'game':
+        if event_type == 'game' and isinstance(ctx.channel, discord.TextChannel):
             if ctx.channel.name not in self.bot.channels:
                 await ctx.send('Hey, das ist kein Spiele-Channel, Krah Krah!')
                 logging.warning(
@@ -94,7 +91,7 @@ class Reminder(commands.Cog, name='Events'):
             'Event-Info was posted.'
         )
 
-        if event_type != 'game':
+        if event_type != 'game' or not isinstance(ctx.channel, discord.TextChannel):
             return
 
         if ctx.channel.name in self.bot.squads:
@@ -304,9 +301,10 @@ class Reminder(commands.Cog, name='Events'):
 
         members = []
         for member in self.bot.squads[ctx.channel.name].values():
-            if (member != ctx.author.id
-                        and str(member) not in self.events['game'].event_members.keys()
-                    ):
+            if (
+                member != ctx.author.id
+                and str(member) not in self.events['game'].event_members.keys()
+            ):
                 members.append(f'<@{member}>')
 
         if len(members) == 0:
