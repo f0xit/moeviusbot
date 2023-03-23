@@ -82,6 +82,7 @@ class Wurstfinger(commands.Cog, name="Wurstfinger"):
                 output.write(char)
 
         await ctx.send(f"Oder wie Schnenk es sagen würde:\n{output.getvalue()} Krah Krah!")
+        output.close()
 
     @commands.command(name="wurstfinger")
     async def _wurstfinger(self, ctx: commands.Context) -> None:
