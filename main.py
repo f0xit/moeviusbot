@@ -275,7 +275,7 @@ class Administration(commands.Cog, name='Administration'):
                 if (
                     filename.endswith('.py')
                     and not filename.startswith('__')
-                    and f"cogs.{filename[:-3]}" not in self.bot.extensions.keys()
+                    and f"cogs.{filename[:-3]}" not in self.bot.extensions
                 )
             ]
         ))
