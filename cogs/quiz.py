@@ -326,10 +326,10 @@ class Quiz(commands.Cog, name='Quiz'):
                 else:
                     await self.channel.send("❌ Falsch!")
 
-                    correct_answer = [
+                    correct_answer = next(
                         answer for answer in self.question['answers'].items()
                         if answer[1]['correct']
-                    ][0]
+                    )
 
                     await self.channel.send(
                         f"Die richtige Antwort ist {correct_answer[0]}: {correct_answer[1]['text']}"
@@ -368,9 +368,9 @@ class Quiz(commands.Cog, name='Quiz'):
                 else:
                     await self.update_ranking(self.stages[self.game_stage - 1])
 
-                correct_answer = [
+                correct_answer = next(
                     answer for answer in self.question['answers'].items() if answer[1]['correct']
-                ][0]
+                )
 
                 await self.channel.send(
                     f"Die richtige Antwort ist {correct_answer[0]}: {correct_answer[1]['text']}"
