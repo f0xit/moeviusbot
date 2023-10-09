@@ -93,7 +93,7 @@ class Administration(commands.Cog, name='Administration'):
         '''Pullt die neusten Commits aus dem Github-Repo.'''
 
         console_output = subprocess.check_output(
-            'git pull', shell=True
+            ['git', 'pull']
         ).strip().decode('ascii')
 
         await ctx.send(f'```{console_output}```')
@@ -150,7 +150,7 @@ class Administration(commands.Cog, name='Administration'):
         Änderungen wirksam werden.'''
 
         console_output = subprocess.check_output(
-            'git describe --tags', shell=True
+            ['git', 'describe', '--tags']
         ).strip().decode('ascii')
 
         try:
