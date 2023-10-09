@@ -1,9 +1,9 @@
-autopep8==2.0.2
+autopep8==2.0.4
 bandit==1.7.5
 isort==5.12.0
-pipdeptree==2.7.0
-pycodestyle==2.10.0
-pylint==2.17.4
-ruff==0.0.265
-types-beautifulsoup4==4.12.0.5
-types-html5lib==1.1.11.14
+pipdeptree==2.13.0
+pycodestyle==2.11.0
+pylint==3.0.1
+ruff==0.0.292
+types-beautifulsoup4==4.12.0.6
+types-html5lib==1.1.11.15
