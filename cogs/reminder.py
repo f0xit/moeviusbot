@@ -303,7 +303,7 @@ class Reminder(commands.Cog, name='Events'):
         for member in self.bot.squads[ctx.channel.name].values():
             if (
                 member != ctx.author.id
-                and str(member) not in self.events['game'].event_members.keys()
+                and str(member) not in self.events['game'].event_members
             ):
                 members.append(f'<@{member}>')
 
@@ -436,7 +436,7 @@ class Reminder(commands.Cog, name='Events'):
                         )
                         continue
 
-                    if member.name not in self.bot.squads[ctx.channel.name].keys():
+                    if member.name not in self.bot.squads[ctx.channel.name]:
                         await ctx.send(
                             "Das macht gar keinen Sinn. "
                             f"{member.name} ist gar nicht im Squad, Krah Krah!"
