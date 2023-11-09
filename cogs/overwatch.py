@@ -2,7 +2,7 @@
 import io
 import logging
 import random
-from enum import Enum
+from enum import Enum, auto
 
 import discord
 from bs4 import BeautifulSoup
@@ -21,9 +21,9 @@ class Role(Enum):
     '''Enum of current Overwatch classes'''
 
     NONE = 0
-    TANK = 1
-    DAMAGE = 2
-    SUPPORT = 3
+    TANK = auto()
+    DAMAGE = auto()
+    SUPPORT = auto()
 
 
 async def setup(bot: Bot) -> None:
@@ -149,7 +149,7 @@ class Overwatch(commands.Cog, name='Overwatch'):
             return Err('Finding heroes on website failed!')
 
         self.heroes = {
-            cell.attrs["data-hero-id"].title(): cell.attrs["data-role"].title()
+            cell.attrs["data-hero-id"].title(): cell.attrs["data-role"].upper()
             for cell in cells
         }
 
@@ -170,7 +170,7 @@ class Overwatch(commands.Cog, name='Overwatch'):
 
         return Ok(random.choice([
             hero for hero, role in self.heroes.items()
-            if Role(role) is requested_role
+            if role == requested_role.name
         ]))
 
     async def random_hero_for_group(
