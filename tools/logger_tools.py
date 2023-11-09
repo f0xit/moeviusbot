@@ -1,7 +1,7 @@
 import logging
 import sys
-from logging.handlers import TimedRotatingFileHandler
 import typing
+from logging.handlers import TimedRotatingFileHandler
 
 
 class LoggerTools():
