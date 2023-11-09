@@ -92,6 +92,3 @@ event_manager.add_event(
         dt.datetime.fromisocalendar(2023, 20, 3)
     )
 )
-
-print(event_manager)
-print(event_manager.max_event_id)
