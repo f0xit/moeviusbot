@@ -23,19 +23,21 @@ async def setup(bot: Bot) -> None:
 async def generate_random_painting() -> None:
     '''Generates a combination of prompt and drawing from a random gartic phone game.'''
 
-    gartic_round = random.choice([
+    gartic_round = random.SystemRandom().choice([
         round for round in os.listdir('gartic')
         if re.match(r"^\d{3}$", round)
     ])
 
-    gartic_story = random.choice([
+    gartic_story = random.SystemRandom().choice([
         story for story in os.listdir(f'gartic/{gartic_round}')
         if re.match(r"^album_.*\.gif$", story)
     ])
 
     story_gif = Image.open(f'gartic/{gartic_round}/{gartic_story}')
 
-    position = random.randint(0, math.floor(story_gif.n_frames/2) - 1)
+    position = random.SystemRandom().randint(
+        0, math.floor(story_gif.n_frames/2) - 1
+    )
 
     if not os.path.exists('cache'):
         os.makedirs('cache')

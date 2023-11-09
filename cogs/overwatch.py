@@ -164,11 +164,11 @@ class Overwatch(commands.Cog, name='Overwatch'):
             return Err('Loading heroes failed.')
 
         if requested_role == Role.NONE:
-            return Ok(random.choice(
+            return Ok(random.SystemRandom().choice(
                 list(self.heroes.keys())
             ))
 
-        return Ok(random.choice([
+        return Ok(random.SystemRandom().choice([
             hero for hero, role in self.heroes.items()
             if role == requested_role.name
         ]))

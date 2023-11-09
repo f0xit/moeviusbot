@@ -128,14 +128,14 @@ class Misc(commands.Cog, name='Sonstiges'):
                     if not self.fragen:
                         self.fragen = (await lines_from_textfile('fragen.txt')).unwrap()
 
-                    description = random.choice(self.fragen)
+                    description = random.SystemRandom().choice(self.fragen)
                     title = f'Frage an {ctx.author.display_name}'
 
                 case ListType.BIBLE:
                     if not self.bible:
                         self.fragen = (await lines_from_textfile('moevius-bibel.txt')).unwrap()
 
-                    description = random.choice(self.bible)
+                    description = random.SystemRandom().choice(self.bible)
                     title = 'Das Wort unseres Herrn, Krah Krah!'
 
             await ctx.send(

@@ -43,7 +43,7 @@ class Quiz(commands.Cog, name='Quiz'):
             return
 
         while True:
-            question = random.choice(self.quiz)
+            question = random.SystemRandom().choice(self.quiz)
 
             if (
                 self.stages[self.game_stage] >= question['range'][0] and
@@ -107,7 +107,8 @@ class Quiz(commands.Cog, name='Quiz'):
             return
 
         ranking[player_id]['name'] = self.player.display_name
-        ranking[player_id]['points'] = ranking[player_id].get('points') + amount
+        ranking[player_id]['points'] = ranking[player_id].get(
+            'points') + amount
         ranking[player_id]['tries'] = ranking[player_id].get('tries') + 1
 
         save_file('json/quiz_ranking.json', ranking)

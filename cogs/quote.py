@@ -64,7 +64,8 @@ class Quote(commands.Cog, name='Quote'):
             return Err(str(err_msg))
 
         self.quote_by = channel_messages.pop(0)
-        self.text_model = markovify.NewlineText('\n'.join(channel_messages), state_size=size)
+        self.text_model = markovify.NewlineText(
+            '\n'.join(channel_messages), state_size=size)
 
         return Ok(f'Generation finished. Size: {size} Duration: {time.time() - start_time}')
 
@@ -107,7 +108,7 @@ class Quote(commands.Cog, name='Quote'):
                 colour=discord.Colour(0xff00ff),
                 description=quote,
                 timestamp=dt.datetime.utcfromtimestamp(
-                    random.randint(0, int(dt.datetime.now().timestamp()))
+                    random.SystemRandom().randint(0, int(dt.datetime.now().timestamp()))
                 )
             ).set_footer(text=self.quote_by)
         )
