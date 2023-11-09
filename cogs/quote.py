@@ -1,4 +1,4 @@
-'''Cog for random quote generation'''
+"""Cog for random quote generation"""
 import datetime as dt
 import logging
 import random
@@ -16,7 +16,7 @@ from tools.textfile_tools import lines_from_textfile, lines_to_textfile
 
 
 async def setup(bot: Bot) -> None:
-    '''Setup function for the cog.'''
+    """Setup function for the cog."""
 
     quote_cog = Quote(bot)
 
@@ -27,24 +27,24 @@ async def setup(bot: Bot) -> None:
             logging.error(err_msg)
 
     await bot.add_cog(quote_cog)
-    logging.info('Cog loaded: Quote.')
+    logging.info("Cog loaded: Quote.")
 
 
-class Quote(commands.Cog, name='Quote'):
-    '''This cog includes commands for random quote generation'''
+class Quote(commands.Cog, name="Quote"):
+    """This cog includes commands for random quote generation"""
 
     def __init__(self, bot: Bot) -> None:
         self.bot = bot
-        self.quote_by = ''
+        self.quote_by = ""
         self.text_model = None
         self.daily_quote.start()
 
     async def cog_unload(self) -> None:
         self.daily_quote.cancel()
-        logging.info('Cog unloaded: Quote.')
+        logging.info("Cog unloaded: Quote.")
 
     async def build_markov(self, size: int = 3) -> Result[str, str]:
-        '''Generates a markov model from the channel_messages.txt file and
+        """Generates a markov model from the channel_messages.txt file and
         returns it.
 
         Args:
@@ -54,37 +54,36 @@ class Quote(commands.Cog, name='Quote'):
         Returns:
             Tuple[str, markovify.NewlineText]:
                 The first item contains the author of the messages, the second
-                item is the model itself.'''
+                item is the model itself."""
 
         start_time = time.time()
 
         try:
-            channel_messages = (await lines_from_textfile('channel_messages.txt')).unwrap()
+            channel_messages = (await lines_from_textfile("channel_messages.txt")).unwrap()
         except UnwrapError as err_msg:
             return Err(str(err_msg))
 
         self.quote_by = channel_messages.pop(0)
-        self.text_model = markovify.NewlineText(
-            '\n'.join(channel_messages), state_size=size)
+        self.text_model = markovify.NewlineText("\n".join(channel_messages), state_size=size)
 
-        return Ok(f'Generation finished. Size: {size} Duration: {time.time() - start_time}')
+        return Ok(f"Generation finished. Size: {size} Duration: {time.time() - start_time}")
 
     async def send_quote(
         self,
         channel: discord.TextChannel | discord.DMChannel,
         /,
         content: str | None = None,
-        title: str = 'Zitat',
-        tries: int = 3000
+        title: str = "Zitat",
+        tries: int = 3000,
     ) -> None:
-        '''Posts a random quote into a discord channel using an embed.
+        """Posts a random quote into a discord channel using an embed.
 
         Args:
             channel (discord.TextChannel): A discord text channel.
             content (str | None, optional): Message above the embed. Defaults to None.
             title (str, optional): The title of the posted embed. Defaults to 'Zitat'.
             tries (int, optional): Tries the markov model uses to find a quote. Defaults to 3000.
-        '''
+        """
 
         if self.text_model is None:
             return
@@ -92,53 +91,45 @@ class Quote(commands.Cog, name='Quote'):
         quote = self.text_model.make_sentence(tries=tries)
 
         if quote is None:
-            logging.warning('No quote found!')
+            logging.warning("No quote found!")
             await channel.send(
-                'Ich habe wirklich alles versucht, aber ich konnte einfach '
-                'kein Zitat finden, Krah Krah!'
+                "Ich habe wirklich alles versucht, aber ich konnte einfach "
+                "kein Zitat finden, Krah Krah!"
             )
             return
 
-        quote = quote.replace('>', '')
+        quote = quote.replace(">", "")
 
         await channel.send(
             content=content,
             embed=discord.Embed(
                 title=title,
-                colour=discord.Colour(0xff00ff),
+                colour=discord.Colour(0xFF00FF),
                 description=quote,
                 timestamp=dt.datetime.utcfromtimestamp(
                     random.SystemRandom().randint(0, int(dt.datetime.now().timestamp()))
-                )
-            ).set_footer(text=self.quote_by)
+                ),
+            ).set_footer(text=self.quote_by),
         )
 
-        logging.info('Quote successful.')
-        logging.debug('%s - Author: %s', quote, self.quote_by)
+        logging.info("Quote successful.")
+        logging.debug("%s - Author: %s", quote, self.quote_by)
 
-    @commands.group(
-        name='zitat',
-        aliases=['z'],
-        brief='Zitiert eine weise Persönlichkeit.'
-    )
+    @commands.group(name="zitat", aliases=["z"], brief="Zitiert eine weise Persönlichkeit.")
     async def _quote(self, ctx: commands.Context):
         if ctx.invoked_subcommand is not None or not isinstance(ctx.channel, discord.TextChannel):
             return
 
-        logging.info(
-            '%s requested a quote by %s.',
-            ctx.author.name,
-            self.quote_by
-        )
+        logging.info("%s requested a quote by %s.", ctx.author.name, self.quote_by)
 
         await self.send_quote(ctx.channel)
 
     @is_super_user()
     @_quote.command(
-        name='downloadHistory',
-        aliases=['dh'],
-        brief='Besorgt sich die nötigen Daten für den Zitategenerator. '
-        'ACHTUNG: Kann je nach Limit einige Sekunden bis Minuten dauern.'
+        name="downloadHistory",
+        aliases=["dh"],
+        brief="Besorgt sich die nötigen Daten für den Zitategenerator. "
+        "ACHTUNG: Kann je nach Limit einige Sekunden bis Minuten dauern.",
     )
     async def _download_history(
         self, ctx: commands.Context, member: discord.Member, lim: int = 1000
@@ -146,15 +137,15 @@ class Quote(commands.Cog, name='Quote'):
         quote_by = member.display_name
 
         await ctx.send(
-            f'History Download: Lade pro Channel maximal {lim} '
-            f'Nachrichten von {quote_by} herunter, '
-            'Krah Krah! Das kann einen Moment dauern, Krah Krah!'
+            f"History Download: Lade pro Channel maximal {lim} "
+            f"Nachrichten von {quote_by} herunter, "
+            "Krah Krah! Das kann einen Moment dauern, Krah Krah!"
         )
         logging.info(
-            '%s starts downloading the messages by %s, limit per channel: %s.',
+            "%s starts downloading the messages by %s, limit per channel: %s.",
             ctx.author.name,
             quote_by,
-            lim
+            lim,
         )
 
         start_time = time.time()
@@ -171,68 +162,55 @@ class Quote(commands.Cog, name='Quote'):
                     if msg.author != member:
                         continue
 
-                    sentences.extend(
-                        msg for msg in msg.content.split('. ') if msg
-                    )
+                    sentences.extend(msg for msg in msg.content.split(". ") if msg)
             except discord.Forbidden as exc_msg:
                 number_of_channels -= 1
-                logging.warning(
-                    'Can\'t read channel %s: %s',
-                    channel.name,
-                    str(exc_msg)
-                )
+                logging.warning("Can't read channel %s: %s", channel.name, str(exc_msg))
                 continue
 
         number_of_sentences = len(sentences) - 1
-        await lines_to_textfile('channel_messages.txt', sentences)
+        await lines_to_textfile("channel_messages.txt", sentences)
 
         await ctx.send(
-            f'History Download abgeschlossen! {number_of_sentences} Sätze in {number_of_channels} '
-            f'Channels von Author {quote_by} heruntergeladen. Dauer: {(time.time() - start_time)}'
+            f"History Download abgeschlossen! {number_of_sentences} Sätze in {number_of_channels} "
+            f"Channels von Author {quote_by} heruntergeladen. Dauer: {(time.time() - start_time)}"
         )
         logging.info(
-            'History Download complete! %s sentences in %s '
-            'channels by author %s. Duration: %s',
+            "History Download complete! %s sentences in %s channels by author %s. Duration: %s",
             number_of_sentences,
             number_of_channels,
             quote_by,
-            time.time() - start_time
+            time.time() - start_time,
         )
 
     @is_super_user()
     @_quote.command(
-        name='build_markov',
-        aliases=['bm'],
-        brief='Generiert das Modell für zufällige Zitate.'
+        name="build_markov", aliases=["bm"], brief="Generiert das Modell für zufällige Zitate."
     )
     async def _build_markov(self, ctx: commands.Context, size: int = 3) -> None:
-        '''Generiert das Modell für zufällige Zitate.'''
+        """Generiert das Modell für zufällige Zitate."""
 
-        await ctx.send('Markov Update wird gestartet.')
+        await ctx.send("Markov Update wird gestartet.")
         await self.build_markov(size)
-        await ctx.send('Markov Update abgeschlossen.')
+        await ctx.send("Markov Update abgeschlossen.")
 
     @tasks.loop(time=dt.time(9, tzinfo=get_local_timezone()))
     async def daily_quote(self) -> None:
-        '''_summary_'''
+        """_summary_"""
 
-        logging.info('It\'s 9 AM, time for a daily quote!')
+        logging.info("It's 9 AM, time for a daily quote!")
 
         if (channel := self.bot.get_channel(580143021790855178)) is None:
-            logging.warning('Channel for daily quote not found!')
+            logging.warning("Channel for daily quote not found!")
             return
 
         if not isinstance(channel, discord.TextChannel | discord.DMChannel):
             return
 
-        await self.send_quote(
-            channel,
-            content='Guten Morgen, Krah Krah!',
-            title='Zitat des Tages'
-        )
+        await self.send_quote(channel, content="Guten Morgen, Krah Krah!", title="Zitat des Tages")
 
     @daily_quote.before_loop
     async def _before_daily_quote(self):
-        logging.debug('Waiting for daily quote loop...')
+        logging.debug("Waiting for daily quote loop...")
         await self.bot.wait_until_ready()
-        logging.debug('Daily quote loop running!')
+        logging.debug("Daily quote loop running!")
