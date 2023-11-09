@@ -93,7 +93,7 @@ class Administration(commands.Cog, name='Administration'):
         '''Pullt die neusten Commits aus dem Github-Repo.'''
 
         console_output = subprocess.check_output(
-            ['git', 'pull']
+            ['git', 'pull']  # noqa: S603, S607
         ).strip().decode('ascii')
 
         await ctx.send(f'```{console_output}```')
@@ -150,7 +150,7 @@ class Administration(commands.Cog, name='Administration'):
         Änderungen wirksam werden.'''
 
         console_output = subprocess.check_output(
-            ['git', 'describe', '--tags']
+            ['git', 'describe', '--tags']  # noqa: S603, S607
         ).strip().decode('ascii')
 
         try:
@@ -168,7 +168,8 @@ class Administration(commands.Cog, name='Administration'):
 
         except IndexError:
             await ctx.send(f'**Fehler!** {console_output}')
-            logging.error('Something is wrong with the version string: %s', console_output)
+            logging.error(
+                'Something is wrong with the version string: %s', console_output)
 
     @_bot.command(
         name='uptime',
@@ -294,7 +295,8 @@ class Administration(commands.Cog, name='Administration'):
         1) Logging the context and the error
         2) Sending a private message with the same content to the owner of the bot'''
 
-        logging.error("%s - %s - %s", ctx.author.name, ctx.message.content, error)
+        logging.error("%s - %s - %s", ctx.author.name,
+                      ctx.message.content, error)
 
         if (hans := self.bot.get_user(247117682875432960)) is None:
             return
@@ -305,7 +307,8 @@ class Administration(commands.Cog, name='Administration'):
     async def on_guild_channel_create(self, channel: GuildChannel) -> None:
         '''Re-analizes the guild if a channel is added.'''
 
-        logging.info('New channel created: [ID:%s] %s', channel.id, channel.name)
+        logging.info(
+            'New channel created: [ID:%s] %s', channel.id, channel.name)
         await self.bot.analyze_guild()
 
     @commands.Cog.listener()
@@ -319,7 +322,8 @@ class Administration(commands.Cog, name='Administration'):
     async def on_guild_channel_update(self, bef: GuildChannel, aft: GuildChannel) -> None:
         '''Re-analizes the guild if a channel is updated.'''
 
-        logging.info('Channel updated: [ID:%s] %s > %s', aft.id, bef.name, aft.name)
+        logging.info(
+            'Channel updated: [ID:%s] %s > %s', aft.id, bef.name, aft.name)
         await self.bot.analyze_guild()
 
 
