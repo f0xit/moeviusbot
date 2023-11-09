@@ -1,4 +1,5 @@
 '''Cog for overwatch related commands'''
+import io
 import logging
 import random
 from enum import Enum
@@ -12,6 +13,8 @@ from bot import Bot
 from tools.request_tools import async_request_html
 
 PROMPT = 'Random Heroes? Kein Problem, Krah Krah!\n'
+HERO_URL = 'https://overwatch.blizzard.com/de-de/heroes/'
+PATCH_NOTES_URL = 'https://overwatch.blizzard.com/de-de/news/patch-notes/live/'
 
 
 class Role(Enum):
@@ -36,10 +39,87 @@ async def setup(bot: Bot) -> None:
     logging.info('Cog: Overwatch geladen.')
 
 
-def append_to_output(input_string: str) -> list[str]:
-    '''This function will be replaced soon.'''
+async def parse_hero_patch(hero) -> dict:
+    '''Parses a given hero-soup from the overwatch website and stores it in a dict.'''
 
-    return ["- " + i for i in input_string.split('\n') if i != '']
+    output_dict = {}
+    hero_name = hero.find('h5').contents[0]
+
+    output_dict[hero_name] = {}
+
+    output_dict[hero_name]["gen"] = [
+        list_item.contents[0]
+        for general_update in hero.find_all(
+            'div',
+            class_='PatchNotesHeroUpdate-generalUpdates'
+        )
+        for list_item in general_update.find_all(['li', 'p'])
+    ]
+
+    output_dict[hero_name]["abs"] = {
+        ability.find(
+            'div',
+            class_='PatchNotesAbilityUpdate-name'
+        ).contents[0]: [
+            list_item.contents[0] for list_item in ability.find_all(
+                'li'
+            )
+        ]
+        for ability in hero.find_all(
+            'div',
+            class_='PatchNotesAbilityUpdate-text'
+        )
+        if ability
+    }
+
+    return output_dict
+
+
+async def parse_patchnotes() -> dict | None:
+    '''Parses the patchnotes from the overwatch website an creates a dict.'''
+
+    try:
+        patch_notes_result = (await async_request_html(PATCH_NOTES_URL)).unwrap()
+    except UnwrapError as err_msg:
+        logging.error('Requesting Overwatch patchnotes failed: %s', err_msg)
+        return None
+
+    output_dict = {}
+
+    patch_notes_soup = BeautifulSoup(patch_notes_result, 'html.parser')
+    patches = patch_notes_soup.find_all('div', class_='PatchNotes-patch')
+
+    for patch in patches:
+        if (entry_point := patch.find(
+            'h4',
+            class_='PatchNotes-sectionTitle',
+            string="HELDENUPDATES"
+        )) is None:
+            continue
+
+        output_dict = {
+            "title": patch.find('h3', class_='PatchNotes-patchTitle').contents[0],
+            "changes": {}
+        }
+
+        entry_section = entry_point.find_parent()
+        for section in entry_section.next_siblings:
+            if 'PatchNotes-section-hero_update' not in section.attrs['class']:
+                break
+
+            section_header = section.find('h4')
+            if (hero_class := section_header.contents[0]) not in output_dict:
+                output_dict["changes"][hero_class] = {}
+
+            for hero in section_header.next_siblings:
+                if 'PatchNotesHeroUpdate' not in hero.attrs['class']:
+                    continue
+
+                output_dict["changes"][hero_class].update(await parse_hero_patch(hero))
+
+        break
+
+    return output_dict
 
 
 class Overwatch(commands.Cog, name='Overwatch'):
@@ -55,10 +135,8 @@ class Overwatch(commands.Cog, name='Overwatch'):
 
         logging.info('Loading Overwatch heroes...')
 
-        hero_url = 'https://overwatch.blizzard.com/de-de/heroes/'
-
         try:
-            hero_result = (await async_request_html(hero_url)).unwrap()
+            hero_result = (await async_request_html(HERO_URL)).unwrap()
         except UnwrapError as err_msg:
             logging.error('Request failed: %s', err_msg)
             return Err(f'Requesting hero list failed: {err_msg}')
@@ -123,78 +201,51 @@ class Overwatch(commands.Cog, name='Overwatch'):
     async def _owpn(self, ctx: commands.Context) -> None:
         '''Liefert dir, falls vorhanden, die neusten Änderungen bei Helden aus den Patchnotes.'''
 
-        patch_notes_url = 'https://overwatch.blizzard.com/de-de/news/patch-notes/live/'
-
-        try:
-            patch_notes_result = (await async_request_html(patch_notes_url)).unwrap()
-        except UnwrapError as err_msg:
-            logging.error('Request failed: %s', err_msg)
+        if (patchnotes := await parse_patchnotes()) is None:
+            await ctx.send("Etwas ist schiefgelaufen, Krah Krah!")
             return
 
-        patch_notes_soup = BeautifulSoup(patch_notes_result, 'html.parser')
-
-        latest_patch = patch_notes_soup.find_all(
-            'div', class_='PatchNotes-patch'
-        )[0].contents
-
-        output_array = []
-
-        for heroes in latest_patch:
-            if ('PatchNotes-labels' in heroes.attrs['class']
-                    and 'PatchNotes-date' in heroes.contents[0].attrs['class']):
-                # Patch Date
-                output_array.append(heroes.text)
-
-                continue
-
-            if 'PatchNotes-section-hero_update' not in heroes.attrs['class']:
-                continue
-
-            for hero in heroes:
-                if hero.name != 'div' or hero.contents == []:
-                    continue
-
-                # Hero name
-                output_array.append(f"**{hero.contents[0].text}**")
-
-                # Hero abilities
-                for field in hero.contents[1].contents:
-                    if 'PatchNotesHeroUpdate-generalUpdates' in field.attrs['class']:
-                        if len(field.contents) == 2:
-                            output_array.append("Allgemein")
-                            output_array += append_to_output(
-                                field.contents[0].text
-                            )
-                        else:
-                            output_array.append(field.contents[0].text)
-                            output_array += append_to_output(
-                                field.contents[2].text
-                            )
-                    elif 'PatchNotesHeroUpdate-abilitiesList' in field.attrs['class']:
-                        hero_abilities = field.contents
-
-                        for ability in hero_abilities:
-                            output_array.append(
-                                ability.contents[1].contents[0].text)
-                            output_array += append_to_output(
-                                ability.contents[1].contents[1].text
-                            )
-
-                output_array.append('')
-
-            break
-
-        if len(output_array) <= 1:
-            await ctx.send("Im letzten Patch gab es anscheinend keine Heldenupdates, Krah Krah!")
+        if not patchnotes:
+            await ctx.send("Anscheinend gab es in letzter Zeit keine Heldenupdates, Krah Krah!")
             return
+
+        embed_list = []
+        output = io.StringIO()
+
+        for hero_class in patchnotes['changes'].items():
+            embed = discord.Embed(
+                title=hero_class[0].capitalize(),
+                colour=discord.Colour(0xff00ff)
+            )
+            for hero in hero_class[1].items():
+                if hero[1]['gen']:
+                    output.write("__Allgemein__:\n")
+                    output.write('\n'.join(hero[1]['gen']))
+                    output.write('\n')
+
+                if hero[1]['abs']:
+                    for ability in hero[1]['abs']:
+                        output.write(f"__{ability}__:\n")
+                        output.write('\n'.join(hero[1]['abs'][ability]))
+                        output.write('\n')
+
+                embed.add_field(
+                    name=hero[0],
+                    value=output.getvalue(),
+                    inline=False
+                )
+
+                output.truncate(0)
+                output.seek(0)
+
+            embed_list.append(embed)
 
         await ctx.send(
-            embed=discord.Embed(
-                title=f"Heldenupdates vom {output_array[0]}, Krah Krah!",
-                colour=discord.Colour(0xff00ff),
-                description='\n'.join(output_array[1:-1])
-            )
+            f"**{patchnotes['title']}**",
+            embeds=embed_list
         )
+
+        output.close()
 
     @ commands.command(
         name='ow',
