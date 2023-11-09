@@ -11,7 +11,7 @@ from result import Err, Ok, Result, UnwrapError
 from bot import Bot
 from tools.request_tools import async_request_html
 
-PROMT = 'Random Heroes? Kein Problem, Krah Krah!\n'
+PROMPT = 'Random Heroes? Kein Problem, Krah Krah!\n'
 
 
 class Role(Enum):
@@ -221,7 +221,7 @@ class Overwatch(commands.Cog, name='Overwatch'):
 
             try:
                 await ctx.channel.send(
-                    PROMT + (await self.random_hero_for_user()).unwrap()
+                    PROMPT + (await self.random_hero_for_user()).unwrap()
                 )
             except UnwrapError as err_msg:
                 logging.error(err_msg)
@@ -233,7 +233,7 @@ class Overwatch(commands.Cog, name='Overwatch'):
 
             try:
                 await ctx.channel.send(
-                    PROMT + ', '.join((await self.random_hero_for_group(ctx.author)).unwrap())
+                    PROMPT + ', '.join((await self.random_hero_for_group(ctx.author)).unwrap())
                 )
             except UnwrapError as err_msg:
                 logging.error(err_msg)
@@ -251,7 +251,7 @@ class Overwatch(commands.Cog, name='Overwatch'):
 
         try:
             await ctx.channel.send(
-                PROMT + (await self.random_hero_for_user(Role.DAMAGE)).unwrap()
+                PROMPT + (await self.random_hero_for_user(Role.DAMAGE)).unwrap()
             )
         except UnwrapError as err_msg:
             logging.error(err_msg)
@@ -269,7 +269,7 @@ class Overwatch(commands.Cog, name='Overwatch'):
 
         try:
             await ctx.channel.send(
-                PROMT + (await self.random_hero_for_user(Role.SUPPORT)).unwrap()
+                PROMPT + (await self.random_hero_for_user(Role.SUPPORT)).unwrap()
             )
         except UnwrapError as err_msg:
             logging.error(err_msg)
@@ -287,7 +287,7 @@ class Overwatch(commands.Cog, name='Overwatch'):
 
         try:
             await ctx.channel.send(
-                PROMT + (await self.random_hero_for_user(Role.TANK)).unwrap()
+                PROMPT + (await self.random_hero_for_user(Role.TANK)).unwrap()
             )
         except UnwrapError as err_msg:
             logging.error(err_msg)
