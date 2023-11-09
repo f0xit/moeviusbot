@@ -55,7 +55,7 @@ class Overwatch(commands.Cog, name='Overwatch'):
 
         logging.info('Loading Overwatch heroes...')
 
-        hero_url = 'https://playoverwatch.com/de-de/heroes/'
+        hero_url = 'https://overwatch.blizzard.com/de-de/heroes/'
 
         try:
             hero_result = (await async_request_html(hero_url)).unwrap()
@@ -123,7 +123,7 @@ class Overwatch(commands.Cog, name='Overwatch'):
     async def _owpn(self, ctx: commands.Context) -> None:
         '''Liefert dir, falls vorhanden, die neusten Änderungen bei Helden aus den Patchnotes.'''
 
-        patch_notes_url = 'https://playoverwatch.com/de-de/news/patch-notes/live'
+        patch_notes_url = 'https://overwatch.blizzard.com/de-de/news/patch-notes/live/'
 
         try:
             patch_notes_result = (await async_request_html(patch_notes_url)).unwrap()
