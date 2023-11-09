@@ -54,11 +54,11 @@ class Bot(commands.Bot):
         }
 
         try:
-            self.channels['stream'] = [
+            self.channels['stream'] = next(
                 chan for chan in categories[None]
                 if chan.name == self.settings['channels']['stream']
                 and chan.type == discord.ChannelType.text
-            ][0]
+            )
         except KeyError as err_msg:
             logging.warning(
                 'Category not found. Stream channel should be here. %s', err_msg
