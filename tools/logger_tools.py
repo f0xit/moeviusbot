@@ -1,6 +1,7 @@
 import logging
 import sys
 from logging.handlers import TimedRotatingFileHandler
+import typing
 
 
 class LoggerTools():
@@ -40,7 +41,7 @@ class LoggerTools():
 
 
 class CustomFormatter(logging.Formatter):
-    LEVEL_COLOURS = [
+    LEVEL_COLOURS: typing.ClassVar = [
         (logging.DEBUG, '\x1b[40;1m'),
         (logging.INFO, '\x1b[34;1m'),
         (logging.WARNING, '\x1b[33;1m'),
@@ -48,7 +49,7 @@ class CustomFormatter(logging.Formatter):
         (logging.CRITICAL, '\x1b[41m'),
     ]
 
-    FORMATS = {
+    FORMATS: typing.ClassVar = {
         level: logging.Formatter(
             f'\x1b[30;1m%(asctime)s\x1b[0m {colour}%(levelname)-8s'
             '\x1b[0m \x1b[35m%(name)s.%(module)s.%(funcName)s\x1b[0m %(message)s',
