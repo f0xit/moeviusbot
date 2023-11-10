@@ -43,39 +43,3 @@ class Bot(commands.Bot):
 
         self.main_guild = guild
         logging.info("Guild found! [ID:%s] %s", self.main_guild.id, self.main_guild.name)
-
-        logging.info("Analyzing channels...")
-
-        categories = {
-            None if cat[0] is None else cat[0].name: cat[1] for cat in guild.by_category()
-        }
-
-        try:
-            self.channels["stream"] = next(
-                chan
-                for chan in categories[None]
-                if chan.name == self.settings["channels"]["stream"]
-                and chan.type == discord.ChannelType.text
-            )
-        except KeyError as err_msg:
-            logging.warning("Category not found. Stream channel should be here. %s", err_msg)
-            self.channels["stream"] = None
-        except IndexError as err_msg:
-            logging.warning(
-                "Stream channel not found. Name in settings is %s. %s",
-                self.settings["channels"]["stream"],
-                err_msg,
-            )
-            self.channels["stream"] = None
-
-        if self.channels["stream"] is None:
-            logging.error("Stream channel not found!")
-            return
-
-        logging.info(
-            "Stream channel found. [ID: %s] %s",
-            self.channels["stream"].id,
-            self.channels["stream"].name,
-        )
-
-        logging.info("Channel analysis completed!")
