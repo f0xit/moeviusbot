@@ -4,6 +4,8 @@
 
 channel_messages.txt
 
+*.db
+
 __pycache__
 .ruff_cache
 .vscode
