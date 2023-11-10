@@ -32,6 +32,7 @@ class Reminder(commands.Cog, name="Events"):
         self.bot = bot
         self.session = Session(self.bot.db_engine, autoflush=True)
         self.upcoming_events = self.get_upcoming_events()
+        self.time_now = ""
         self.reminder_checker.start()
         logging.info("Reminder initialized.")
 
