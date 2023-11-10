@@ -91,7 +91,7 @@ class Reminder(commands.Cog, name="Events"):
         """Hier kannst du alles über einen aktuellen Stream-Reminder herausfinden oder seine
         Einstellungen anpassen"""
 
-    @is_special_user([SpecialUser.Schnenk, SpecialUser.Hans])
+    @is_special_user([SpecialUser.SCHNENK, SpecialUser.HANS])
     @_stream.command(name="add", brief="Fügt ein Stream Event hinzu.")
     @discord.app_commands.rename(time="zeitpunkt", title="titel", description="beschreibung")
     @discord.app_commands.describe(

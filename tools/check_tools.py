@@ -8,8 +8,8 @@ from tools.json_tools import load_file
 class SpecialUser(Enum):
     """Enum of special users."""
 
-    Hans = 247117682875432960
-    Schnenk = 257249704872509441
+    HANS = 247117682875432960
+    SCHNENK = 257249704872509441
 
 
 def is_super_user():
