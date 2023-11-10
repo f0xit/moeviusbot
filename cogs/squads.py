@@ -41,12 +41,12 @@ class Squads(commands.Cog, name="Events"):
 
         self.squad_channels = cat_games
         logging.info("%s squad channels found.", len(self.squad_channels))
-        logging.debug("Squad channels:", self.squad_channels)
+        logging.debug("Squad channels: %s", self.squad_channels)
 
     @commands.hybrid_group(
         name="squad", fallback="show", brief="Manage dein Squad mit ein paar simplen Kommandos."
     )
-    async def _squad(self, ctx: commands.Context, *args) -> None:
+    async def _squad(self, ctx: commands.Context) -> None:
         """TODO"""
 
         if not isinstance(ctx.channel, discord.TextChannel):
