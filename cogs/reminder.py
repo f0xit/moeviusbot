@@ -48,7 +48,7 @@ class Reminder(commands.Cog, name="Events"):
         self.stream_channel = stream_channel
         logging.info("Stream channel found. [ID: %s] %s", stream_channel.id, stream_channel.name)
 
-    def cog_unload(self) -> None:
+    async def cog_unload(self) -> None:
         self.reminder_checker.cancel()
         self.session.close()
         logging.info("Reminder unloaded.")
