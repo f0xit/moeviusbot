@@ -8,7 +8,6 @@ import subprocess
 import sys
 
 import discord
-from discord.abc import GuildChannel
 from discord.ext import commands
 from dotenv import load_dotenv
 from result import UnwrapError
@@ -190,7 +189,6 @@ class Administration(commands.Cog, name="Administration"):
         await ctx.send("Reload wird gestartet.")
 
         self.bot.load_files_into_attrs()
-        await self.bot.analyze_guild()
 
     @commands.group(name="extensions", aliases=["ext"], brief="Verwaltet die Extensions des Bots.")
     async def _extensions(self, ctx: commands.Context) -> None:
@@ -241,8 +239,6 @@ class Administration(commands.Cog, name="Administration"):
 
         Additionally, the elapsed time since startup is logged."""
 
-        await self.bot.analyze_guild()
-
         await asyncio.gather(
             *map(
                 self.bot.load_extension,
@@ -281,27 +277,6 @@ class Administration(commands.Cog, name="Administration"):
             return
 
         await hans.send(f"```*ERROR*\n{ctx.author.name}\n{ctx.message.content}\n{error}```")
-
-    @commands.Cog.listener()
-    async def on_guild_channel_create(self, channel: GuildChannel) -> None:
-        """Re-analizes the guild if a channel is added."""
-
-        logging.info("New channel created: [ID:%s] %s", channel.id, channel.name)
-        await self.bot.analyze_guild()
-
-    @commands.Cog.listener()
-    async def on_guild_channel_delete(self, channel: GuildChannel) -> None:
-        """Re-analizes the guild if a channel is deleted."""
-
-        logging.info("Channel deleted: [ID:%s] %s", channel.id, channel.name)
-        await self.bot.analyze_guild()
-
-    @commands.Cog.listener()
-    async def on_guild_channel_update(self, bef: GuildChannel, aft: GuildChannel) -> None:
-        """Re-analizes the guild if a channel is updated."""
-
-        logging.info("Channel updated: [ID:%s] %s > %s", aft.id, bef.name, aft.name)
-        await self.bot.analyze_guild()
 
 
 async def main() -> None:

@@ -4,6 +4,7 @@ import discord
 from discord.ext import commands
 
 from bot import Bot
+from tools.json_tools import DictFile
 
 
 async def setup(bot: Bot) -> None:
@@ -15,127 +16,137 @@ async def setup(bot: Bot) -> None:
 class Squads(commands.Cog, name="Events"):
     def __init__(self, bot: Bot) -> None:
         self.bot = bot
+        self.squads = DictFile("squads")
 
-    @commands.command(
-        name="squad", aliases=["sq"], brief="Manage dein Squad mit ein paar simplen Kommandos."
+    async def cog_load(self):
+        await self.scan_for_squad_channels()
+
+    async def scan_for_squad_channels(self) -> None:
+        """TODO"""
+
+        logging.info("Looking for squad channels ...")
+
+        cat_games = [
+            chan
+            for chan in next(
+                chans
+                for cat, chans in self.bot.main_guild.by_category()
+                if cat is None or cat.name != "Spiele"
+            )
+            if isinstance(chan, discord.TextChannel)
+        ]
+
+        if not cat_games:
+            raise RuntimeError("Category Spiele not found.")
+
+        self.squad_channels = cat_games
+        logging.info("%s squad channels found.", len(self.squad_channels))
+        logging.debug("Squad channels:", self.squad_channels)
+
+    @commands.hybrid_group(
+        name="squad", fallback="show", brief="Manage dein Squad mit ein paar simplen Kommandos."
     )
     async def _squad(self, ctx: commands.Context, *args) -> None:
-        """Du willst dein Squad managen? Okay, so gehts!
-        Achtung: Jeder Game-Channel hat ein eigenes Squad. Du musst also im richtigen Channel sein.
-
-        !squad                  zeigt dir an, wer aktuell im Squad ist.
-        !squad add User1 ...    fügt User hinzu. Du kannst auch mehrere User gleichzeitig
-                                hinzufügen. "add me" fügt dich hinzu.
-        !squad rem User1 ...    entfernt den oder die User wieder."""
+        """TODO"""
 
         if not isinstance(ctx.channel, discord.TextChannel):
             return
 
-        if ctx.channel.category is None:
+        await ctx.defer()
+
+        if ctx.channel not in self.squad_channels:
             await ctx.send("Hey, das ist kein Spiele-Channel, Krah Krah!")
-            logging.warning(
-                "%s denkt, %s sei ein Spiele-Channel.", ctx.author.name, ctx.channel.name
-            )
             return
 
-        if ctx.channel.category.name != "Spiele":
+        if not ctx.channel.id not in self.squads:
+            await ctx.send("Es gibt hier noch kein Squad, Krah Krah!")
+            return
+
+        game = ctx.channel.name.replace("-", " ").title()
+
+        members = []
+        for user_id in self.squads[str(ctx.channel.id)]:
+            if (member := self.bot.main_guild.get_member(user_id)) is not None:
+                members.append(member.display_name)
+                continue
+
+            members.append((await self.bot.main_guild.fetch_member(user_id)).display_name)
+
+        await ctx.send(f"Das sind die Mitglieder im {game}-Squad, Krah Krah!\n{', '.join(members)}")
+
+    @_squad.command(name="add", brief="Fügt User zum Squad hinzu.")
+    async def _add_to_squad(
+        self,
+        ctx: commands.Context,
+        member: discord.Member,
+    ) -> None:
+        if not isinstance(ctx.channel, discord.TextChannel):
+            return
+
+        await ctx.defer()
+
+        if ctx.channel not in self.squad_channels:
             await ctx.send("Hey, das ist kein Spiele-Channel, Krah Krah!")
-            logging.warning(
-                "%s denkt, %s sei ein Spiele-Channel.", ctx.author.name, ctx.channel.name
-            )
             return
 
-        if len(args) == 1:
+        if not self.squads[str(ctx.channel.id)]:
+            self.squads[str(ctx.channel.id)] = [member.id]
+            await ctx.send(f"{member.display_name} wurde zum neuen Squad hinzugefügt, Krah Krah!")
             return
 
-        if len(args) == 0:
-            if len(self.bot.squads[ctx.channel.name]) > 0:
-                game = ctx.channel.name.replace("-", " ").title()
-                members = ", ".join(self.bot.squads[ctx.channel.name].keys())
-                await ctx.send(f"Das sind die Mitglieder im {game}-Squad, Krah Krah!\n{members}")
-                logging.info(
-                    "%s hat das Squad in %s angezeigt: %s.",
-                    ctx.author.name,
-                    ctx.channel.name,
-                    members,
-                )
-            else:
-                await ctx.send("Es gibt hier noch kein Squad, Krah Krah!")
-                logging.warning(
-                    "%s hat das Squad in %s gerufen aber es gibt keins.",
-                    ctx.author.name,
-                    ctx.channel.name,
-                )
-
+        if member.id in self.squads[str(ctx.channel.id)]:
+            await ctx.send(f"{member.display_name} scheint schon im Squad zu sein, Krah Krah!")
             return
 
-        match args[0]:
-            case "add" | "a" | "+":
-                for arg in args[1:]:
-                    member = ctx.author if arg == "me" else self.bot.get_user(int(arg[2:-1]))
+        self.squads[str(ctx.channel.id)].append(member.id)
+        await ctx.send(f"{member.display_name} wurde zum Squad hinzugefügt, Krah Krah!")
 
-                    if member is None:
-                        await ctx.send(f"Ich kenne {arg} nicht, verlinke ihn bitte mit @.")
-                        logging.warning(
-                            "%s hat versucht, %s zum %s-Squad hinzuzufügen.",
-                            ctx.author.name,
-                            arg,
-                            ctx.channel.name,
-                        )
-                        continue
+    @_squad.command(name="rem", brief="Entfernt User aus dem Squad.")
+    async def _rem_from_squad(
+        self,
+        ctx: commands.Context,
+        member: discord.Member,
+    ) -> None:
+        if not isinstance(ctx.channel, discord.TextChannel):
+            return
 
-                    if member.name in self.bot.squads[ctx.channel.name]:
-                        await ctx.send(f"{member.name} scheint schon im Squad zu sein, Krah Krah!")
-                        logging.warning(
-                            "%s wollte %s mehrfach zum %s-Squad hinzuzufügen.",
-                            ctx.author.name,
-                            member.name,
-                            ctx.channel.name,
-                        )
-                        continue
+        await ctx.defer()
 
-                    self.bot.squads[ctx.channel.name][member.name] = member.id
-                    await ctx.send(f"{member.name} wurde zum Squad hinzugefügt, Krah Krah!")
-                    logging.info(
-                        "%s hat %s zum %s-Squad hinzugefügt.",
-                        ctx.author.name,
-                        member.name,
-                        ctx.channel.name,
-                    )
+        if ctx.channel not in self.squad_channels:
+            await ctx.send("Hey, das ist kein Spiele-Channel, Krah Krah!")
+            return
 
-            case "rem" | "r" | "-":
-                for arg in args[1:]:
-                    member = ctx.author if arg == "me" else self.bot.get_user(int(arg[2:-1]))
+        if not self.squads[str(ctx.channel.id)]:
+            self.squads[str(ctx.channel.id)] = []
+            await ctx.send("Hier gab es gar kein Squad aber ich hab mal eins erstellt, Krah Krah!")
+            return
 
-                    if member is None:
-                        await ctx.send(f"Ich kenne {arg} nicht, verlinke ihn bitte mit @.")
-                        logging.warning(
-                            "%s hat versucht, %s zum %s-Squad hinzuzufügen.",
-                            ctx.author.name,
-                            arg,
-                            ctx.channel.name,
-                        )
-                        continue
+        if member.id not in self.squads[str(ctx.channel.id)]:
+            await ctx.send(f"{member.display_name} scheint gar nicht im Squad zu sein, Krah Krah!")
+            return
 
-                    if member.name not in self.bot.squads[ctx.channel.name]:
-                        await ctx.send(
-                            "Das macht gar keinen Sinn. "
-                            f"{member.name} ist gar nicht im Squad, Krah Krah!"
-                        )
-                        logging.warning(
-                            "%s wollte %s aus dem %s-Squad entfernen, "
-                            "aber er war nicht Mitglied.",
-                            ctx.author.name,
-                            member.name,
-                            ctx.channel.name,
-                        )
-                        continue
+        self.squads[str(ctx.channel.id)].remove(member.id)
+        await ctx.send(f"{member.display_name} wurde aus dem Squad entfernt, Krah Krah!")
 
-                    self.bot.squads[ctx.channel.name].pop(member.name)
-                    await ctx.send(f"{member.name} wurde aus dem Squad entfernt, Krah Krah!")
-                    logging.info(
-                        "%s hat %s aus dem %s-Squad entfernt.",
-                        ctx.author.name,
-                        member.name,
-                        ctx.channel.name,
-                    )
+    @commands.Cog.listener()
+    async def on_guild_channel_create(self, channel: discord.abc.GuildChannel) -> None:
+        """Re-analizes the guild if a channel is added."""
+
+        logging.info("New channel created: [ID:%s] %s", channel.id, channel.name)
+        await self.scan_for_squad_channels()
+
+    @commands.Cog.listener()
+    async def on_guild_channel_delete(self, channel: discord.abc.GuildChannel) -> None:
+        """Re-analizes the guild if a channel is deleted."""
+
+        logging.info("Channel deleted: [ID:%s] %s", channel.id, channel.name)
+        await self.scan_for_squad_channels()
+
+    @commands.Cog.listener()
+    async def on_guild_channel_update(
+        self, bef: discord.abc.GuildChannel, aft: discord.abc.GuildChannel
+    ) -> None:
+        """Re-analizes the guild if a channel is updated."""
+
+        logging.info("Channel updated: [ID:%s] %s > %s", aft.id, bef.name, aft.name)
+        await self.scan_for_squad_channels()

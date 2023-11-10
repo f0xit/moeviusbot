@@ -25,10 +25,9 @@ class Bot(commands.Bot):
         """This function fills the bot's attributes with data from files."""
 
         self.settings = DictFile("settings")
-        self.squads = DictFile("squads")
         self.channels: dict[str, discord.TextChannel | None] = {}
 
-    async def analyze_guild(self) -> None:
+    async def set_main_guild(self) -> None:
         """This function analyzes the the channels in the discord guild
         specified in the bot's settings as 'server_id' and stores them in the
         bot's channels-attribute.
@@ -42,7 +41,8 @@ class Bot(commands.Bot):
         if (guild := self.get_guild(int(self.settings["server_id"]))) is None:
             raise RuntimeError("Guild not found!")
 
-        logging.info("Guild found! [ID:%s] %s", guild.id, guild.name)
+        self.main_guild = guild
+        logging.info("Guild found! [ID:%s] %s", self.main_guild.id, self.main_guild.name)
 
         logging.info("Analyzing channels...")
 
@@ -77,29 +77,5 @@ class Bot(commands.Bot):
             self.channels["stream"].id,
             self.channels["stream"].name,
         )
-
-        try:
-            self.channels.update(
-                {
-                    chan.name: chan
-                    for chan in list(categories["Spiele"])
-                    if chan.type == discord.ChannelType.text
-                }
-            )
-        except KeyError as err_msg:
-            logging.warning('Category "Spiele" not found. %s', err_msg)
-
-        logging.info("Channels found. %s", ",".join(self.channels.keys()))
-
-        for name in self.channels:
-            if name == "stream":
-                continue
-
-            if name not in self.squads:
-                self.squads[name] = {}
-                logging.info("Created empty squad for new game channel %s", name)
-                continue
-
-            logging.debug("Squad found: %s", ",".join(self.squads[name].keys()))
 
         logging.info("Channel analysis completed!")
