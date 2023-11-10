@@ -1,4 +1,4 @@
-from typing import Any
+from typing import Any, Optional
 
 import discord
 
@@ -8,10 +8,10 @@ THUMB_URL = "https://static-cdn.jtvnw.net/jtv_user_pictures/2ed0d78d-f66a-409d-8
 
 
 class StreamEmbed(discord.Embed):
-    def __init__(self, *, description: Any | None = None):
+    def __init__(self, *, title: Optional[Any] = None, description: Optional[Any] = None):
         super().__init__(
             colour=0xFF00FF,
-            title="**Stream-Ankündigung**",
+            title=title,
             type="rich",
             url="https://www.twitch.tv/schnenko",
             description=description,
@@ -25,9 +25,17 @@ class EmbedBuilder:
     def single_stream_announcement(event: Event) -> discord.Embed:
         return (
             StreamEmbed(
+                title="**Stream-Ankündigung**",
                 description=f"{event.description}\nGebt mir ein Join, Krah Krah!",
             )
             .add_field(name="Wann?", value=event.fmt_dt)
             .add_field(name="Was?", value=event.title)
             .set_footer(text=f"Event ID: {event.id}")
         )
+
+    @staticmethod
+    def stream_running(event: Event) -> discord.Embed:
+        return StreamEmbed(
+            title="**Schnenko nervt!**",
+            description=f"**{event.title}**",
+        ).add_field(name="Beschreibung:", value=event.description)
