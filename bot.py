@@ -4,6 +4,7 @@ import logging
 import discord
 from discord.ext import commands
 
+from tools.db_tools import create_engine
 from tools.json_tools import DictFile
 
 
@@ -16,6 +17,7 @@ class Bot(commands.Bot):
         super().__init__(("!", "?"), intents=discord.Intents.all())
 
         self.load_files_into_attrs()
+        self.db_engine = create_engine()
 
         logging.info("Bot initialized!")
 
