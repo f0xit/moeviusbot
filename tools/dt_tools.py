@@ -14,6 +14,20 @@ def get_local_timezone() -> dt.tzinfo | None:
     return ZoneInfo("Europe/Berlin")
 
 
+def get_week_boundaries() -> tuple[dt.datetime, dt.datetime]:
+    """_summary_
+
+    Returns:
+        tuple[dt.datetime, dt.datetime]: _description_"""
+
+    today = dt.datetime.combine(dt.date.today(), dt.time(0))
+
+    start = today - dt.timedelta(days=today.weekday())
+    end = start + dt.timedelta(days=7) - dt.timedelta(seconds=1)
+
+    return start, end
+
+
 def strfdelta(
     tdelta: dt.timedelta, fmt: str = "{days} Tage {hours:02d}:{minutes:02d}:{seconds:02d}"
 ) -> str:
