@@ -46,5 +46,13 @@ class Event(Base):
         return f"#{self.id:04}-{self.type}: {self.time} {self.title}"
 
     @property
+    def fmt_field(self) -> dict:
+        return {
+            "name": f"**ID: {self.id:04}**",
+            "value": f"[{self.type}] {self.fmt_dt}\n{self.title}\n{self.description}",
+            "inline": False,
+        }
+
+    @property
     def fmt_dt(self) -> str:
         return self.time.strftime(DEFAULT_TIME_FMT)

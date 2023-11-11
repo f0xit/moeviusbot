@@ -1,4 +1,4 @@
-from typing import Any, Optional
+from typing import Any, Optional, Sequence
 
 import discord
 
@@ -39,3 +39,17 @@ class EmbedBuilder:
             title="**Schnenko nervt!**",
             description=f"**{event.title}**",
         ).add_field(name="Beschreibung:", value=event.description)
+
+    @staticmethod
+    def upcoming_events(events: Sequence[Event]) -> discord.Embed:
+        if events is None or not events:
+            raise ValueError
+
+        embed = StreamEmbed(
+            title="**Angekündigte Events**", description="Diese Events sind aktuell angekündigt."
+        )
+
+        for event in events:
+            embed.add_field(**event.fmt_field)
+
+        return embed

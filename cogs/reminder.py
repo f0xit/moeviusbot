@@ -66,7 +66,7 @@ class Reminder(commands.Cog, name="Events"):
 
         self.upcoming_events = self.get_upcoming_events()
 
-    async def mark_event_as_announced(self, event) -> None:
+    async def mark_event_as_announced(self, event: Event) -> None:
         event.announced = True
         self.session.commit()
 
@@ -74,11 +74,11 @@ class Reminder(commands.Cog, name="Events"):
 
         self.upcoming_events = self.get_upcoming_events()
 
-    async def mark_event_as_started(self, event) -> None:
-        event.announced = True
+    async def mark_event_as_started(self, event: Event) -> None:
+        event.started = True
         self.session.commit()
 
-        logging.info("Event updated (announced): %s", event)
+        logging.info("Event updated (started): %s", event)
 
         self.upcoming_events = self.get_upcoming_events()
 
@@ -90,6 +90,16 @@ class Reminder(commands.Cog, name="Events"):
     async def _stream(self, ctx: commands.Context) -> None:
         """Hier kannst du alles über einen aktuellen Stream-Reminder herausfinden oder seine
         Einstellungen anpassen"""
+
+        await ctx.defer()
+
+        if not (self.upcoming_events):
+            await ctx.send("Es wurde kein Stream angekündigt, Krah Krah!")
+            return
+
+        embed = EmbedBuilder.upcoming_events(self.upcoming_events)
+
+        await ctx.send("Hier sind die angekündigten Streams:", embed=embed)
 
     @is_special_user([SpecialUser.SCHNENK, SpecialUser.HANS])
     @_stream.command(name="add", brief="Fügt ein Stream Event hinzu.")
