@@ -1,4 +1,5 @@
 import datetime as dt
+import functools
 import logging
 from typing import Optional, Sequence
 
@@ -18,6 +19,19 @@ async def setup(bot: Bot) -> None:
     """Setup function for the cog."""
     await bot.add_cog(Reminder(bot))
     logging.info("Cog: Reminder loaded.")
+
+
+def refresh_upcoming_events():
+    def wrapper(func):
+        @functools.wraps(func)
+        async def wrapped(self: Reminder, *args, **kw):
+            output = func(self, *args, **kw)
+            self.upcoming_events = await Event.get_upcoming_events(self.session)
+            return output
+
+        return wrapped
+
+    return wrapper
 
 
 class Reminder(commands.Cog, name="Events"):
@@ -54,28 +68,25 @@ class Reminder(commands.Cog, name="Events"):
         self.session.close()
         logging.info("Reminder unloaded.")
 
+    @refresh_upcoming_events()
     async def save_event_in_db(self, event: Event) -> None:
         self.session.add(event)
         self.session.commit()
         logging.info("Inserted event into DB: %s", event)
 
-        self.upcoming_events = await Event.get_upcoming_events(self.session)
-
+    @refresh_upcoming_events()
     async def mark_event_as_announced(self, event: Event) -> None:
         event.announced = True
         self.session.commit()
 
         logging.info("Event updated (announced): %s", event)
 
-        self.upcoming_events = await Event.get_upcoming_events(self.session)
-
+    @refresh_upcoming_events()
     async def mark_event_as_started(self, event: Event) -> None:
         event.started = True
         self.session.commit()
 
         logging.info("Event updated (started): %s", event)
-
-        self.upcoming_events = await Event.get_upcoming_events(self.session)
 
     @commands.hybrid_group(
         name="stream",
