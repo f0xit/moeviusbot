@@ -4,10 +4,12 @@ of the discord bot"""
 from __future__ import annotations
 
 import datetime as dt
+import logging
 from enum import Enum, auto
-from typing import Optional
+from typing import Optional, Sequence
 
-from sqlalchemy.orm import Mapped, mapped_column
+from sqlalchemy import select
+from sqlalchemy.orm import Mapped, Session, mapped_column
 
 from tools.db_tools import Base
 
@@ -56,3 +58,21 @@ class Event(Base):
     @property
     def fmt_dt(self) -> str:
         return self.time.strftime(DEFAULT_TIME_FMT)
+
+    @staticmethod
+    async def get_upcoming_events(session: Session) -> Sequence[Event]:
+        events = session.execute(select(Event)).scalars.all()
+        logging.info("Updated list of upcoming events. Amount: %s", events.count)
+        return events
+
+    @staticmethod
+    async def get_events_to_announce(session: Session) -> Sequence[Event]:
+        events = session.execute(select(Event)).scalars.all()
+        logging.info("Updated list of events to announce. Amount: %s", events.count)
+        return events
+
+    @staticmethod
+    async def get_week_events_to_announce(session: Session) -> Sequence[Event]:
+        events = session.execute(select(Event)).scalars.all()
+        logging.info("Updated list of events to announce. Amount: %s", events.count)
+        return events

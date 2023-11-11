@@ -4,7 +4,6 @@ from typing import Optional, Sequence
 
 import discord
 from discord.ext import commands, tasks
-from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from bot import Bot
@@ -31,14 +30,15 @@ class Reminder(commands.Cog, name="Events"):
     def __init__(self, bot: Bot) -> None:
         self.bot = bot
         self.session = Session(self.bot.db_engine, autoflush=True)
-        self.upcoming_events = self.get_upcoming_events()
+        self.upcoming_events: Sequence[Event] = []
         self.time_now = ""
         self.reminder_checker.start()
         logging.info("Reminder initialized.")
 
     async def cog_load(self):
-        logging.info("Finding stream channel...")
+        self.upcoming_events = await Event.get_upcoming_events(self.session)
 
+        logging.info("Finding stream channel...")
         chan_id = int(self.bot.settings["channels"]["stream"])
         stream_channel = self.bot.main_guild.get_channel(chan_id)
 
@@ -54,27 +54,12 @@ class Reminder(commands.Cog, name="Events"):
         self.session.close()
         logging.info("Reminder unloaded.")
 
-    def get_upcoming_events(self) -> Sequence[Event]:
-        events = self.session.execute(select(Event)).scalars.all()
-        logging.info("Updated list of upcoming events. Amount: %s", events.count)
-        return events
-
-    def get_events_to_announce(self) -> Sequence[Event]:
-        events = self.session.execute(select(Event)).scalars.all()
-        logging.info("Updated list of events to announce. Amount: %s", events.count)
-        return events
-
-    def get_week_events_to_announce(self) -> Sequence[Event]:
-        events = self.session.execute(select(Event)).scalars.all()
-        logging.info("Updated list of events to announce. Amount: %s", events.count)
-        return events
-
     async def save_event_in_db(self, event: Event) -> None:
         self.session.add(event)
         self.session.commit()
         logging.info("Inserted event into DB: %s", event)
 
-        self.upcoming_events = self.get_upcoming_events()
+        self.upcoming_events = await Event.get_upcoming_events(self.session)
 
     async def mark_event_as_announced(self, event: Event) -> None:
         event.announced = True
@@ -82,7 +67,7 @@ class Reminder(commands.Cog, name="Events"):
 
         logging.info("Event updated (announced): %s", event)
 
-        self.upcoming_events = self.get_upcoming_events()
+        self.upcoming_events = await Event.get_upcoming_events(self.session)
 
     async def mark_event_as_started(self, event: Event) -> None:
         event.started = True
@@ -90,7 +75,7 @@ class Reminder(commands.Cog, name="Events"):
 
         logging.info("Event updated (started): %s", event)
 
-        self.upcoming_events = self.get_upcoming_events()
+        self.upcoming_events = await Event.get_upcoming_events(self.session)
 
     @commands.hybrid_group(
         name="stream",
@@ -171,7 +156,7 @@ class Reminder(commands.Cog, name="Events"):
     async def _announce_event(self, ctx: commands.Context) -> None:
         await ctx.defer()
 
-        events_to_announce = self.get_events_to_announce()
+        events_to_announce = await Event.get_events_to_announce(self.session)
 
         await ctx.send(
             embed=EmbedBuilder.events_to_be_announced(events_to_announce), ephemeral=True
@@ -188,7 +173,7 @@ class Reminder(commands.Cog, name="Events"):
         if (output_channel := self.bot.channels["stream"]) is None:
             return
 
-        if (event := self.get_events_to_announce()[0]) is None:
+        if (event := (await Event.get_events_to_announce(self.session))[0]) is None:
             return
 
         await output_channel.send(embed=EmbedBuilder.single_stream_announcement(event))
@@ -205,7 +190,7 @@ class Reminder(commands.Cog, name="Events"):
         if (output_channel := self.bot.channels["stream"]) is None:
             return
 
-        if not (events := self.get_week_events_to_announce()):
+        if not (events := (await Event.get_week_events_to_announce(self.session))):
             return
 
         if description is None:
