@@ -34,11 +34,28 @@ class EmbedBuilder:
         )
 
     @staticmethod
-    def stream_running(event: Event) -> discord.Embed:
-        return StreamEmbed(
-            title="**Schnenko nervt!**",
-            description=f"**{event.title}**",
-        ).add_field(name="Beschreibung:", value=event.description)
+    def week_streams_announcement(events: Sequence[Event], description: str = "") -> discord.Embed:
+        if events is None or not events:
+            raise ValueError
+
+        embed = StreamEmbed(title="**Stream-Plan für diese Woche**", description=description)
+
+        for event in events:
+            embed.add_field(**event.fmt_field)
+
+        return embed
+
+    @staticmethod
+    def events_to_be_announced(events: Sequence[Event]) -> discord.Embed:
+        if events is None or not events:
+            raise ValueError
+
+        embed = StreamEmbed(title="**Unangekündigte Events**")
+
+        for event in events:
+            embed.add_field(**event.fmt_field)
+
+        return embed
 
     @staticmethod
     def upcoming_events(events: Sequence[Event]) -> discord.Embed:
@@ -53,3 +70,10 @@ class EmbedBuilder:
             embed.add_field(**event.fmt_field)
 
         return embed
+
+    @staticmethod
+    def stream_running(event: Event) -> discord.Embed:
+        return StreamEmbed(
+            title="**Schnenko nervt!**",
+            description=f"**{event.title}**",
+        ).add_field(name="Beschreibung:", value=event.description)

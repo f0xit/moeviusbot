@@ -59,6 +59,16 @@ class Reminder(commands.Cog, name="Events"):
         logging.info("Updated list of upcoming events. Amount: %s", events.count)
         return events
 
+    def get_events_to_announce(self) -> Sequence[Event]:
+        events = self.session.execute(select(Event)).scalars.all()
+        logging.info("Updated list of events to announce. Amount: %s", events.count)
+        return events
+
+    def get_week_events_to_announce(self) -> Sequence[Event]:
+        events = self.session.execute(select(Event)).scalars.all()
+        logging.info("Updated list of events to announce. Amount: %s", events.count)
+        return events
+
     async def save_event_in_db(self, event: Event) -> None:
         self.session.add(event)
         self.session.commit()
@@ -155,6 +165,55 @@ class Reminder(commands.Cog, name="Events"):
                 await ctx.send("Alles klar, Krah Krah! Was möchtest du ändern?", ephemeral=True)
 
         await preview.edit(view=None)
+
+    @is_special_user([SpecialUser.SCHNENK, SpecialUser.HANS])
+    @commands.hybrid_group(name="announce", fallback="list", brief="Zeigt unangekündigte Events.")
+    async def _announce_event(self, ctx: commands.Context) -> None:
+        await ctx.defer()
+
+        events_to_announce = self.get_events_to_announce()
+
+        await ctx.send(
+            embed=EmbedBuilder.events_to_be_announced(events_to_announce), ephemeral=True
+        )
+
+    @is_special_user([SpecialUser.SCHNENK, SpecialUser.HANS])
+    @_announce_event.command(name="next", brief="Kündigt Stream Events an.")
+    async def _announce_next_event(
+        self,
+        ctx: commands.Context,
+    ) -> None:
+        await ctx.defer()
+
+        if (output_channel := self.bot.channels["stream"]) is None:
+            return
+
+        if (event := self.get_events_to_announce()[0]) is None:
+            return
+
+        await output_channel.send(embed=EmbedBuilder.single_stream_announcement(event))
+
+        await ctx.send("Ich habe das Event angekündigt.", ephemeral=True)
+
+    @is_special_user([SpecialUser.SCHNENK, SpecialUser.HANS])
+    @_announce_event.command(name="week", brief="Kündigt Stream Events an.")
+    async def _announce_this_week_events(
+        self, ctx: commands.Context, description: Optional[str]
+    ) -> None:
+        await ctx.defer()
+
+        if (output_channel := self.bot.channels["stream"]) is None:
+            return
+
+        if not (events := self.get_week_events_to_announce()):
+            return
+
+        if description is None:
+            description = ""
+
+        await output_channel.send(embed=EmbedBuilder.week_streams_announcement(events, description))
+
+        await ctx.send("Ich habe die Events angekündigt.", ephemeral=True)
 
     @commands.hybrid_command(name="join", aliases=["j"], brief="Tritt einem Event bei.")
     async def _join(self, ctx: commands.Context) -> None:
