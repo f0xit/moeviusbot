@@ -1,3 +1,4 @@
+import logging
 from enum import Enum
 from typing import Optional
 
@@ -29,26 +30,32 @@ class EventButton(discord.ui.Button):
         match self.action:
             case EventButtonAction.SAVE:
                 await interaction.response.send_message(
-                    "Alles klar, das Event wird gespeichert.", ephemeral=True
+                    "Alles klar, das Event wird gespeichert.",
+                    ephemeral=True,
                 )
+                logging.info("Saving event by user [ID#%s]...", interaction.user.id)
 
             case EventButtonAction.ANNOUNCE:
                 await interaction.response.send_message(
                     "Alles klar, das Event wird angekündigt.", ephemeral=True
                 )
+                logging.info("Announcing event by user [ID#%s]...", interaction.user.id)
 
             case EventButtonAction.ABORT:
                 await interaction.response.send_message(
                     "Alles klar, das Event wird nicht gespeichert.", ephemeral=True
                 )
+                logging.info("Aborting event creation by user [ID#%s]...", interaction.user.id)
 
             case EventButtonAction.JOIN:
                 await interaction.response.send_message(
                     "Alles klar, du wirst zum Event hinzugefügt.", ephemeral=True
                 )
+                logging.info("Joining event. by user [ID#%s]...", interaction.user.id)
 
         self.view.performed_action = self.action
         self.view.stop()
+        logging.debug("Stopping view.")
 
 
 class EventPreview(discord.ui.View):
