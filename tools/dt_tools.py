@@ -1,6 +1,7 @@
 """This module contains some helper functions for datetime"""
 
 import datetime as dt
+from typing import Union
 
 from zoneinfo import ZoneInfo
 
@@ -14,13 +15,14 @@ def get_local_timezone() -> dt.tzinfo | None:
     return ZoneInfo("Europe/Berlin")
 
 
-def get_week_boundaries() -> tuple[dt.datetime, dt.datetime]:
+def get_week_boundaries(today: Union[dt.datetime, None] = None) -> tuple[dt.datetime, dt.datetime]:
     """_summary_
 
     Returns:
         tuple[dt.datetime, dt.datetime]: _description_"""
 
-    today = dt.datetime.combine(dt.date.today(), dt.time(0))
+    if today is None:
+        today = dt.datetime.combine(dt.date.today(), dt.time(0))
 
     start = today - dt.timedelta(days=today.weekday())
     end = start + dt.timedelta(days=7) - dt.timedelta(seconds=1)
