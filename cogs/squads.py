@@ -13,7 +13,7 @@ async def setup(bot: Bot) -> None:
     logging.info("Cog: Squads loaded.")
 
 
-class Squads(commands.Cog, name="Events"):
+class Squads(commands.Cog, name="Squads"):
     def __init__(self, bot: Bot) -> None:
         self.bot = bot
         self.squads = DictFile("squads")
