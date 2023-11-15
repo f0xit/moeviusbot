@@ -36,10 +36,11 @@ class Bot(commands.Bot):
             RuntimeError: When no guild is found.
         """
 
-        logging.info("Finding guild with ID:%s...", self.settings["server_id"])
+        logging.info("Finding guild [ID#%s]...", self.settings["server_id"])
 
         if (guild := self.get_guild(int(self.settings["server_id"]))) is None:
+            logging.critical("Guild not found!")
             raise RuntimeError("Guild not found!")
 
         self.main_guild = guild
-        logging.info("Guild found! [ID:%s] %s", self.main_guild.id, self.main_guild.name)
+        logging.info("Guild found! [ID#%s] %s", self.main_guild.id, self.main_guild.name)
