@@ -239,6 +239,8 @@ class Administration(commands.Cog, name="Administration"):
 
         Additionally, the elapsed time since startup is logged."""
 
+        await self.bot.set_main_guild()
+
         await asyncio.gather(
             *map(
                 self.bot.load_extension,
