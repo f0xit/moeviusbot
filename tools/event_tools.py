@@ -8,9 +8,10 @@ import logging
 from enum import Enum, auto
 from typing import Optional, Sequence
 
-from sqlalchemy import select
+from sqlalchemy import and_, select
 from sqlalchemy.orm import Mapped, Session, mapped_column
 
+from tools import dt_tools
 from tools.db_tools import Base
 
 DEFAULT_TIME_FMT = "%d.%m um %H:%M Uhr"
@@ -61,18 +62,40 @@ class Event(Base):
 
     @staticmethod
     async def get_upcoming_events(session: Session) -> Sequence[Event]:
-        events = session.execute(select(Event)).scalars.all()
-        logging.info("Updated list of upcoming events. Amount: %s", events.count)
+        events = session.scalars(
+            select(Event).where(
+                and_(
+                    Event.time >= dt.datetime.now(),
+                    Event.announced.is_(True),
+                )
+            )
+        ).all()
+        logging.info("Fetched list of upcoming events. Amount: %s", events.count)
         return events
 
     @staticmethod
     async def get_events_to_announce(session: Session) -> Sequence[Event]:
-        events = session.execute(select(Event)).scalars.all()
-        logging.info("Updated list of events to announce. Amount: %s", events.count)
+        events = session.scalars(
+            select(Event).where(
+                and_(
+                    Event.time >= dt.datetime.now(),
+                    Event.announced.is_(False),
+                )
+            )
+        ).all()
+
+        logging.info("Fetched list of events to announce. Amount: %s", events.count)
         return events
 
     @staticmethod
     async def get_week_events_to_announce(session: Session) -> Sequence[Event]:
-        events = session.execute(select(Event)).scalars.all()
-        logging.info("Updated list of events to announce. Amount: %s", events.count)
+        events = session.scalars(
+            select(Event).where(
+                and_(
+                    Event.time.between(*dt_tools.get_week_boundaries()),
+                    Event.announced.is_(False),
+                )
+            )
+        ).all()
+        logging.info("Fetched list of events to announce this week. Amount: %s", events.count)
         return events
