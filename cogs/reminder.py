@@ -76,9 +76,17 @@ class Reminder(commands.Cog, name="Events"):
     @refresh_upcoming_events()
     async def mark_event_as_announced(self, event: Event) -> None:
         event.announced = True
+        logging.info("Event updated (announced): %s", event)
+
         self.session.commit()
 
-        logging.info("Event updated (announced): %s", event)
+    @refresh_upcoming_events()
+    async def mark_events_as_announced(self, events: Sequence[Event]) -> None:
+        for event in events:
+            event.announced = True
+            logging.info("Event updated (announced): %s", event)
+
+        self.session.commit()
 
     @refresh_upcoming_events()
     async def mark_event_as_started(self, event: Event) -> None:
@@ -177,7 +185,7 @@ class Reminder(commands.Cog, name="Events"):
             return
 
         await output_channel.send(embed=EmbedBuilder.single_stream_announcement(event))
-
+        await self.mark_event_as_announced(event)
         await ctx.send("Ich habe das Event angekündigt.", ephemeral=True)
 
     @is_special_user([SpecialUser.SCHNENK, SpecialUser.HANS])
@@ -197,7 +205,7 @@ class Reminder(commands.Cog, name="Events"):
             description = ""
 
         await output_channel.send(embed=EmbedBuilder.week_streams_announcement(events, description))
-
+        await self.mark_events_as_announced(events)
         await ctx.send("Ich habe die Events angekündigt.", ephemeral=True)
 
     @commands.hybrid_command(name="join", aliases=["j"], brief="Tritt einem Event bei.")
