@@ -140,9 +140,6 @@ class Reminder(commands.Cog, name="Events"):
             case EventButtonAction.SAVE:
                 await self.save_event_in_db(event)
 
-                await ctx.send(
-                    "Alles klar, das Event wurde gespeichert, Krah Krah!", ephemeral=True
-                )
             case EventButtonAction.ANNOUNCE:
                 await self.save_event_in_db(event)
 
@@ -151,13 +148,6 @@ class Reminder(commands.Cog, name="Events"):
                     view=ViewBuilder.join_single_event(),
                 )
                 await self.mark_event_as_announced(event)
-
-                await ctx.send(
-                    "Alles klar, das Event wurde gespeichert und angekündigt , Krah Krah!",
-                    ephemeral=True,
-                )
-            case EventButtonAction.ABORT:
-                await ctx.send("Alles klar, Krah Krah! Was möchtest du ändern?", ephemeral=True)
 
         await preview.edit(view=None)
 
