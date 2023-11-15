@@ -24,10 +24,9 @@ async def setup(bot: Bot) -> None:
 def refresh_upcoming_events():
     def wrapper(func):
         @functools.wraps(func)
-        async def wrapped(self: Reminder, *args, **kw):
-            output = func(self, *args, **kw)
+        async def wrapped(self, *args, **kw):
+            await func(self, *args, **kw)
             self.upcoming_events = await Event.get_upcoming_events(self.session)
-            return output
 
         return wrapped
 
