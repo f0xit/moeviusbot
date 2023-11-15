@@ -70,7 +70,7 @@ class Event(Base):
                 )
             )
         ).all()
-        logging.info("Fetched list of upcoming events. Amount: %s", events.count)
+        logging.debug("Fetched list of upcoming events. Amount: %s", events.count)
         return events
 
     @staticmethod
@@ -84,7 +84,7 @@ class Event(Base):
             )
         ).all()
 
-        logging.info("Fetched list of events to announce. Amount: %s", events.count)
+        logging.debug("Fetched list of events to announce. Amount: %s", events.count)
         return events
 
     @staticmethod
@@ -97,5 +97,5 @@ class Event(Base):
                 )
             )
         ).all()
-        logging.info("Fetched list of events to announce this week. Amount: %s", events.count)
+        logging.debug("Fetched list of events to announce this week. Amount: %s", events.count)
         return events
