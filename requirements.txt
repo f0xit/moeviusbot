@@ -1,8 +1,8 @@
-aiohttp==3.9.0
+aiohttp==3.9.1
 autocorrect==2.6.1
 beautifulsoup4==4.12.2
 discord.py==2.3.2
 markovify==0.9.4
-Pillow==10.1.0
+Pillow==10.2.0
 python-dotenv==1.0.0
-result==0.14.0
+result==0.16.0
