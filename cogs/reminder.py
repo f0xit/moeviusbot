@@ -1,11 +1,14 @@
 import datetime as dt
 import logging
+import random
 
 import discord
 from discord.ext import commands, tasks
 
 from bot import Bot
 from event import Event
+
+ANNOY_IDS = [232561052573892608]
 
 
 async def setup(bot: Bot) -> None:
@@ -212,6 +215,10 @@ class Reminder(commands.Cog, name="Events"):
 
         Stehst du auf der Teilnehmerliste, wird der Bot dich per Erwähnung benachrichtigen,
         wenn das Event beginnt oder siche etwas ändern sollte."""
+
+        if ctx.author.id in ANNOY_IDS and random.SystemRandom().randint(0, 9) == 0:
+            await ctx.send("Das geht heute nicht, der Vogel mag dich einfach nicht, Krah Krah!")
+            return
 
         if ctx.channel in self.bot.channels.values():
             if ctx.channel == self.bot.channels["stream"]:
