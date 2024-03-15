@@ -92,11 +92,59 @@ class Polls(commands.Cog, name="Umfragen"):
             "votes": {},
         }
 
-        polls.update({new_poll_id: new_poll})
-
         embed = PollEmbed(new_poll_id, new_poll)
         view = PollView(new_poll_id, choices)
 
         msg = await ctx.send(embed=embed, view=view)
 
+        new_poll["message_id"] = str(msg.id)
+        polls.update({new_poll_id: new_poll})
+
         self.poll_messages.append(msg)
+
+    @is_special_user([SpecialUser.SCHNENK, SpecialUser.HANS, SpecialUser.ZUGGI])
+    @_poll.command(name="stop")
+    @discord.app_commands.rename(
+        poll_id="umfragen_id",
+        message_id="nachrichten_id",
+    )
+    @discord.app_commands.describe(
+        poll_id="ID der Umfrage",
+        message_id="ID der Nachricht mit der Umfrage",
+    )
+    async def _poll_stop(
+        self,
+        ctx: commands.Context,
+        poll_id: Optional[str],
+        message_id: Optional[str],
+    ) -> None:
+        if poll_id is None and message_id is None:
+            return
+
+        await ctx.defer()
+
+        if message_id is None:
+            polls = DictFile("polls")
+
+            if poll_id not in polls:
+                return
+
+            message_id = str(polls[poll_id]["message_id"])
+
+        msg = await ctx.fetch_message(int(message_id))
+
+        if msg is None:
+            return
+
+        view = discord.ui.View()
+
+        for item in msg.components:
+            if not isinstance(item, discord.ui.Button):
+                continue
+            item.disabled = True
+            view.add_item(item)
+
+        await msg.edit(view=view)
+        view.stop()
+
+        await ctx.send("Deaktiviert!", ephemeral=True)
