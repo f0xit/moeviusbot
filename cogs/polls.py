@@ -35,6 +35,18 @@ class Polls(commands.Cog, name="Umfragen"):
         self.poll_messages: list[discord.Message] = []
 
     async def cog_unload(self) -> None:
+        for msg in self.poll_messages:
+            view = discord.ui.View()
+
+            for item in msg.components:
+                if not isinstance(item, discord.ui.Button):
+                    continue
+                item.disabled = True
+                view.add_item(item)
+
+            await msg.edit(view=view)
+            view.stop()
+
         logging.info("Cog unloaded: Polls.")
 
     @is_special_user([SpecialUser.SCHNENK, SpecialUser.HANS, SpecialUser.ZUGGI])
