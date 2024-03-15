@@ -32,6 +32,10 @@ class Polls(commands.Cog, name="Umfragen"):
 
     def __init__(self, bot: Bot):
         self.bot = bot
+        self.poll_messages: list[discord.Message] = []
+
+    async def cog_unload(self) -> None:
+        logging.info("Cog unloaded: Polls.")
 
     @is_special_user([SpecialUser.SCHNENK, SpecialUser.HANS, SpecialUser.ZUGGI])
     @commands.hybrid_group(name="poll", fallback="start")
@@ -81,4 +85,6 @@ class Polls(commands.Cog, name="Umfragen"):
         embed = PollEmbed(new_poll_id, new_poll)
         view = PollView(new_poll_id, choices)
 
-        await ctx.send(embed=embed, view=view)
+        msg = await ctx.send(embed=embed, view=view)
+
+        self.poll_messages.append(msg)
