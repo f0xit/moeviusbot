@@ -1,4 +1,5 @@
 """This module contains the bot class that inherits from discord's default bot."""
+
 import logging
 
 import discord
