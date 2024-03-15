@@ -14,4 +14,4 @@ class PollEmbed(discord.Embed):
             description=poll["description"],
         )
 
-        self.add_field(name="Umfrage-ID", value=poll_id)
+        self.set_footer(text=f"Umfrage-ID: {poll_id}")
