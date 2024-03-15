@@ -52,7 +52,7 @@ class Polls(commands.Cog, name="Umfragen"):
         description: Optional[str],
         choices_str: str,
     ) -> None:
-        await ctx.defer(ephemeral=True)
+        await ctx.defer()
 
         choices = convert_choices_to_list(choices_str)
 
