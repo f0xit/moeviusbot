@@ -27,6 +27,19 @@ async def setup(bot: Bot) -> None:
     logging.info("Cog loaded: Polls.")
 
 
+async def stop_poll(msg: discord.Message) -> None:
+    view = discord.ui.View()
+
+    for item in msg.components:
+        if not isinstance(item, discord.ui.Button):
+            continue
+        item.disabled = True
+        view.add_item(item)
+
+    await msg.edit(view=view)
+    view.stop()
+
+
 class Polls(commands.Cog, name="Umfragen"):
     """This cog includes commands for building polls"""
 
@@ -36,16 +49,7 @@ class Polls(commands.Cog, name="Umfragen"):
 
     async def cog_unload(self) -> None:
         for msg in self.poll_messages:
-            view = discord.ui.View()
-
-            for item in msg.components:
-                if not isinstance(item, discord.ui.Button):
-                    continue
-                item.disabled = True
-                view.add_item(item)
-
-            await msg.edit(view=view)
-            view.stop()
+            await stop_poll(msg)
 
         logging.info("Cog unloaded: Polls.")
 
@@ -136,15 +140,6 @@ class Polls(commands.Cog, name="Umfragen"):
         if msg is None:
             return
 
-        view = discord.ui.View()
-
-        for item in msg.components:
-            if not isinstance(item, discord.ui.Button):
-                continue
-            item.disabled = True
-            view.add_item(item)
-
-        await msg.edit(view=view)
-        view.stop()
+        await stop_poll(msg)
 
         await ctx.send("Deaktiviert!", ephemeral=True)
