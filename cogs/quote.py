@@ -1,4 +1,5 @@
 """Cog for random quote generation"""
+
 import datetime as dt
 import logging
 import random
