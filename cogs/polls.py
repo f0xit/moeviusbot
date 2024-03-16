@@ -1,6 +1,7 @@
 """Cog for polls"""
 
 import logging
+import re
 from string import ascii_lowercase
 from typing import Optional
 
@@ -11,7 +12,7 @@ from bot import Bot
 from tools.check_tools import SpecialUser, is_special_user
 from tools.embed_tools import PollEmbed
 from tools.json_tools import DictFile
-from tools.view_tools import PollView
+from tools.view_tools import PersistentView, PollButton, PollView
 
 
 def convert_choices_to_list(choices_str) -> list[tuple[str, str]]:
@@ -46,12 +47,57 @@ class Polls(commands.Cog, name="Umfragen"):
     def __init__(self, bot: Bot):
         self.bot = bot
         self.poll_messages: list[discord.Message] = []
+        self.re_poll_button = re.compile(
+            r"^moevius\:poll\:(?P<poll_id>\d+)\:choice\:(?P<choice>\w)\:iteration:(?P<iteration>\d+)$"
+        )
 
     async def cog_unload(self) -> None:
-        for msg in self.poll_messages:
-            await stop_poll(msg)
-
         logging.info("Cog unloaded: Polls.")
+
+    @commands.Cog.listener()
+    async def on_interaction(self, interaction: discord.interactions.Interaction) -> None:
+        await interaction.response.defer()
+
+        if interaction is None or interaction.data is None or "custom_id" not in interaction.data:
+            return
+
+        custom_id = interaction.data["custom_id"]
+        interaction_match = self.re_poll_button.match(custom_id)
+
+        if interaction_match is None:
+            return
+
+        poll_id, choice_id, iteration = interaction_match.groups()
+
+        polls = DictFile("polls")
+        votes = polls[poll_id]["votes"]
+        choices = polls[poll_id]["choices"]
+        user_id = str(interaction.user.id)
+
+        if user_id not in votes:
+            votes[user_id] = [choice_id]
+        elif choice_id not in votes[user_id]:
+            votes[user_id].append(choice_id)
+        else:
+            votes[user_id].remove(choice_id)
+
+        polls.save()
+
+        view = PersistentView()
+
+        if interaction.message is None:
+            return
+
+        for choice in choices.items():
+            vote_count = len([item for row in votes.values() for item in row if item == choice[0]])
+
+            iteration = int(iteration) + 1
+
+            view.add_item(PollButton(choice, poll_id, vote_count, iteration))
+
+        await interaction.followup.edit_message(interaction.message.id, view=view)
+
+        await interaction.followup.send("Stimmabgabe erfolgreich!", ephemeral=True)
 
     @is_special_user([SpecialUser.SCHNENK, SpecialUser.HANS, SpecialUser.ZUGGI])
     @commands.hybrid_group(name="poll", fallback="start")
