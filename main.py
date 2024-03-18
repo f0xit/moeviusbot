@@ -26,6 +26,8 @@ STARTUP_TIME = dt.datetime.now()
 LOG_TOOL = LoggerTools(level="DEBUG")
 discord.utils.setup_logging(root=False)
 
+MOEVIUS = Bot()
+
 
 class Administration(commands.Cog, name="Administration"):
     """Diese Kategorie erfordert bestimmte Berechtigungen"""
@@ -296,10 +298,15 @@ async def main() -> None:
     else:
         logging.info("Discord token loaded successfully.")
 
-    moevius = Bot()
-    await moevius.add_cog(Administration(moevius))
-    await moevius.start(discord_token)
+    await MOEVIUS.add_cog(Administration(MOEVIUS))
+    await MOEVIUS.start(discord_token)
 
 
 if __name__ == "__main__":
-    asyncio.run(main())
+    try:
+        asyncio.run(main())
+    except KeyboardInterrupt:
+        logging.info("Stopping Moevius ...")
+        asyncio.run(MOEVIUS.close())
+        logging.info("Moevius stopped. Good night.")
+        sys.exit(130)

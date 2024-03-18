@@ -54,9 +54,11 @@ async def parse_hero_patch(hero) -> dict:
     ]
 
     output_dict[hero_name]["abs"] = {
-        ability.find("div", class_="PatchNotesAbilityUpdate-name").contents[0]: [
-            list_item.contents[0] for list_item in ability.find_all("li")
-        ]
+        (
+            ability_name[0]
+            if (ability_name := ability.find("div", class_="PatchNotesAbilityUpdate-name").contents)
+            else "<Ability name not found>"
+        ): [list_item.contents[0] for list_item in ability.find_all("li")]
         for ability in hero.find_all("div", class_="PatchNotesAbilityUpdate-text")
         if ability
     }

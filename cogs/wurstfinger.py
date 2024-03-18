@@ -1,4 +1,5 @@
 """Cog for text correction and the opposite"""
+
 import io
 import logging
 import random
@@ -56,7 +57,7 @@ class Wurstfinger(commands.Cog, name="Wurstfinger"):
         }
 
     async def cog_unload(self) -> None:
-        logging.info("Cog unloaded: UrbanDict.")
+        logging.info("Cog unloaded: Wurstfinger.")
 
     @commands.command(name="schnenk", aliases=["Schnenk"])
     async def _schnenk(self, ctx: commands.Context, percent: int = 5) -> None:

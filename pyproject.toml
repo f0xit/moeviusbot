@@ -1,6 +1,6 @@
 [tool.ruff]
 line-length = 100
-extend-select = [
+lint.extend-select = [
     "B",
     "BLE",
     "C4",
@@ -21,7 +21,7 @@ extend-select = [
     "T20",
     "TCH",
     "TID",
-    "YTT"
+    "YTT",
 ]
-ignore = ["TCH0"]
+lint.ignore = ["TCH0"]
 show-fixes = true

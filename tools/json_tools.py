@@ -117,3 +117,6 @@ class DictFile(dict):
         save_file(self.file_name, self)
 
         return item
+
+    def save(self):
+        save_file(self.file_name, self)

@@ -5,6 +5,19 @@ import discord
 from tools.event_tools import Event
 
 THUMB_URL = "https://static-cdn.jtvnw.net/jtv_user_pictures/2ed0d78d-f66a-409d-829a-b98c512d8534-profile_image-70x70.png"
+MOEVIUS_COLOR = 0xFF06B5
+
+
+class PollEmbed(discord.Embed):
+    def __init__(self, poll_id: str, poll: dict[str, Any]):
+        super().__init__(
+            colour=MOEVIUS_COLOR,
+            title=poll["title"],
+            type="rich",
+            description=poll["description"],
+        )
+
+        self.set_footer(text=f"Umfrage-ID: {poll_id}")
 
 
 class StreamEmbed(discord.Embed):

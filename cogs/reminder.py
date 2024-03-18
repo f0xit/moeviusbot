@@ -14,6 +14,8 @@ from tools.embed_tools import EmbedBuilder
 from tools.event_tools import Event, EventType
 from tools.view_tools import EventButtonAction, ViewBuilder
 
+ANNOY_IDS = [232561052573892608]
+
 
 async def setup(bot: Bot) -> None:
     """Setup function for the cog."""
