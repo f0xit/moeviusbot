@@ -23,11 +23,11 @@ class PollView(discord.ui.View):
 
         return self
 
-    def deactivate_buttons_from_collection(self, choices, votes, poll_id) -> PollView:
+    def deactivate_buttons_from_collection(self, choices, votes) -> PollView:
         for choice in choices.items():
             vote_count = len([item for row in votes.values() for item in row if item == choice[0]])
 
-            self.add_item(InactivePollButton(choice, poll_id, vote_count))
+            self.add_item(InactivePollButton(choice, vote_count))
 
         return self
 
@@ -40,15 +40,13 @@ class PollButton(discord.ui.Button):
         vote_count: int = 0,
         iteration: int = 0,
     ):
-        self.choice_id = choice[0]
-        self.choice_text = choice[1]
-        self.poll_id = poll_id
+        choice_id, choice_text = choice
 
         super().__init__(
             style=discord.ButtonStyle.primary,
-            label=f"{self.choice_text} ({vote_count})",
-            emoji=chr(0x1F1E6 + ord(self.choice_id) - 97),
-            custom_id=f"moevius:poll:{self.poll_id}:choice:{self.choice_id}:iteration:{iteration}",
+            label=f"[{vote_count}] {choice_text}",
+            emoji=chr(0x1F1E6 + ord(choice_id) - 97),
+            custom_id=f"moevius:poll:{poll_id}:choice:{choice_id}:iteration:{iteration}",
         )
 
 
@@ -56,16 +54,13 @@ class InactivePollButton(discord.ui.Button):
     def __init__(
         self,
         choice: tuple[str, str],
-        poll_id: str,
         vote_count: int = 0,
     ):
-        self.choice_id = choice[0]
-        self.choice_text = choice[1]
-        self.poll_id = poll_id
+        choice_id, choice_text = choice
 
         super().__init__(
             style=discord.ButtonStyle.primary,
-            label=f"{self.choice_text} ({vote_count})",
-            emoji=chr(0x1F1E6 + ord(self.choice_id) - 97),
+            label=f"{choice_text} ({vote_count})",
+            emoji=chr(0x1F1E6 + ord(choice_id) - 97),
             disabled=True,
         )

@@ -32,7 +32,7 @@ async def stop_poll(msg: discord.Message, polls, poll_id: str) -> None:
     choices = polls[poll_id]["choices"]
     votes = polls[poll_id]["votes"]
 
-    view = PollView().deactivate_buttons_from_collection(choices, votes, poll_id)
+    view = PollView().deactivate_buttons_from_collection(choices, votes)
 
     await msg.edit(view=view)
     view.stop()
@@ -112,7 +112,6 @@ class Polls(commands.Cog, name="Umfragen"):
         choices = convert_choices_to_list(choices_str)
 
         if len(choices) < 2:
-            # Fehler: Zu wenig Möglichkeiten
             await ctx.send(
                 "Bitte gib mindestens 2 Antwortmöglichkeiten an. Beispiel: Apfel; Birne; Krah Krah!",
                 ephemeral=True,
