@@ -3,6 +3,10 @@ from __future__ import annotations
 import discord
 
 
+def emoji_from_asciilo(ch: str) -> str:
+    return chr(0x1F1E6 + ord(ch) - 97)
+
+
 class PollView(discord.ui.View):
     def __init__(self):
         super().__init__(timeout=None)
@@ -45,7 +49,7 @@ class PollButton(discord.ui.Button):
         super().__init__(
             style=discord.ButtonStyle.primary,
             label=f"[{vote_count}] {choice_text}",
-            emoji=chr(0x1F1E6 + ord(choice_id) - 97),
+            emoji=emoji_from_asciilo(choice_id),
             custom_id=f"moevius:poll:{poll_id}:choice:{choice_id}:iteration:{iteration}",
         )
 
@@ -61,6 +65,6 @@ class InactivePollButton(discord.ui.Button):
         super().__init__(
             style=discord.ButtonStyle.primary,
             label=f"[{vote_count}] {choice_text}",
-            emoji=chr(0x1F1E6 + ord(choice_id) - 97),
+            emoji=emoji_from_asciilo(choice_id),
             disabled=True,
         )
