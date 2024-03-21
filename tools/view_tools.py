@@ -60,7 +60,7 @@ class InactivePollButton(discord.ui.Button):
 
         super().__init__(
             style=discord.ButtonStyle.primary,
-            label=f"{choice_text} ({vote_count})",
+            label=f"[{vote_count}] {choice_text}",
             emoji=chr(0x1F1E6 + ord(choice_id) - 97),
             disabled=True,
         )
