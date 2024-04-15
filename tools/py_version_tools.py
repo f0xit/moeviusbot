@@ -4,7 +4,7 @@ import sys
 
 def check_python_version(
     min_major_version: int = 3,
-    min_minor_version: int = 11,
+    min_minor_version: int = 12,
 ) -> None:
     """Exits the script if version is below"""
 
