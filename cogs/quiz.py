@@ -1,4 +1,5 @@
 """Quiz module"""
+
 import logging
 import random
 

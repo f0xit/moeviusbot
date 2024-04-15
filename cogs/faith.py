@@ -1,4 +1,5 @@
 """Cog for the faith point mechanic"""
+
 import logging
 
 import discord
