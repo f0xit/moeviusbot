@@ -107,8 +107,9 @@ class Quote(commands.Cog, name="Quote"):
                 title=title,
                 colour=discord.Colour(0xFF00FF),
                 description=quote,
-                timestamp=dt.datetime.utcfromtimestamp(
-                    random.SystemRandom().randint(0, int(dt.datetime.now().timestamp()))
+                timestamp=dt.datetime.fromtimestamp(
+                    random.SystemRandom().randint(0, int(dt.datetime.now(dt.UTC).timestamp())),
+                    dt.UTC,
                 ),
             ).set_footer(text=self.quote_by),
         )
