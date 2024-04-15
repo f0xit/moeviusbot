@@ -29,9 +29,7 @@ def load_file(file_path: str, /, encoding: str = "utf-8") -> Result[dict, str]:
         return Err(f"Could not read file {file_path}! Exception: {err_msg}")
 
 
-def save_file(
-    file_path: str, content: dict, /, indent: int = 4, encoding: str = "utf-8"
-) -> Result[str, str]:
+def save_file(file_path: str, content: dict, /, indent: int = 4, encoding: str = "utf-8") -> Result[str, str]:
     """Writes the content dict into a file under the specified path.
 
     If the file could not be found or the file path is empty, the function returns False,
@@ -62,9 +60,7 @@ class DictFile(dict):
     when it is updated. Additionally new dicts can directly by populated with data from
     a file."""
 
-    def __init__(
-        self, name: str, /, suffix: str = ".json", path: str = "json/", load_from_file: bool = True
-    ) -> None:
+    def __init__(self, name: str, /, suffix: str = ".json", path: str = "json/", load_from_file: bool = True) -> None:
         """Initializes a new dict which is linked to a file.
 
         By default, it tries to load data from the file when created.
@@ -85,9 +81,7 @@ class DictFile(dict):
                 case Ok(value):
                     self.update(value)
 
-                    logging.debug(
-                        "Loaded data from file %s. %s keys.", self.file_name, len(value.keys())
-                    )
+                    logging.debug("Loaded data from file %s. %s keys.", self.file_name, len(value.keys()))
 
                 case Err(err_msg):
                     logging.error(err_msg)

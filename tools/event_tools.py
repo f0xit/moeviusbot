@@ -87,6 +87,4 @@ event_manager.add_event(
     )
 )
 
-event_manager.add_event(
-    Event("Spaß mit OW", EventType.GAME, dt.datetime.fromisocalendar(2023, 20, 3))
-)
+event_manager.add_event(Event("Spaß mit OW", EventType.GAME, dt.datetime.fromisocalendar(2023, 20, 3)))

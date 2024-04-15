@@ -1,4 +1,5 @@
 """This module contains the event class"""
+
 import logging
 
 from discord import Member, User

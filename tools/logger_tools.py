@@ -17,9 +17,7 @@ class LoggerTools:
         file_handler = TimedRotatingFileHandler("logs/moevius.log", when="midnight", interval=1)
         file_handler.suffix = "%Y_%m_%d"
         file_handler.setFormatter(
-            logging.Formatter(
-                "%(asctime)s %(levelname)-8s %(name)s %(message)s", "%Y-%m-%d %H:%M:%S"
-            )
+            logging.Formatter("%(asctime)s %(levelname)-8s %(name)s %(message)s", "%Y-%m-%d %H:%M:%S")
         )
         self.root_logger.addHandler(file_handler)
 

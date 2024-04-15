@@ -1,4 +1,5 @@
 """This tool contains functions to help reading text-files."""
+
 from result import Err, Ok, Result
 
 
@@ -13,9 +14,7 @@ async def lines_from_textfile(filepath: str, /, encoding: str = "utf-8") -> Resu
         return Err(f"Failed reading file {filepath} with error: {err_msg}")
 
 
-async def lines_to_textfile(
-    filepath: str, lines: list[str], /, encoding: str = "utf-8"
-) -> Result[str, str]:
+async def lines_to_textfile(filepath: str, lines: list[str], /, encoding: str = "utf-8") -> Result[str, str]:
     """Writes a list of strings as lines into a textfile."""
 
     try:

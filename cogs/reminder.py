@@ -58,9 +58,7 @@ class Reminder(commands.Cog, name="Events"):
         self.events[event_type].add_member(ctx.author)
 
         if event_type == "stream" and ctx.channel != self.bot.channels["stream"]:
-            await ctx.send(
-                f"Ich habe einen Stream-Reminder für {event_time} Uhr eingerichtet, Krah Krah!"
-            )
+            await ctx.send(f"Ich habe einen Stream-Reminder für {event_time} Uhr eingerichtet, Krah Krah!")
 
         if (output_channel := self.bot.channels[event_type]) is None:
             return
@@ -81,9 +79,7 @@ class Reminder(commands.Cog, name="Events"):
 
         if ctx.channel.name in self.bot.squads:
             members = [
-                f"<@{member}> "
-                for member in self.bot.squads[ctx.channel.name].values()
-                if member != ctx.author.id
+                f"<@{member}> " for member in self.bot.squads[ctx.channel.name].values() if member != ctx.author.id
             ]
             if not members:
                 return
@@ -108,10 +104,7 @@ class Reminder(commands.Cog, name="Events"):
         # There is an event
         else:
             # Get the right words
-            if event_type == "stream":
-                begin_string = "Der nächste Stream"
-            else:
-                begin_string = "Die nächste Coop-Runde"
+            begin_string = "Der nächste Stream" if event_type == "stream" else "Die nächste Coop-Runde"
 
             # Check for game
             if self.events[event_type].event_game == "":
@@ -144,9 +137,7 @@ class Reminder(commands.Cog, name="Events"):
             )
         else:
             if ctx.author.display_name in self.events[event_type].event_members.values():
-                await ctx.send(
-                    "Hey du Vogel, du stehst bereits auf der Teilnehmerliste, Krah Krah!"
-                )
+                await ctx.send("Hey du Vogel, du stehst bereits auf der Teilnehmerliste, Krah Krah!")
                 logging.warning(
                     "%s steht bereits auf der Teilnehmerliste von Event %s.",
                     ctx.author.name,
@@ -226,9 +217,7 @@ class Reminder(commands.Cog, name="Events"):
             else:
                 await self.join_event("game", ctx)
 
-    @commands.hybrid_command(
-        name="hey", aliases=["h"], brief="Informiere das Squad über ein bevorstehendes Event."
-    )
+    @commands.hybrid_command(name="hey", aliases=["h"], brief="Informiere das Squad über ein bevorstehendes Event.")
     async def _hey(self, ctx: commands.Context) -> None:
         if not isinstance(ctx.channel, discord.TextChannel):
             return
@@ -238,16 +227,12 @@ class Reminder(commands.Cog, name="Events"):
 
         if ctx.channel.category.name != "Spiele":
             await ctx.send("Hey, das ist kein Spiele-Channel, Krah Krah!")
-            logging.warning(
-                "%s hat das Squad außerhalb eines Spiele-Channels gerufen.", ctx.author.name
-            )
+            logging.warning("%s hat das Squad außerhalb eines Spiele-Channels gerufen.", ctx.author.name)
             return
 
         if len(self.bot.squads[ctx.channel.name]) == 0:
             await ctx.send("Hey, hier gibt es kein Squad, Krah Krah!")
-            logging.warning(
-                "%s hat ein leeres Squad in %s gerufen.", ctx.author.name, ctx.channel.name
-            )
+            logging.warning("%s hat ein leeres Squad in %s gerufen.", ctx.author.name, ctx.channel.name)
             return
 
         members = []
@@ -267,9 +252,7 @@ class Reminder(commands.Cog, name="Events"):
         await ctx.send(f"Hey Squad! Ja, genau ihr seid gemeint, Krah Krah!\n{' '.join(members)}")
         logging.info("%s hat das Squad in %s gerufen.", ctx.author.name, ctx.channel.name)
 
-    @commands.command(
-        name="squad", aliases=["sq"], brief="Manage dein Squad mit ein paar simplen Kommandos."
-    )
+    @commands.command(name="squad", aliases=["sq"], brief="Manage dein Squad mit ein paar simplen Kommandos.")
     async def _squad(self, ctx: commands.Context, *args) -> None:
         """Du willst dein Squad managen? Okay, so gehts!
         Achtung: Jeder Game-Channel hat ein eigenes Squad. Du musst also im richtigen Channel sein.
@@ -284,16 +267,12 @@ class Reminder(commands.Cog, name="Events"):
 
         if ctx.channel.category is None:
             await ctx.send("Hey, das ist kein Spiele-Channel, Krah Krah!")
-            logging.warning(
-                "%s denkt, %s sei ein Spiele-Channel.", ctx.author.name, ctx.channel.name
-            )
+            logging.warning("%s denkt, %s sei ein Spiele-Channel.", ctx.author.name, ctx.channel.name)
             return
 
         if ctx.channel.category.name != "Spiele":
             await ctx.send("Hey, das ist kein Spiele-Channel, Krah Krah!")
-            logging.warning(
-                "%s denkt, %s sei ein Spiele-Channel.", ctx.author.name, ctx.channel.name
-            )
+            logging.warning("%s denkt, %s sei ein Spiele-Channel.", ctx.author.name, ctx.channel.name)
             return
 
         if len(args) == 1:
@@ -369,13 +348,9 @@ class Reminder(commands.Cog, name="Events"):
                         continue
 
                     if member.name not in self.bot.squads[ctx.channel.name]:
-                        await ctx.send(
-                            "Das macht gar keinen Sinn. "
-                            f"{member.name} ist gar nicht im Squad, Krah Krah!"
-                        )
+                        await ctx.send(f"Das macht gar keinen Sinn. {member.name} ist gar nicht im Squad, Krah Krah!")
                         logging.warning(
-                            "%s wollte %s aus dem %s-Squad entfernen, "
-                            "aber er war nicht Mitglied.",
+                            "%s wollte %s aus dem %s-Squad entfernen, aber er war nicht Mitglied.",
                             ctx.author.name,
                             member.name,
                             ctx.channel.name,

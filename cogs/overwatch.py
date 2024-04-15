@@ -1,4 +1,5 @@
 """Cog for overwatch related commands"""
+
 import io
 import logging
 import random
@@ -81,11 +82,7 @@ async def parse_patchnotes() -> dict | None:
     patches = patch_notes_soup.find_all("div", class_="PatchNotes-patch")
 
     for patch in patches:
-        if (
-            entry_point := patch.find(
-                "h4", class_="PatchNotes-sectionTitle", string="HELDENUPDATES"
-            )
-        ) is None:
+        if (entry_point := patch.find("h4", class_="PatchNotes-sectionTitle", string="HELDENUPDATES")) is None:
             continue
 
         output_dict = {
@@ -139,9 +136,7 @@ class Overwatch(commands.Cog, name="Overwatch"):
         if cells is None:
             return Err("Finding heroes on website failed!")
 
-        self.heroes = {
-            cell.attrs["data-hero-id"].title(): cell.attrs["data-role"].upper() for cell in cells
-        }
+        self.heroes = {cell.attrs["data-hero-id"].title(): cell.attrs["data-role"].upper() for cell in cells}
 
         logging.info("Overwatch heroes loaded: %s heroes.", len(cells))
         return Ok(f"Overwatch heroes loaded: {len(cells)} heroes.")
@@ -157,9 +152,7 @@ class Overwatch(commands.Cog, name="Overwatch"):
             return Ok(random.SystemRandom().choice(list(self.heroes.keys())))
 
         return Ok(
-            random.SystemRandom().choice(
-                [hero for hero, role in self.heroes.items() if role == requested_role.name]
-            )
+            random.SystemRandom().choice([hero for hero, role in self.heroes.items() if role == requested_role.name])
         )
 
     async def random_hero_for_group(self, author: discord.Member) -> Result[list[str], str]:
@@ -223,9 +216,7 @@ class Overwatch(commands.Cog, name="Overwatch"):
 
         output.close()
 
-    @commands.command(
-        name="ow", brief="Gibt dir oder dem kompletten Voice-Channel zufällige Overwatch-Heroes."
-    )
+    @commands.command(name="ow", brief="Gibt dir oder dem kompletten Voice-Channel zufällige Overwatch-Heroes.")
     async def _ow(self, ctx: commands.Context, who: str = "") -> None:
         """Dieses Kommando wählt für dich einen zufälligen Overwatch-Hero aus.
 
@@ -250,9 +241,7 @@ class Overwatch(commands.Cog, name="Overwatch"):
             logging.info("%s requested a random hero for everyone.", ctx.author.name)
 
             try:
-                await ctx.channel.send(
-                    PROMPT + ", ".join((await self.random_hero_for_group(ctx.author)).unwrap())
-                )
+                await ctx.channel.send(PROMPT + ", ".join((await self.random_hero_for_group(ctx.author)).unwrap()))
             except UnwrapError as err_msg:
                 logging.error(err_msg)
 
@@ -274,9 +263,7 @@ class Overwatch(commands.Cog, name="Overwatch"):
         logging.info("%s requested a random hero for themselves, Role: Support.", ctx.author.name)
 
         try:
-            await ctx.channel.send(
-                PROMPT + (await self.random_hero_for_user(Role.SUPPORT)).unwrap()
-            )
+            await ctx.channel.send(PROMPT + (await self.random_hero_for_user(Role.SUPPORT)).unwrap())
         except UnwrapError as err_msg:
             logging.error(err_msg)
 

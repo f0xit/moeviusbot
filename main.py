@@ -109,9 +109,7 @@ class Administration(commands.Cog, name="Administration"):
 
         try:
             if (log_lines := (await lines_from_textfile(path)).unwrap()) is None:
-                await ctx.send(
-                    "Dieses Log-File scheint es nicht zu geben, Krah Krah! Format: YYYY_MM_DD"
-                )
+                await ctx.send("Dieses Log-File scheint es nicht zu geben, Krah Krah! Format: YYYY_MM_DD")
                 return
 
         except UnwrapError as err_msg:
@@ -121,9 +119,7 @@ class Administration(commands.Cog, name="Administration"):
         number_of_pages = len(log_lines) // chunk_size + 1
 
         if not 1 <= page <= number_of_pages:
-            await ctx.send(
-                f"Diese Seite gibt es nicht, Krah Krah! Bereich: 1 bis {number_of_pages}"
-            )
+            await ctx.send(f"Diese Seite gibt es nicht, Krah Krah! Bereich: 1 bis {number_of_pages}")
             return
 
         log_lines.reverse()
@@ -132,9 +128,7 @@ class Administration(commands.Cog, name="Administration"):
         log_output = log_lines[(chunk_size * page) : (chunk_size) * (page + 1)]
         log_output.reverse()
 
-        await ctx.send(
-            f'{path[5:]} - Seite {page + 1}/{number_of_pages}:\n```{"".join(log_output)}```'
-        )
+        await ctx.send(f'{path[5:]} - Seite {page + 1}/{number_of_pages}:\n```{"".join(log_output)}```')
 
     @_bot.command(name="version", aliases=["-v"])
     async def _version(self, ctx: commands.Context) -> None:
@@ -156,9 +150,7 @@ class Administration(commands.Cog, name="Administration"):
             version_string = res[0].removeprefix("v")
 
             if len(res) >= 2:
-                version_string += (
-                    f".\nTag is {res[1]} commits behind. Currently running commit {res[2][1:]}"
-                )
+                version_string += f".\nTag is {res[1]} commits behind. Currently running commit {res[2][1:]}"
 
             await ctx.send(f"Bot läuft auf Version {version_string}")
             logging.info("Version %s", version_string)
@@ -201,9 +193,7 @@ class Administration(commands.Cog, name="Administration"):
         if ctx.invoked_subcommand is not None:
             return
 
-        await ctx.send(
-            "Aktuell sind folgende Extensions geladen:\n" + ", ".join(self.bot.extensions.keys())
-        )
+        await ctx.send("Aktuell sind folgende Extensions geladen:\n" + ", ".join(self.bot.extensions.keys()))
 
     @is_super_user()
     @_extensions.command(name="load", aliases=["-l"], brief="Lädt eine Extension in den Bot.")
@@ -213,9 +203,7 @@ class Administration(commands.Cog, name="Administration"):
         await self.load_ext(ctx, extension)
 
     @is_super_user()
-    @_extensions.command(
-        name="unload", aliases=["-u"], brief="Entfernt eine Extension aus dem Bot."
-    )
+    @_extensions.command(name="unload", aliases=["-u"], brief="Entfernt eine Extension aus dem Bot.")
     async def _unload(self, ctx: commands.Context, extension: str) -> None:
         """'Entfernt die Extension mit den angegebenen Namen aus dem Bot."""
 

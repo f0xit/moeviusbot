@@ -10,9 +10,7 @@ from tools.check_tools import is_super_user
 from tools.json_tools import DictFile
 
 default_fields = {
-    "member": commands.parameter(
-        description="Server Mitglied. Möglicher Input: ID, Mention, Name."
-    ),
+    "member": commands.parameter(description="Server Mitglied. Möglicher Input: ID, Mention, Name."),
     "points": commands.parameter(description="Menge an 🕊️-Punkten als ganze Zahl."),
 }
 
@@ -87,9 +85,7 @@ class Faith(commands.Cog, name="Faith"):
 
         output = (
             "```"
-            + "\n".join(
-                [f"{user:30}{amount:>6,d}🕊".replace(",", ".") for user, amount in members.items()]
-            )
+            + "\n".join([f"{user:30}{amount:>6,d}🕊".replace(",", ".") for user, amount in members.items()])
             + "```"
         )
 

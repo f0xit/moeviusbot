@@ -1,4 +1,5 @@
 """Cog for miscellaneous fun commands"""
+
 import logging
 import math
 import random
@@ -110,9 +111,7 @@ class Misc(commands.Cog, name="Sonstiges"):
                 f'{"PS5" if math.floor(quot_ps5) == 1 else "PS5en"}.'
             )
 
-    async def embed_random_item(
-        self, ctx: commands.Context, choice: ListType = ListType.NONE
-    ) -> Result[str, str]:
+    async def embed_random_item(self, ctx: commands.Context, choice: ListType = ListType.NONE) -> Result[str, str]:
         """Sends a Discord embed with a random item from a chosen list."""
 
         try:
@@ -134,11 +133,7 @@ class Misc(commands.Cog, name="Sonstiges"):
                     description = random.SystemRandom().choice(self.bible)
                     title = "Das Wort unseres Herrn, Krah Krah!"
 
-            await ctx.send(
-                embed=discord.Embed(
-                    title=title, colour=discord.Colour(0xFF00FF), description=description
-                )
-            )
+            await ctx.send(embed=discord.Embed(title=title, colour=discord.Colour(0xFF00FF), description=description))
 
         except UnwrapError as err_msg:
             return Err(str(err_msg))
@@ -156,9 +151,7 @@ class Misc(commands.Cog, name="Sonstiges"):
             case Err(err_msg):
                 logging.error(err_msg)
 
-    @commands.command(
-        name="bibel", aliases=["bi"], brief="Präsentiert die Weisheiten des Krächzers."
-    )
+    @commands.command(name="bibel", aliases=["bi"], brief="Präsentiert die Weisheiten des Krächzers.")
     async def _bibel(self, ctx: commands.Context):
         """Präsentiert die Weisheiten des Krächzers."""
 
@@ -169,15 +162,11 @@ class Misc(commands.Cog, name="Sonstiges"):
             case Err(err_msg):
                 logging.error(err_msg)
 
-    @commands.command(
-        name="ult", aliases=["Q", "q"], brief="Die ultimative Fähigkeit von Mövius dem Krächzer."
-    )
+    @commands.command(name="ult", aliases=["Q", "q"], brief="Die ultimative Fähigkeit von Mövius dem Krächzer.")
     async def _ult(self, ctx: commands.Context) -> None:
         """Platzhalter: Das Ult-Kommando ist aktuell deaktiviert"""
 
-        await ctx.send(
-            "Die Ult ist aktuell deaktiviert, bitte bleiben Sie in der Leitung, Krah Krah!"
-        )
+        await ctx.send("Die Ult ist aktuell deaktiviert, bitte bleiben Sie in der Leitung, Krah Krah!")
 
     @commands.Cog.listener()
     async def on_message(self, message: discord.Message) -> None:
@@ -199,7 +188,5 @@ class Misc(commands.Cog, name="Sonstiges"):
                 if re.search(key, message.content):
                     response = self.responses["res"][key]
                     for res in response["res"]:
-                        await message.channel.send(
-                            content=res.format(**locals(), **globals()), tts=False
-                        )
+                        await message.channel.send(content=res.format(**locals(), **globals()), tts=False)
                     logging.info(response["log"].format(**locals(), **globals()))

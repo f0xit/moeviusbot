@@ -1,4 +1,5 @@
 """Cog for the faith point mechanic"""
+
 import datetime as dt
 import logging
 import math
@@ -28,11 +29,7 @@ async def generate_random_painting() -> None:
     )
 
     gartic_story = random.SystemRandom().choice(
-        [
-            story
-            for story in os.listdir(f"gartic/{gartic_round}")
-            if re.match(r"^album_.*\.gif$", story)
-        ]
+        [story for story in os.listdir(f"gartic/{gartic_round}") if re.match(r"^album_.*\.gif$", story)]
     )
 
     story_gif = Image.open(f"gartic/{gartic_round}/{gartic_story}")
@@ -90,8 +87,7 @@ class Gartic(commands.Cog, name="Gartic"):
             return
 
         await channel.send(
-            "Guten Abend, Krah Krah! Hier kommt das tägliche "
-            "Highlight aus dem Gartic Phone-Archiv, Krah Krah!",
+            "Guten Abend, Krah Krah! Hier kommt das tägliche Highlight aus dem Gartic Phone-Archiv, Krah Krah!",
             file=discord.File("cache/gartic_output.png"),
         )
 

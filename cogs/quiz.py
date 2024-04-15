@@ -85,9 +85,7 @@ class Quiz(commands.Cog, name="Quiz"):
         embed = discord.Embed(
             title=self.question["question"],
             colour=discord.Colour(0xFF00FF),
-            description="\n".join(
-                [f"{a[0]}: {a[1]['text']}" for a in self.question["answers"].items()]
-            ),
+            description="\n".join([f"{a[0]}: {a[1]['text']}" for a in self.question["answers"].items()]),
         )
         return {
             "content": f"**Frage {self.game_stage + 1} - "
@@ -155,9 +153,7 @@ class Quiz(commands.Cog, name="Quiz"):
         await self.get_random_question()
         output = await self.get_question_output()
 
-        if output is None or not (
-            isinstance(output["content"], str) and isinstance(output["embed"], discord.Embed)
-        ):
+        if output is None or not (isinstance(output["content"], str) and isinstance(output["embed"], discord.Embed)):
             return
 
         await ctx.send(content=output["content"], embed=output["embed"])
@@ -170,9 +166,7 @@ class Quiz(commands.Cog, name="Quiz"):
             return
 
         await ctx.send(
-            "Das laufende Quiz wurde abgebrochen. "
-            + self.player.display_name
-            + " geht leider leer aus, Krah Krah!"
+            f"Das laufende Quiz wurde abgebrochen. {self.player.display_name} geht leider leer aus, Krah Krah!"
         )
 
         await self.stop_quiz()
@@ -211,9 +205,7 @@ class Quiz(commands.Cog, name="Quiz"):
         if (ranking := load_file("json/quiz_ranking.json").unwrap()) is None:
             return
 
-        sorted_ranking = dict(
-            sorted(ranking.items(), key=lambda item: item[1]["points"], reverse=True)
-        )
+        sorted_ranking = dict(sorted(ranking.items(), key=lambda item: item[1]["points"], reverse=True))
 
         broken_users = []
         max_length = {"name": 0, "points": 0}
@@ -246,9 +238,7 @@ class Quiz(commands.Cog, name="Quiz"):
                 + "\n".join(
                     [
                         user.display_name.ljust(max_length["name"] + 4, " ")
-                        + (format(item[1]["points"], ",d").replace(",", ".") + "🕊").rjust(
-                            max_length["points"] + 4, " "
-                        )
+                        + (format(item[1]["points"], ",d").replace(",", ".") + "🕊").rjust(max_length["points"] + 4, " ")
                         + (str(item[1]["tries"]) + "Versuche").rjust(14, " ")
                         for item in sorted_ranking.items()
                         if (user := self.bot.get_user(int(item[0]))) is not None
@@ -289,9 +279,7 @@ class Quiz(commands.Cog, name="Quiz"):
                         return
 
                     if self.game_stage in [4, 9]:
-                        await self.channel.send(
-                            f"❗️ Checkpoint erreicht: {self.stages[self.game_stage]}🕊."
-                        )
+                        await self.channel.send(f"❗️ Checkpoint erreicht: {self.stages[self.game_stage]}🕊.")
 
                     self.game_stage += 1
 
@@ -299,8 +287,7 @@ class Quiz(commands.Cog, name="Quiz"):
                     output = await self.get_question_output()
 
                     if output is None or not (
-                        isinstance(output["content"], str)
-                        and isinstance(output["embed"], discord.Embed)
+                        isinstance(output["content"], str) and isinstance(output["embed"], discord.Embed)
                     ):
                         return
 
@@ -309,11 +296,7 @@ class Quiz(commands.Cog, name="Quiz"):
                 else:
                     await self.channel.send("❌ Falsch!")
 
-                    correct_answer = next(
-                        answer
-                        for answer in self.question["answers"].items()
-                        if answer[1]["correct"]
-                    )
+                    correct_answer = next(answer for answer in self.question["answers"].items() if answer[1]["correct"])
 
                     await self.channel.send(
                         f"Die richtige Antwort ist {correct_answer[0]}: {correct_answer[1]['text']}"
@@ -346,12 +329,8 @@ class Quiz(commands.Cog, name="Quiz"):
                 else:
                     await self.update_ranking(self.stages[self.game_stage - 1])
 
-                correct_answer = next(
-                    answer for answer in self.question["answers"].items() if answer[1]["correct"]
-                )
+                correct_answer = next(answer for answer in self.question["answers"].items() if answer[1]["correct"])
 
-                await self.channel.send(
-                    f"Die richtige Antwort ist {correct_answer[0]}: {correct_answer[1]['text']}"
-                )
+                await self.channel.send(f"Die richtige Antwort ist {correct_answer[0]}: {correct_answer[1]['text']}")
 
                 await self.stop_quiz()

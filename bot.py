@@ -45,16 +45,13 @@ class Bot(commands.Bot):
 
         logging.info("Analyzing channels...")
 
-        categories = {
-            None if cat[0] is None else cat[0].name: cat[1] for cat in guild.by_category()
-        }
+        categories = {None if cat[0] is None else cat[0].name: cat[1] for cat in guild.by_category()}
 
         try:
             self.channels["stream"] = next(
                 chan
                 for chan in categories[None]
-                if chan.name == self.settings["channels"]["stream"]
-                and chan.type == discord.ChannelType.text
+                if chan.name == self.settings["channels"]["stream"] and chan.type == discord.ChannelType.text
             )
         except KeyError as err_msg:
             logging.warning("Category not found. Stream channel should be here. %s", err_msg)
@@ -79,11 +76,7 @@ class Bot(commands.Bot):
 
         try:
             self.channels.update(
-                {
-                    chan.name: chan
-                    for chan in list(categories["Spiele"])
-                    if chan.type == discord.ChannelType.text
-                }
+                {chan.name: chan for chan in list(categories["Spiele"]) if chan.type == discord.ChannelType.text}
             )
         except KeyError as err_msg:
             logging.warning('Category "Spiele" not found. %s', err_msg)

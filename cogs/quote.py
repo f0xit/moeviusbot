@@ -94,8 +94,7 @@ class Quote(commands.Cog, name="Quote"):
         if quote is None:
             logging.warning("No quote found!")
             await channel.send(
-                "Ich habe wirklich alles versucht, aber ich konnte einfach "
-                "kein Zitat finden, Krah Krah!"
+                "Ich habe wirklich alles versucht, aber ich konnte einfach kein Zitat finden, Krah Krah!"
             )
             return
 
@@ -133,9 +132,7 @@ class Quote(commands.Cog, name="Quote"):
         brief="Besorgt sich die nötigen Daten für den Zitategenerator. "
         "ACHTUNG: Kann je nach Limit einige Sekunden bis Minuten dauern.",
     )
-    async def _download_history(
-        self, ctx: commands.Context, member: discord.Member, lim: int = 1000
-    ) -> None:
+    async def _download_history(self, ctx: commands.Context, member: discord.Member, lim: int = 1000) -> None:
         quote_by = member.display_name
 
         await ctx.send(
@@ -186,9 +183,7 @@ class Quote(commands.Cog, name="Quote"):
         )
 
     @is_super_user()
-    @_quote.command(
-        name="build_markov", aliases=["bm"], brief="Generiert das Modell für zufällige Zitate."
-    )
+    @_quote.command(name="build_markov", aliases=["bm"], brief="Generiert das Modell für zufällige Zitate.")
     async def _build_markov(self, ctx: commands.Context, size: int = 3) -> None:
         """Generiert das Modell für zufällige Zitate."""
 

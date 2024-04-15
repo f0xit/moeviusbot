@@ -1,4 +1,5 @@
 """Cog for the urban dictionary command"""
+
 import json
 import logging
 from typing import Tuple
@@ -63,9 +64,7 @@ async def request_try_these(term: str) -> Result[list[str], str]:
     page_url = "https://www.urbandictionary.com/define.php?term="
 
     try:
-        soup = BeautifulSoup(
-            (await async_request_html(format_url(page_url, term), 404)).unwrap(), "html.parser"
-        )
+        soup = BeautifulSoup((await async_request_html(format_url(page_url, term), 404)).unwrap(), "html.parser")
     except UnwrapError as err_msg:
         return Err(f"API-Request failed: {err_msg}")
 

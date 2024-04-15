@@ -11,6 +11,4 @@ def check_python_version(
 
     major_version, minor_version, _, _, _ = sys.version_info
     if (major_version, minor_version) < (min_major_version, min_minor_version):
-        sys.exit(
-            f"Wrong Python version. Please use at least {min_major_version,}.{min_minor_version}!"
-        )
+        sys.exit(f"Wrong Python version. Please use at least {min_major_version,}.{min_minor_version}!")
