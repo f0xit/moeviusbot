@@ -15,10 +15,24 @@ from tools.json_tools import DictFile
 from tools.view_tools import PollView
 
 
-def convert_choices_to_list(choices_str) -> list[tuple[str, str]]:
-    return list(
-        zip(ascii_lowercase, [name for name in map(str.strip, choices_str.split(";")) if name])
-    )
+def convert_choices_to_list(choices_str: str) -> list[tuple[str, str]]:
+    """Takes a string, splits it by semicolons, and turns the chunks into
+    a list, enumerated by lowercase letters, starting at 'a'.
+
+    Trailing semicolons or whitespace between semicolons are ignored.
+
+    Example:
+        'apple; banana ; ;cake;' is converted into
+        [('a', 'apple'),('b', 'banana'),('c', 'cake')]
+
+    Args:
+        choices_str (str): A string of choices, seperated by semicolons
+
+    Returns:
+        list[tuple[str, str]]: A list of choices, enumerated by lowercase
+        letters, starting at 'a'"""
+
+    return list(zip(ascii_lowercase, [name for name in map(str.strip, choices_str.split(";")) if name]))
 
 
 async def setup(bot: Bot) -> None:
@@ -28,7 +42,9 @@ async def setup(bot: Bot) -> None:
     logging.info("Cog loaded: Polls.")
 
 
-async def stop_poll(msg: discord.Message, polls, poll_id: str) -> None:
+async def stop_poll(msg: discord.Message, polls: dict, poll_id: str) -> None:
+    """Stops a running poll by deactivating the buttons of the given messsage."""
+
     choices = polls[poll_id]["choices"]
     votes = polls[poll_id]["votes"]
 
@@ -52,14 +68,16 @@ class Polls(commands.Cog, name="Umfragen"):
 
     @commands.Cog.listener()
     async def on_interaction(self, interaction: discord.interactions.Interaction) -> None:
+        """Poll interaction listener. Reacts to interactions that match the custom_id format for polls."""
+
         if interaction is None or interaction.data is None or "custom_id" not in interaction.data:
-            logging.error("Interaction broken for poll!")
+            logging.debug("Interaction empty or no custom_id.")
             return
 
         await interaction.response.defer()
 
         if (interaction_match := self.re_poll_button.match(interaction.data["custom_id"])) is None:
-            logging.error("Empty regex Match from custom_id!")
+            logging.debug("Empty regex Match from custom_id. Not relevant for polls.")
             return
 
         poll_id, choice_id, iteration = interaction_match.groups()
@@ -134,7 +152,8 @@ class Polls(commands.Cog, name="Umfragen"):
         embed = PollEmbed(new_poll_id, new_poll)
         view = PollView().buttons_from_choices(new_poll_id, choices)
         msg = await ctx.send(
-            "Eine neue Umfrage, Krah Krah! Mehrfachauswahl erlaubt. Klicke um abszutimmen oder um deine Stimme zurückzunehmen.",
+            "Eine neue Umfrage, Krah Krah! Mehrfachauswahl erlaubt. "
+            "Klicke um abszutimmen oder um deine Stimme zurückzunehmen.",
             embed=embed,
             view=view,
         )
