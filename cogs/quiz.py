@@ -139,10 +139,10 @@ class Quiz(commands.Cog, name="Quiz"):
         self.channel = ctx.channel
         self.game_stage = 0
 
-        self.quiz = load_file("json/quiz.json").unwrap()
-
-        if self.quiz is None:
+        if (quiz := load_file("json/quiz.json").unwrap()) is None:
             return
+
+        self.quiz = quiz
 
         await ctx.send(
             "Hallo und herzlich Willkommen zu Wer Wird Mövionär! "
