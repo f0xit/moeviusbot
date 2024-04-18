@@ -11,7 +11,6 @@ import discord
 from discord.abc import GuildChannel
 from discord.ext import commands
 from dotenv import load_dotenv
-from result import UnwrapError
 
 from bot import Bot
 from tools.check_tools import is_super_user
@@ -107,13 +106,8 @@ class Administration(commands.Cog, name="Administration"):
 
         path = f"logs/moevius.log.{file}" if file else "logs/moevius.log"
 
-        try:
-            if (log_lines := (await lines_from_textfile(path)).unwrap()) is None:
-                await ctx.send("Dieses Log-File scheint es nicht zu geben, Krah Krah! Format: YYYY_MM_DD")
-                return
-
-        except UnwrapError as err_msg:
-            logging.error(err_msg)
+        if not (log_lines := (await lines_from_textfile(path))):
+            await ctx.send("Dieses Log-File scheint es nicht zu geben, Krah Krah! Format: YYYY_MM_DD")
             return
 
         number_of_pages = len(log_lines) // chunk_size + 1

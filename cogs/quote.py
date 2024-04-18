@@ -8,7 +8,6 @@ import time
 import discord
 import markovify
 from discord.ext import commands, tasks
-from result import Err, Ok, Result, UnwrapError
 
 from bot import Bot
 from tools.check_tools import is_super_user
@@ -21,11 +20,7 @@ async def setup(bot: Bot) -> None:
 
     quote_cog = Quote(bot)
 
-    match await quote_cog.build_markov():
-        case Ok(value):
-            logging.info(value)
-        case Err(err_msg):
-            logging.error(err_msg)
+    await quote_cog.build_markov()
 
     await bot.add_cog(quote_cog)
     logging.info("Cog loaded: Quote.")
@@ -44,30 +39,26 @@ class Quote(commands.Cog, name="Quote"):
         self.daily_quote.cancel()
         logging.info("Cog unloaded: Quote.")
 
-    async def build_markov(self, size: int = 3) -> Result[str, str]:
-        """Generates a markov model from the channel_messages.txt file and
-        returns it.
+    async def build_markov(self, size: int = 3) -> bool:
+        """Generates a markov model from the channel_messages.txt file.
 
         Args:
-            size (int, optional):
-                The number of words per slice in the model. Defaults to 3.
+            size (int, optional): The number of words per slice in the model. Defaults to 3.
 
         Returns:
-            Tuple[str, markovify.NewlineText]:
-                The first item contains the author of the messages, the second
-                item is the model itself."""
+            bool: Is True, if the generation was successful, and False, if the generation failed."""
 
         start_time = time.time()
 
-        try:
-            channel_messages = (await lines_from_textfile("channel_messages.txt")).unwrap()
-        except UnwrapError as err_msg:
-            return Err(str(err_msg))
+        if not (channel_messages := await lines_from_textfile("channel_messages.txt")):
+            logging.error("No channel messages found!")
+            return False
 
         self.quote_by = channel_messages.pop(0)
         self.text_model = markovify.NewlineText("\n".join(channel_messages), state_size=size)
 
-        return Ok(f"Generation finished. Size: {size} Duration: {time.time() - start_time}")
+        logging.info("Generation finished. Size: %s Duration: %s", size, time.time() - start_time)
+        return True
 
     async def send_quote(
         self,

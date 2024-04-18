@@ -9,7 +9,7 @@ from enum import Enum
 import discord
 from bs4 import BeautifulSoup
 from discord.ext import commands
-from result import Err, Ok, Result, UnwrapError
+from result import UnwrapError
 
 from bot import Bot
 from tools.json_tools import DictFile
@@ -29,13 +29,7 @@ async def setup(bot: Bot) -> None:
     """Setup function for the cog."""
 
     misc_cog = Misc(bot)
-
-    if (result := await misc_cog.load_all_lists_from_file()).is_err():
-        logging.error(result.err())
-        return
-
-    logging.debug(result.ok())
-
+    await misc_cog.load_all_lists_from_file()
     await bot.add_cog(misc_cog)
     logging.info("Cog loaded: Misc.")
 
@@ -52,16 +46,13 @@ class Misc(commands.Cog, name="Sonstiges"):
     async def cog_unload(self) -> None:
         logging.info("Cog unloaded: Misc.")
 
-    async def load_all_lists_from_file(self) -> Result[str, str]:
+    async def load_all_lists_from_file(self) -> None:
         """Asynchronously loading the files for fragen and bible into their corresponding lists."""
 
-        try:
-            self.fragen = (await lines_from_textfile("fragen.txt")).unwrap()
-            self.bible = (await lines_from_textfile("moevius-bibel.txt")).unwrap()
+        self.fragen = await lines_from_textfile("fragen.txt")
+        self.bible = await lines_from_textfile("moevius-bibel.txt")
 
-            return Ok(f"Files loaded. Fragen: {len(self.fragen)} - Bible: {len(self.bible)}")
-        except UnwrapError as err_msg:
-            return Err(str(err_msg))
+        logging.info("Files loaded. Fragen: %s - Bible: %s", len(self.fragen), len(self.bible))
 
     @commands.command(
         name="ps5",
@@ -111,56 +102,54 @@ class Misc(commands.Cog, name="Sonstiges"):
                 f'{"PS5" if math.floor(quot_ps5) == 1 else "PS5en"}.'
             )
 
-    async def embed_random_item(self, ctx: commands.Context, choice: ListType = ListType.NONE) -> Result[str, str]:
+    async def embed_random_item(self, ctx: commands.Context, choice: ListType = ListType.NONE) -> str | None:
         """Sends a Discord embed with a random item from a chosen list."""
 
-        try:
-            match choice:
-                case ListType.NONE:
-                    return Err("No list chosen.")
+        match choice:
+            case ListType.NONE:
+                return None
 
-                case ListType.QUESTION:
-                    if not self.fragen:
-                        self.fragen = (await lines_from_textfile("fragen.txt")).unwrap()
+            case ListType.QUESTION:
+                if not self.fragen:
+                    self.fragen = await lines_from_textfile("fragen.txt")
 
-                    description = random.SystemRandom().choice(self.fragen)
-                    title = f"Frage an {ctx.author.display_name}"
+                description = random.SystemRandom().choice(self.fragen)
+                title = f"Frage an {ctx.author.display_name}"
 
-                case ListType.BIBLE:
-                    if not self.bible:
-                        self.fragen = (await lines_from_textfile("moevius-bibel.txt")).unwrap()
+            case ListType.BIBLE:
+                if not self.bible:
+                    self.fragen = await lines_from_textfile("moevius-bibel.txt")
 
-                    description = random.SystemRandom().choice(self.bible)
-                    title = "Das Wort unseres Herrn, Krah Krah!"
+                description = random.SystemRandom().choice(self.bible)
+                title = "Das Wort unseres Herrn, Krah Krah!"
 
-            await ctx.send(embed=discord.Embed(title=title, colour=discord.Colour(0xFF00FF), description=description))
+        await ctx.send(embed=discord.Embed(title=title, colour=discord.Colour(0xFF00FF), description=description))
 
-        except UnwrapError as err_msg:
-            return Err(str(err_msg))
-
-        return Ok(description)
+        return description
 
     @commands.command(name="frage", aliases=["f"], brief="Stellt eine zufällige Frage.")
     async def _frage(self, ctx: commands.Context) -> None:
         """Stellt eine zufällige Frage."""
 
-        match await self.embed_random_item(ctx, ListType.QUESTION):
-            case Ok(item):
-                logging.info("%s requested a question", ctx.author.name)
-                logging.debug(item)
-            case Err(err_msg):
-                logging.error(err_msg)
+        logging.info("%s requested a question", ctx.author.name)
+
+        if item := await self.embed_random_item(ctx, ListType.QUESTION) is None:
+            logging.error("Could not send a question!")
+            return
+
+        logging.debug(item)
 
     @commands.command(name="bibel", aliases=["bi"], brief="Präsentiert die Weisheiten des Krächzers.")
     async def _bibel(self, ctx: commands.Context):
         """Präsentiert die Weisheiten des Krächzers."""
 
-        match await self.embed_random_item(ctx, ListType.BIBLE):
-            case Ok(item):
-                logging.info("%s requested a bible quote", ctx.author.name)
-                logging.debug(item)
-            case Err(err_msg):
-                logging.error(err_msg)
+        logging.info("%s requested a bible quote", ctx.author.name)
+
+        if item := await self.embed_random_item(ctx, ListType.BIBLE) is None:
+            logging.error("Could not send a bible quote!")
+            return
+
+        logging.debug(item)
 
     @commands.command(name="ult", aliases=["Q", "q"], brief="Die ultimative Fähigkeit von Mövius dem Krächzer.")
     async def _ult(self, ctx: commands.Context) -> None:
