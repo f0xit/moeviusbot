@@ -1,6 +1,7 @@
 """This module contains some helper functions for datetime"""
 
 import datetime as dt
+import random
 
 from zoneinfo import ZoneInfo
 
@@ -36,4 +37,11 @@ def strfdelta(
         hours=hours,
         minutes=minutes,
         seconds=seconds,
+    )
+
+
+def get_random_date() -> dt.datetime:
+    return dt.datetime.fromtimestamp(
+        random.SystemRandom().randint(0, int(dt.datetime.now(dt.UTC).timestamp())),
+        dt.UTC,
     )

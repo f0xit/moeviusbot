@@ -2,7 +2,6 @@
 
 import datetime as dt
 import logging
-import random
 import time
 
 import discord
@@ -12,6 +11,7 @@ from discord.ext import commands, tasks
 from bot import Bot
 from tools.check_tools import is_super_user
 from tools.dt_tools import get_local_timezone
+from tools.embed_tools import QuoteEmbed
 from tools.textfile_tools import lines_from_textfile, lines_to_textfile
 
 
@@ -91,18 +91,7 @@ class Quote(commands.Cog, name="Quote"):
 
         quote = quote.replace(">", "")
 
-        await channel.send(
-            content=content,
-            embed=discord.Embed(
-                title=title,
-                colour=discord.Colour(0xFF00FF),
-                description=quote,
-                timestamp=dt.datetime.fromtimestamp(
-                    random.SystemRandom().randint(0, int(dt.datetime.now(dt.UTC).timestamp())),
-                    dt.UTC,
-                ),
-            ).set_footer(text=self.quote_by),
-        )
+        await channel.send(content=content, embed=QuoteEmbed(title, quote, self.quote_by))
 
         logging.info("Quote successful.")
         logging.debug("%s - Author: %s", quote, self.quote_by)
@@ -184,7 +173,7 @@ class Quote(commands.Cog, name="Quote"):
 
     @tasks.loop(time=dt.time(9, tzinfo=get_local_timezone()))
     async def daily_quote(self) -> None:
-        """_summary_"""
+        """Loop to generate a daily quote at 9 AM"""
 
         logging.info("It's 9 AM, time for a daily quote!")
 
@@ -201,4 +190,4 @@ class Quote(commands.Cog, name="Quote"):
     async def _before_daily_quote(self):
         logging.debug("Waiting for daily quote loop...")
         await self.bot.wait_until_ready()
-        logging.debug("Daily quote loop running!")
+        logging.info("Daily quote loop running!")
