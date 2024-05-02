@@ -98,7 +98,7 @@ class Quote(commands.Cog, name="Quote"):
 
     @commands.group(name="zitat", aliases=["z"], brief="Zitiert eine weise Persönlichkeit.")
     async def _quote(self, ctx: commands.Context):
-        if ctx.invoked_subcommand is not None or not isinstance(ctx.channel, discord.TextChannel):
+        if ctx.invoked_subcommand is not None or not isinstance(ctx.channel, discord.TextChannel | discord.DMChannel):
             return
 
         logging.info("%s requested a quote by %s.", ctx.author.name, self.quote_by)
