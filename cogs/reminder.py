@@ -176,6 +176,8 @@ class Reminder(commands.Cog, name="Events"):
 
         self.events["stream"].reset()
 
+        await ctx.send("Stream wurde zurückgesetzt, Krah Krah!", ephemeral=True)
+
     @commands.hybrid_group(
         name="game",
         fallback="show",
@@ -199,6 +201,8 @@ class Reminder(commands.Cog, name="Events"):
         """"""
 
         self.events["game"].reset()
+
+        await ctx.send("Game wurde zurückgesetzt, Krah Krah!", ephemeral=True)
 
     @commands.hybrid_command(name="join", aliases=["j"], brief="Tritt einem Event bei.")
     async def _join(self, ctx: commands.Context) -> None:
