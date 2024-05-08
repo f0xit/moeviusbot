@@ -3,9 +3,11 @@
 .DS_Store
 
 channel_messages.txt
+test*.py
 
 __pycache__
 .ruff_cache
+.mypy_cache
 .vscode
 
 cache
