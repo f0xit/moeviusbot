@@ -97,6 +97,15 @@ class Administration(commands.Cog, name="Administration"):
         await ctx.send(f"```{console_output}```")
 
     @is_super_user()
+    @_bot.command(name="sync", aliases=["-s"])
+    async def _sync_tree(self, ctx: commands.Context) -> None:
+        """Synchronisiert den Command Tree"""
+
+        cmds = await self.bot.tree.sync()
+
+        await ctx.send(f"Synced:\n```{cmds}```")
+
+    @is_super_user()
     @_bot.command(name="log", aliases=["-l"])
     async def _show_log(self, ctx: commands.Context, page: int = 1, file: str = "") -> None:
         """Zeigt das neuste bzw. ein bestimmtes Logfile an. Die Seiten können mit dem page-Argument
@@ -241,7 +250,6 @@ class Administration(commands.Cog, name="Administration"):
             )
         )
 
-        await self.bot.tree.sync()
         logging.info("Bot ready!")
 
         startup_duration = (dt.datetime.now() - STARTUP_TIME).total_seconds()
