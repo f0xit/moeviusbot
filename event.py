@@ -1,32 +1,51 @@
 """This module contains the event class"""
 
+import datetime as dt
 import logging
+from enum import Enum, auto
 
 from discord import Member, User
 
 from tools.json_tools import load_file, save_file
 
 
+class EventType(Enum):
+    """Enum of the supported event types"""
+
+    GAME = auto()
+    STREAM = auto()
+
+    def __str__(self) -> str:
+        return self.name.lower()
+
+
 class Event:
     """This class is used for events like streams or coop sessions"""
 
-    def __init__(self, event_type: str) -> None:
-        self.event_type = event_type
-        self.event_time = ""
-        self.event_game = ""
-        self.event_members = {}
+    def __init__(
+        self,
+        type: EventType,
+        time: dt.datetime | None = None,
+        game: str = "",
+        members: list[int] | None = None,
+    ) -> None:
+        self.type: EventType = type
+        self.time: dt.datetime | None = time
+        self.game: str = game
+        self.members: list[int] = [] if members is None else members
 
-        self.load()
+    def __str__(self) -> str:
+        return f"Event ({self.type}, {self.time}, {self.game}, {" ".join(map(str, self.members))})"
 
-    def update_event(self, event_time: str, event_game: str) -> None:
+    def update_event(self, event_time: dt.datetime, event_game: str) -> None:
         """Updates the event.
 
         Args:
             event_time (str): Format is HH:MM
-            event_game (str): Name of the game played/streamed
-        """
-        self.event_time = event_time
-        self.event_game = event_game
+            event_game (str): Name of the game played/streamed"""
+
+        self.time = event_time
+        self.game = event_game
 
         self.save()
 
@@ -34,62 +53,37 @@ class Event:
         """Adds a member to the event
 
         Args:
-            new_member (User | Member): The added member
-        """
-        if new_member.id in self.event_members:
+            new_member (User | Member): The added member"""
+
+        if new_member.id in self.members:
             return
 
-        self.event_members[new_member.id] = new_member.display_name
-        self.save()
+        self.members.append(new_member.id)
 
     def reset(self) -> None:
         """Resets all instance attributes"""
-        self.event_time = ""
-        self.event_game = ""
-        self.event_members = {}
+
+        self.time = None
+        self.game = ""
+        self.members = []
 
         self.save()
 
     def save(self) -> None:
         """Saves the event to a json-file"""
 
-        try:
-            save_file(self.event_type + ".json", self.__dict__)
-            logging.info(
-                "Event saved. Type: %s - Name: %s - Time: %s - Members: %s",
-                self.event_type,
-                self.event_game,
-                self.event_time,
-                ".".join(self.event_members.values()),
-            )
-        except OSError:
-            logging.error(
-                "Event could not be saved! Type: %s - Name: %s - Time: %s - Members: %s",
-                self.event_type,
-                self.event_game,
-                self.event_time,
-                ".".join(self.event_members.values()),
-            )
+        save_file(str(self.type) + ".json", self.__dict__)
 
     def load(self) -> None:
         """Loads the event from a json-file if possible"""
 
-        try:
-            data = load_file(self.event_type + ".json")
+        data = load_file(str(self.type) + ".json")
 
-            if not isinstance(data, dict):
-                raise OSError
+        if not isinstance(data, dict):
+            raise OSError
 
-            self.event_time = data["event_time"]
-            self.event_game = data["event_game"]
-            self.event_members = data["event_members"]
+        self.time = dt.datetime.fromisoformat(data["event_time"])
+        self.game = data["event_game"]
+        self.members = data["event_members"]
 
-            logging.info(
-                "Event loaded. Type: %s - Name: %s - Time: %s - Members: %s",
-                self.event_type,
-                self.event_game,
-                self.event_time,
-                ".".join(self.event_members.values()),
-            )
-        except OSError:
-            logging.error("Event could not be loded! Type: %s", self.event_type)
+        logging.info("Event loaded. %s", self)
