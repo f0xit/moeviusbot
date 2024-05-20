@@ -84,7 +84,7 @@ class DictFile(dict):
         if not isinstance(value, dict):
             return
 
-        self.update(load_file(self.file_name))
+        self.update(json_file)
 
         logging.debug("Loaded data from file %s. %s keys.", self.file_name, len(value.keys()))
 
