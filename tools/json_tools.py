@@ -11,6 +11,10 @@ class EmptyPathError(IOError):
     pass
 
 
+class DictFileLoadError(Exception):
+    pass
+
+
 def json_ser(obj: object) -> str:
     if isinstance(obj, dt.datetime):
         return obj.isoformat()
@@ -82,7 +86,7 @@ class DictFile(dict):
         json_file = load_file(self.file_name)
 
         if not isinstance(json_file, dict):
-            return
+            raise DictFileLoadError("DictFile could not be loaded. JSON-File formatted wrong.")
 
         self.update(json_file)
 
