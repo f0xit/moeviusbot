@@ -79,15 +79,14 @@ class DictFile(dict):
         if not load_from_file:
             return
 
-        value = load_file(self.file_name)
+        json_file = load_file(self.file_name)
 
-        if not isinstance(value, dict):
+        if not isinstance(json_file, dict):
             return
 
         self.update(json_file)
 
-        logging.debug("Loaded data from file %s. %s keys.", self.file_name, len(value.keys()))
-
+        logging.debug("Loaded data from file %s. %s keys.", self.file_name, len(json_file.keys()))
         logging.info("DictFile %s initialized succesfully.", self.file_name)
 
     def __setitem__(self, __key: str, __value: Any) -> None:
