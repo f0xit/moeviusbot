@@ -9,7 +9,6 @@ from enum import Enum
 import discord
 from bs4 import BeautifulSoup
 from discord.ext import commands
-from result import UnwrapError
 
 from bot import Bot
 from tools.json_tools import DictFile
@@ -75,13 +74,7 @@ class Misc(commands.Cog, name="Sonstiges"):
 
         ps5_url = "https://direct.playstation.com/de-de/buy-consoles/playstation5-console"
 
-        try:
-            ps5_result = (await async_request_html(ps5_url)).unwrap()
-        except UnwrapError as err_msg:
-            logging.error("Request failed: %s", err_msg)
-            return
-
-        ps5_soup = BeautifulSoup(ps5_result, "html.parser")
+        ps5_soup = BeautifulSoup(await async_request_html(ps5_url), "html.parser")
 
         price_tag = ps5_soup.find_all("span", class_="product-price")[0]
         price_sup_tag = ps5_soup.find_all("sup", class_="product-price-sup")[1]
