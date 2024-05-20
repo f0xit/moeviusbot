@@ -17,17 +17,21 @@ async def setup(bot: Bot) -> None:
     logging.info("Cog: Quiz geladen.")
 
 
+class QuizError(Exception):
+    pass
+
+
 class Quiz(commands.Cog, name="Quiz"):
     """Quiz cog"""
 
     def __init__(self, bot: Bot) -> None:
         self.bot = bot
 
-        self.player = None
-        self.channel = None
-        self.game_stage = 0
+        self.player: discord.Member | None = None
+        self.channel: discord.TextChannel | None = None
+        self.game_stage: int = 0
         self.question: dict[str, str | dict] = {}
-        self.quiz = None
+        self.quiz: list | None = None
 
         self.stages = [
             50,
@@ -54,7 +58,7 @@ class Quiz(commands.Cog, name="Quiz"):
         """_summary_"""
 
         if self.quiz is None:
-            return
+            raise QuizError("Quiz data not found!")
 
         while True:
             question = random.SystemRandom().choice(self.quiz)
@@ -112,7 +116,9 @@ class Quiz(commands.Cog, name="Quiz"):
 
         player_id = str(self.player.id)
 
-        if (ranking := load_file("json/quiz_ranking.json").unwrap()) is None:
+        ranking = load_file("json/quiz_ranking.json")
+
+        if not isinstance(ranking, dict):
             return
 
         ranking[player_id]["name"] = self.player.display_name
@@ -135,11 +141,16 @@ class Quiz(commands.Cog, name="Quiz"):
             )
             return
 
+        if not isinstance(ctx.author, discord.Member) or not isinstance(ctx.channel, discord.TextChannel):
+            return
+
         self.player = ctx.author
         self.channel = ctx.channel
         self.game_stage = 0
 
-        if (quiz := load_file("json/quiz.json").unwrap()) is None:
+        quiz = load_file("json/quiz.json")
+
+        if not isinstance(quiz, list):
             return
 
         self.quiz = quiz
@@ -202,7 +213,9 @@ class Quiz(commands.Cog, name="Quiz"):
 
     @_quiz.command(name="rank", brief="Zeigt das Leaderboard an.")
     async def _rank(self, ctx: commands.Context) -> None:
-        if (ranking := load_file("json/quiz_ranking.json").unwrap()) is None:
+        ranking = load_file("json/quiz_ranking.json")
+
+        if not isinstance(ranking, dict):
             return
 
         sorted_ranking = dict(sorted(ranking.items(), key=lambda item: item[1]["points"], reverse=True))

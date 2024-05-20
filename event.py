@@ -53,7 +53,8 @@ class Event:
     def save(self) -> None:
         """Saves the event to a json-file"""
 
-        if save_file(self.event_type + ".json", self.__dict__).is_ok():
+        try:
+            save_file(self.event_type + ".json", self.__dict__)
             logging.info(
                 "Event saved. Type: %s - Name: %s - Time: %s - Members: %s",
                 self.event_type,
@@ -61,7 +62,7 @@ class Event:
                 self.event_time,
                 ".".join(self.event_members.values()),
             )
-        else:
+        except OSError:
             logging.error(
                 "Event could not be saved! Type: %s - Name: %s - Time: %s - Members: %s",
                 self.event_type,
@@ -73,18 +74,22 @@ class Event:
     def load(self) -> None:
         """Loads the event from a json-file if possible"""
 
-        if (data := load_file(self.event_type + ".json").unwrap()) is None:
-            logging.error("Event could not be loaded!")
-            return
+        try:
+            data = load_file(self.event_type + ".json")
 
-        self.event_time = data["event_time"]
-        self.event_game = data["event_game"]
-        self.event_members = data["event_members"]
+            if not isinstance(data, dict):
+                raise OSError
 
-        logging.info(
-            "Event loaded. Type: %s - Name: %s - Time: %s - Members: %s",
-            self.event_type,
-            self.event_game,
-            self.event_time,
-            ".".join(self.event_members.values()),
-        )
+            self.event_time = data["event_time"]
+            self.event_game = data["event_game"]
+            self.event_members = data["event_members"]
+
+            logging.info(
+                "Event loaded. Type: %s - Name: %s - Time: %s - Members: %s",
+                self.event_type,
+                self.event_game,
+                self.event_time,
+                ".".join(self.event_members.values()),
+            )
+        except OSError:
+            logging.error("Event could not be loded! Type: %s", self.event_type)
