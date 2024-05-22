@@ -73,8 +73,8 @@ class EventManager:
         event_dt: dt.datetime,
         event_game: str = "",
         event_author: int = 0,
-    ) -> None:
-        """Adds a new event to the corresponding list"""
+    ) -> Event:
+        """Adds a new event to the corresponding list and returns it."""
 
         event_id = self.max_event_id + 1
 
@@ -84,3 +84,5 @@ class EventManager:
             self.past_events.append(event)
         else:
             self.upcoming_events.append(event)
+
+        return event
