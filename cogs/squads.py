@@ -10,8 +10,9 @@ ANNOY_IDS = [232561052573892608]
 
 async def setup(bot: Bot) -> None:
     """Setup function for the cog."""
-    await bot.add_cog(Squads(bot))
-    logging.info("Cog: Reminder loaded.")
+    if False:
+        await bot.add_cog(Squads(bot))
+        logging.info("Cog: Reminder loaded.")
 
 
 class Squads(commands.Cog):
@@ -48,8 +49,7 @@ class Squads(commands.Cog):
 
         members = []
         for member in self.bot.squads[ctx.channel.name].values():
-            if member != ctx.author.id and str(member) not in self.events["game"].members:
-                members.append(f"<@{member}>")
+            members.append(f"<@{member}>")
 
         if len(members) == 0:
             await ctx.send("Hey, es wissen schon alle bescheid, Krah Krah!")
