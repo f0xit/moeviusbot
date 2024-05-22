@@ -35,6 +35,12 @@ class Event:
     def __repr__(self) -> str:
         return str(self.__dict__)
 
+    def __eq__(self, other: object) -> bool:
+        if not isinstance(other, Event):
+            return False
+
+        return self.event_id == other.event_id
+
     @property
     def is_past(self) -> bool:
         """Is True if the event is in the past"""
