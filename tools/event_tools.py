@@ -20,8 +20,8 @@ class EventType(Enum):
 class Event:
     """Datalass to represent events like streams and games"""
 
-    event_title: str
     event_type: EventType
+    event_title: str
     event_dt: dt.datetime
     event_id: int = field(default=0, init=False)
     event_game: str = field(default="")
