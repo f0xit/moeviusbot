@@ -30,7 +30,38 @@ class Squads(commands.Cog):
 
     @commands.hybrid_command(name="hey", aliases=["h"], brief="Informiere das Squad über ein bevorstehendes Event.")
     async def _hey(self, ctx: commands.Context) -> None:
-        pass
+        if not isinstance(ctx.channel, discord.TextChannel):
+            return
+
+        if ctx.channel.category is None:
+            return
+
+        if ctx.channel.category.name != "Spiele":
+            await ctx.send("Hey, das ist kein Spiele-Channel, Krah Krah!")
+            logging.warning("%s hat das Squad außerhalb eines Spiele-Channels gerufen.", ctx.author.name)
+            return
+
+        if len(self.bot.squads[ctx.channel.name]) == 0:
+            await ctx.send("Hey, hier gibt es kein Squad, Krah Krah!")
+            logging.warning("%s hat ein leeres Squad in %s gerufen.", ctx.author.name, ctx.channel.name)
+            return
+
+        members = []
+        for member in self.bot.squads[ctx.channel.name].values():
+            if member != ctx.author.id and str(member) not in self.events["game"].members:
+                members.append(f"<@{member}>")
+
+        if len(members) == 0:
+            await ctx.send("Hey, es wissen schon alle bescheid, Krah Krah!")
+            logging.warning(
+                "%s hat das Squad in %s gerufen aber es sind schon alle gejoint.",
+                ctx.author.name,
+                ctx.channel.name,
+            )
+            return
+
+        await ctx.send(f"Hey Squad! Ja, genau ihr seid gemeint, Krah Krah!\n{' '.join(members)}")
+        logging.info("%s hat das Squad in %s gerufen.", ctx.author.name, ctx.channel.name)
 
     @commands.command(name="squad", aliases=["sq"], brief="Manage dein Squad mit ein paar simplen Kommandos.")
     async def _squad(self, ctx: commands.Context, *args) -> None:
