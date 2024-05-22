@@ -23,9 +23,9 @@ class Event:
     event_type: EventType
     event_title: str
     event_dt: dt.datetime
-    event_id: int = field(default=0, init=False)
+    event_id: int
+    event_members: list[int]
     event_game: str = field(default="")
-    event_members: list[int] = field(default_factory=list[int], init=False)
 
     def __str__(self) -> str:
         return (
@@ -66,10 +66,19 @@ class EventManager:
 
         return max(self.upcoming_events.max_event_id, self.past_events.max_event_id)
 
-    def add_event(self, event: Event) -> None:
-        """Adds an event to the corresponding list"""
+    def new_event(
+        self,
+        event_type: EventType,
+        event_title: str,
+        event_dt: dt.datetime,
+        event_game: str = "",
+        event_author: int = 0,
+    ) -> None:
+        """Adds a new event to the corresponding list"""
 
-        event.event_id = self.max_event_id + 1
+        event_id = self.max_event_id + 1
+
+        event = Event(event_type, event_title, event_dt, event_id, [event_author], event_game)
 
         if event.is_past:
             self.past_events.append(event)
