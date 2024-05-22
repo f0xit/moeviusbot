@@ -3,14 +3,17 @@ of the discord bot"""
 
 import datetime as dt
 from dataclasses import dataclass, field
-from enum import Enum
+from enum import Enum, auto
 
 
 class EventType(Enum):
     """Enum of the supported event types"""
 
-    GAME = "Game"
-    STREAM = "Stream"
+    GAME = auto()
+    STREAM = auto()
+
+    def __str__(self) -> str:
+        return self.name.lower()
 
 
 @dataclass
@@ -23,6 +26,11 @@ class Event:
     event_id: int = field(default=0, init=False)
     event_game: str = field(default="")
     event_members: list[int] = field(default_factory=list[int], init=False)
+
+    def __str__(self) -> str:
+        return (
+            f"Event ({self.event_type}, {self.event_dt}, {self.event_game}, {" ".join(map(str, self.event_members))})"
+        )
 
     def __repr__(self) -> str:
         return str(self.__dict__)
@@ -67,24 +75,3 @@ class EventManager:
             self.past_events.append(event)
         else:
             self.upcoming_events.append(event)
-
-
-event_manager = EventManager()
-
-event_manager.add_event(
-    Event(
-        "Spaß mit Schnenk",
-        EventType.STREAM,
-        dt.datetime.fromordinal(1),
-    )
-)
-
-event_manager.add_event(
-    Event(
-        "Spaß mit Hans",
-        EventType.STREAM,
-        dt.datetime.fromordinal(1),
-    )
-)
-
-event_manager.add_event(Event("Spaß mit OW", EventType.GAME, dt.datetime.fromisocalendar(2023, 20, 3)))
