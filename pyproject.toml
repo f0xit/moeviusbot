@@ -1,29 +1,7 @@
 [tool.ruff]
 line-length = 120
-lint.extend-select = [
-    "B",
-    "BLE",
-    "C4",
-    "ERA",
-    "I",
-    "ICN",
-    # "INP",
-    "ISC",
-    "N",
-    "PGH",
-    "PIE",
-    # "Q",
-    "RET",
-    "RSE",
-    "RUF",
-    "S",
-    "SIM",
-    "T20",
-    "TCH",
-    "TID",
-    "YTT",
-]
-lint.ignore = ["TCH0"]
+lint.extend-select = ["ALL"]
+lint.ignore = ["ANN101", "COM812", "D", "EXE002", "S603", "S607"]
 show-fixes = true
 
 [tool.pylint]
