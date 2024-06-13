@@ -1,9 +1,11 @@
 """This tool contains functions to help loading/saving Python dicts from/to .json-files"""
 
+from __future__ import annotations
+
 import datetime as dt
 import json
 import logging
-import os
+from pathlib import Path
 from typing import Any
 
 
@@ -35,9 +37,10 @@ def load_file(file_path: str, /, encoding: str = "utf-8") -> dict[str, Any] | li
         dict: The requested JSON-file, parsed as Python dict."""
 
     if str(file_path) == "":
-        raise EmptyPathError("Can't load file, file_path is empty.")
+        msg = "Can't load file, file_path is empty."
+        raise EmptyPathError(msg)
 
-    with open(file_path, "r", encoding=encoding) as file:
+    with Path(file_path).open("r", encoding=encoding) as file:
         return json.load(file)
 
 
@@ -53,9 +56,10 @@ def save_file(file_path: str, content: dict, /, indent: int = 4, encoding: str =
         indent (int, optional): _description_. Defaults to 4."""
 
     if str(file_path) == "":
-        raise EmptyPathError("Can't save file, file_path is empty.")
+        msg = "Can't save file, file_path is empty."
+        raise EmptyPathError(msg)
 
-    with open(file_path, "w", encoding=encoding) as file:
+    with Path(file_path).open("w", encoding=encoding) as file:
         json.dump(content, file, indent=indent, default=json_ser)
 
 
@@ -76,8 +80,8 @@ class DictFile(dict):
         super().__init__()
         self.file_name = path + name + suffix
 
-        if not os.path.exists(path):
-            os.makedirs(path)
+        if not Path(path).exists():
+            Path(path).mkdir(parents=True)
             logging.debug("Created dirs for path %s", path)
 
         if not load_from_file:
@@ -86,7 +90,8 @@ class DictFile(dict):
         json_file = load_file(self.file_name)
 
         if not isinstance(json_file, dict):
-            raise DictFileLoadError("DictFile could not be loaded. JSON-File formatted wrong.")
+            msg = "DictFile could not be loaded. JSON-File formatted wrong."
+            raise DictFileLoadError(msg)
 
         self.update(json_file)
 
@@ -116,5 +121,5 @@ class DictFile(dict):
 
         return item
 
-    def save(self):
+    def save(self) -> None:
         save_file(self.file_name, self)

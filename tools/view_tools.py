@@ -18,7 +18,7 @@ def emoji_from_asciilo(ch: str) -> str:
 class PollView(discord.ui.View):
     """Represents a special discord view that contains buttons for polls."""
 
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__(timeout=None)
 
     def buttons_from_choices(self, new_poll_id: str, choices: Choices) -> PollView:
@@ -63,7 +63,7 @@ class PollButton(discord.ui.Button):
         poll_id: str,
         vote_count: int = 0,
         iteration: int = 0,
-    ):
+    ) -> None:
         choice_id, choice_text = choice
 
         super().__init__(
@@ -81,7 +81,7 @@ class InactivePollButton(discord.ui.Button):
         self,
         choice: tuple[str, str],
         vote_count: int = 0,
-    ):
+    ) -> None:
         choice_id, choice_text = choice
 
         super().__init__(

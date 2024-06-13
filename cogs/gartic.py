@@ -6,6 +6,7 @@ import math
 import os
 import random
 import re
+from pathlib import Path
 
 import discord
 from discord.ext import commands, tasks
@@ -25,7 +26,7 @@ async def generate_random_painting() -> None:
     """Generates a combination of prompt and drawing from a random gartic phone game."""
 
     gartic_round = random.SystemRandom().choice(
-        [round for round in os.listdir("gartic") if re.match(r"^\d{3}$", round)]
+        [file_round for file_round in os.listdir("gartic") if re.match(r"^\d{3}$", file_round)]
     )
 
     gartic_story = random.SystemRandom().choice(
@@ -36,8 +37,8 @@ async def generate_random_painting() -> None:
 
     position = random.SystemRandom().randint(0, math.floor(story_gif.n_frames / 2) - 1)
 
-    if not os.path.exists("cache"):
-        os.makedirs("cache")
+    if not Path("cache").exists():
+        Path("cache").mkdir()
         logging.warning("Created cache directory")
 
     story_gif.seek(2 * position)
@@ -92,7 +93,7 @@ class Gartic(commands.Cog, name="Gartic"):
         )
 
     @daily_gartic.before_loop
-    async def _before_gartic_loop(self):
+    async def _before_gartic_loop(self) -> None:
         logging.debug("Waiting for daily gartic loop...")
         await self.bot.wait_until_ready()
         logging.debug("Daily gartic loop running!")

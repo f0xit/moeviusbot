@@ -1,16 +1,21 @@
 """Cog for overwatch related commands"""
 
+from __future__ import annotations
+
 import io
 import logging
 import random
 from enum import Enum, auto
+from typing import TYPE_CHECKING
 
 import discord
-from bs4 import BeautifulSoup
+from bs4 import BeautifulSoup, ResultSet, Tag
 from discord.ext import commands
 
-from bot import Bot
 from tools.request_tools import async_request_html
+
+if TYPE_CHECKING:
+    from bot import Bot
 
 PROMPT = "Random Heroes? Kein Problem, Krah Krah!\n"
 HERO_URL = "https://overwatch.blizzard.com/de-de/heroes/"
@@ -41,7 +46,7 @@ async def setup(bot: Bot) -> None:
     logging.info("Cog: Overwatch geladen.")
 
 
-async def parse_hero_patch(hero) -> dict:
+async def parse_hero_patch(hero) -> dict:  # noqa: ANN001
     """Parses a given hero-soup from the overwatch website and stores it in a dict."""
 
     output_dict = {}
@@ -74,28 +79,37 @@ async def parse_patchnotes() -> dict | None:
     output_dict = {}
 
     patch_notes_soup = BeautifulSoup(await async_request_html(PATCH_NOTES_URL), "html.parser")
-    patches = patch_notes_soup.find_all("div", class_="PatchNotes-patch")
+    patches: ResultSet[Tag] = patch_notes_soup.find_all("div", class_="PatchNotes-patch")
 
     for patch in patches:
-        if (entry_point := patch.find("h4", class_="PatchNotes-sectionTitle", string="HELDENUPDATES")) is None:
+        entry_point = patch.find("h4", class_="PatchNotes-sectionTitle", string="HELDENUPDATES")
+        title_tag = patch.find("h3", class_="PatchNotes-patchTitle")
+
+        if not isinstance(title_tag, Tag) or not isinstance(entry_point, Tag):
             continue
 
         output_dict = {
-            "title": patch.find("h3", class_="PatchNotes-patchTitle").contents[0],
+            "title": title_tag.contents[0],
             "changes": {},
         }
 
         entry_section = entry_point.find_parent()
+        if entry_section is None:
+            continue
+
         for section in entry_section.next_siblings:
-            if "PatchNotes-section-hero_update" not in section.attrs["class"]:
+            if not isinstance(section, Tag) or "PatchNotes-section-hero_update" not in section.attrs["class"]:
                 break
 
             section_header = section.find("h4")
+            if not isinstance(section_header, Tag):
+                continue
+
             if (hero_class := section_header.contents[0]) not in output_dict:
                 output_dict["changes"][hero_class] = {}
 
             for hero in section_header.next_siblings:
-                if "PatchNotesHeroUpdate" not in hero.attrs["class"]:
+                if not isinstance(hero, Tag) or "PatchNotesHeroUpdate" not in hero.attrs["class"]:
                     continue
 
                 output_dict["changes"][hero_class].update(await parse_hero_patch(hero))
@@ -127,7 +141,8 @@ class Overwatch(commands.Cog, name="Overwatch"):
         )
 
         if cells is None:
-            raise OwHeroError("Could not load Overwatch heroes!")
+            msg = "Could not load Overwatch heroes!"
+            raise OwHeroError(msg)
 
         self.heroes = {cell.attrs["data-hero-id"].title(): cell.attrs["data-role"].upper() for cell in cells}
         logging.info("Overwatch heroes loaded: %s heroes.", len(cells))
@@ -149,7 +164,8 @@ class Overwatch(commands.Cog, name="Overwatch"):
         same voice channel with the author."""
 
         if author.voice is None or author.voice.channel is None:
-            raise OwHeroError("User not in voice channel!")
+            msg = "User not in voice channel!"
+            raise OwHeroError(msg)
 
         members = author.voice.channel.members
 
@@ -226,7 +242,7 @@ class Overwatch(commands.Cog, name="Overwatch"):
         else:
             logging.info("%s requested a random hero for everyone.", ctx.author.name)
 
-            await ctx.channel.send(PROMPT + ", ".join((await self.random_hero_for_group(ctx.author))))
+            await ctx.channel.send(PROMPT + ", ".join(await self.random_hero_for_group(ctx.author)))
 
     @commands.command(brief="Gibt dir einen zufälligen Overwatch-DPS.")
     async def owd(self, ctx: commands.Context) -> None:

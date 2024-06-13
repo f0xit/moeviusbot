@@ -72,9 +72,9 @@ class Wurstfinger(commands.Cog, name="Wurstfinger"):
             try:
                 if random.SystemRandom().randint(1, round(100 / max(min(percent, 100), 1))) == 1:
                     uppercase = character.isupper()
-                    character = random.SystemRandom().choice(self.substitute[character.lower()])
+                    character = random.SystemRandom().choice(self.substitute[character.lower()])  # noqa: PLW2901
                     if uppercase:
-                        character = character.upper()
+                        character = character.upper()  # noqa: PLW2901
             except KeyError:
                 pass
             finally:

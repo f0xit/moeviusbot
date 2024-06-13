@@ -1,9 +1,13 @@
 """This module contains the classes and functions for handling events in the reminder part
 of the discord bot"""
 
+from __future__ import annotations
+
 import datetime as dt
 from dataclasses import dataclass, field
 from enum import Enum, auto
+
+from tools.dt_tools import get_local_timezone
 
 
 class EventType(Enum):
@@ -44,7 +48,7 @@ class Event:
     @property
     def is_past(self) -> bool:
         """Is True if the event is in the past"""
-        return self.event_dt < dt.datetime.now()
+        return self.event_dt < dt.datetime.now(tz=get_local_timezone())
 
 
 class EventList(list[Event]):

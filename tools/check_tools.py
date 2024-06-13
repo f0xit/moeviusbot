@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 from enum import Enum
 
 from discord.ext import commands
@@ -13,14 +15,14 @@ class SpecialUser(Enum):
     ZUGGI = 232561052573892608
 
 
-def is_special_user(user_list: list[SpecialUser]):
+def is_special_user(user_list: list[SpecialUser]):  # noqa: ANN201
     async def wrapper(ctx: commands.Context) -> bool:
         return ctx.author.id in [user.value for user in user_list]
 
     return commands.check(wrapper)
 
 
-def is_super_user():
+def is_super_user():  # noqa: ANN201
     async def wrapper(ctx: commands.Context) -> bool:
         settings = load_file("json/settings.json")
 

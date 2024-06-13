@@ -1,18 +1,23 @@
 """Cog for random quote generation"""
 
+from __future__ import annotations
+
 import datetime as dt
 import logging
 import time
+from typing import TYPE_CHECKING
 
 import discord
 import markovify
 from discord.ext import commands, tasks
 
-from bot import Bot
 from tools.check_tools import is_super_user
 from tools.dt_tools import get_local_timezone
 from tools.embed_tools import QuoteEmbed
 from tools.textfile_tools import lines_from_textfile, lines_to_textfile
+
+if TYPE_CHECKING:
+    from bot import Bot
 
 
 async def setup(bot: Bot) -> None:
@@ -97,7 +102,7 @@ class Quote(commands.Cog, name="Quote"):
         logging.debug("%s - Author: %s", quote, self.quote_by)
 
     @commands.group(name="zitat", aliases=["z"], brief="Zitiert eine weise Persönlichkeit.")
-    async def _quote(self, ctx: commands.Context):
+    async def _quote(self, ctx: commands.Context) -> None:
         if ctx.invoked_subcommand is not None or not isinstance(ctx.channel, discord.TextChannel | discord.DMChannel):
             return
 
@@ -187,7 +192,7 @@ class Quote(commands.Cog, name="Quote"):
         await self.send_quote(channel, content="Guten Morgen, Krah Krah!", title="Zitat des Tages")
 
     @daily_quote.before_loop
-    async def _before_daily_quote(self):
+    async def _before_daily_quote(self) -> None:
         logging.debug("Waiting for daily quote loop...")
         await self.bot.wait_until_ready()
         logging.info("Daily quote loop running!")

@@ -71,17 +71,17 @@ class Reminder(commands.Cog, name="Events"):
         await ctx.send(f"Stream wurde angekündigt! ID: {new_event.event_id}", ephemeral=True)
 
     @tasks.loop(seconds=5.0)
-    async def reminder_checker(self):
-        if self.time_now.strftime("%H:%M") == dt.datetime.now().strftime("%H:%M"):
+    async def reminder_checker(self) -> None:
+        if self.time_now.strftime("%H:%M") == dt.datetime.now(tz=get_local_timezone()).strftime("%H:%M"):
             return
 
-        self.time_now = dt.datetime.now()
+        self.time_now = dt.datetime.now(tz=get_local_timezone())
 
         for event in self.events.upcoming_events:
             if event.event_dt <= self.time_now:
                 continue
 
-            members = " ".join([f"<@{id}>" for id in event.event_members])
+            members = " ".join([f"<@{member_id}>" for member_id in event.event_members])
 
             output_channel = self.bot.channels["stream"]
             if not isinstance(output_channel, discord.TextChannel):
@@ -96,7 +96,7 @@ class Reminder(commands.Cog, name="Events"):
             )
 
     @reminder_checker.before_loop
-    async def before_reminder_loop(self):
+    async def before_reminder_loop(self) -> None:
         logging.debug("Waiting for reminder time checker..")
         await self.bot.wait_until_ready()
         logging.info("Reminder time checker started!")

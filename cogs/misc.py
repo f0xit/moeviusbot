@@ -1,19 +1,24 @@
 """Cog for miscellaneous fun commands"""
 
+from __future__ import annotations
+
 import logging
 import math
 import random
 import re
 from enum import Enum
+from typing import TYPE_CHECKING
 
 import discord
 from bs4 import BeautifulSoup
 from discord.ext import commands
 
-from bot import Bot
 from tools.json_tools import DictFile
 from tools.request_tools import async_request_html
 from tools.textfile_tools import lines_from_textfile
+
+if TYPE_CHECKING:
+    from bot import Bot
 
 
 class ListType(Enum):
@@ -36,7 +41,7 @@ async def setup(bot: Bot) -> None:
 class Misc(commands.Cog, name="Sonstiges"):
     """This cog includes some miscellaneous fun commands"""
 
-    def __init__(self, bot: Bot):
+    def __init__(self, bot: Bot) -> None:
         self.bot = bot
         self.fragen: list[str] = []
         self.bible: list[str] = []
@@ -57,7 +62,7 @@ class Misc(commands.Cog, name="Sonstiges"):
         name="ps5",
         brief="Vergleicht die erste Zahl aus der vorherigen Nachricht mit dem  Preis einer PS5.",
     )
-    async def _ps5(self, ctx: commands.Context):
+    async def _ps5(self, ctx: commands.Context) -> None:
         """Vergleicht die erste Zahl aus der vorherigen Nachricht mit dem  Preis einer PS5."""
 
         message = [msg async for msg in ctx.channel.history(limit=2)][1].content
@@ -68,8 +73,8 @@ class Misc(commands.Cog, name="Sonstiges"):
 
         try:
             number = float(re_match.group(0).replace(",", "."))
-        except ValueError as err_msg:
-            logging.error("Unable to parse float: %s", err_msg)
+        except ValueError:
+            logging.exception("Unable to parse float!")
             return
 
         ps5_url = "https://direct.playstation.com/de-de/buy-consoles/playstation5-console"
@@ -133,7 +138,7 @@ class Misc(commands.Cog, name="Sonstiges"):
         logging.debug(item)
 
     @commands.command(name="bibel", aliases=["bi"], brief="Präsentiert die Weisheiten des Krächzers.")
-    async def _bibel(self, ctx: commands.Context):
+    async def _bibel(self, ctx: commands.Context) -> None:
         """Präsentiert die Weisheiten des Krächzers."""
 
         logging.info("%s requested a bible quote", ctx.author.name)

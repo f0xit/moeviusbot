@@ -1,14 +1,19 @@
 """Quiz module"""
 
+from __future__ import annotations
+
 import logging
 import random
+from typing import TYPE_CHECKING
 
 import discord
 from discord.ext import commands
 
-from bot import Bot
 from tools.check_tools import is_super_user
 from tools.json_tools import load_file, save_file
+
+if TYPE_CHECKING:
+    from bot import Bot
 
 
 async def setup(bot: Bot) -> None:
@@ -58,7 +63,8 @@ class Quiz(commands.Cog, name="Quiz"):
         """_summary_"""
 
         if self.quiz is None:
-            raise QuizError("Quiz data not found!")
+            msg = "Quiz data not found!"
+            raise QuizError(msg)
 
         while True:
             question = random.SystemRandom().choice(self.quiz)
@@ -188,8 +194,8 @@ class Quiz(commands.Cog, name="Quiz"):
         brief="Meldet eine Frage als unpassend/falsch/wasauchimmer.",
         usage="report <Grund>",
     )
-    async def _report(self, ctx: commands.Context, *args) -> None:
-        with open("logs/quiz_report.log", "a+", encoding="utf-8") as file:
+    async def _report(self, ctx: commands.Context, *args) -> None:  # noqa: ANN002
+        with open("logs/quiz_report.log", "a+", encoding="utf-8") as file:  # noqa: ASYNC101, PTH123
             file.write(f"Grund: {' '.join(args)} - Frage: {self.question['question']}\n")
 
         await ctx.send("Deine Meldung wurde abgeschickt.")
@@ -262,7 +268,7 @@ class Quiz(commands.Cog, name="Quiz"):
         )
 
     @commands.Cog.listener()
-    async def on_message(self, message: discord.Message):
+    async def on_message(self, message: discord.Message) -> None:
         """_summary_
 
         Args:
@@ -283,7 +289,7 @@ class Quiz(commands.Cog, name="Quiz"):
                 if self.question["answers"][user_answer]["correct"]:
                     await self.channel.send("✅ Richtig!\n")
 
-                    if self.game_stage == 15:
+                    if self.game_stage == 15:  # noqa: PLR2004
                         await self.channel.send(f"Du hast {self.stages[15]}🕊 gewonnen!!!")
 
                         await self.update_ranking(self.stages[15])
@@ -315,13 +321,13 @@ class Quiz(commands.Cog, name="Quiz"):
                         f"Die richtige Antwort ist {correct_answer[0]}: {correct_answer[1]['text']}"
                     )
 
-                    if self.game_stage <= 4:
+                    if self.game_stage <= 4:  # noqa: PLR2004
                         await self.channel.send("Du verlässt das Spiel ohne Gewinn.")
                         await self.update_ranking(0)
-                    elif self.game_stage > 9:
+                    elif self.game_stage > 9:  # noqa: PLR2004
                         await self.channel.send(f"Du verlässt das Spiel mit {self.stages[9]}🕊.")
                         await self.update_ranking(self.stages[9])
-                    elif self.game_stage > 4:
+                    elif self.game_stage > 4:  # noqa: PLR2004
                         await self.channel.send(f"Du verlässt das Spiel mit {self.stages[4]}🕊.")
                         await self.update_ranking(self.stages[4])
 

@@ -14,14 +14,14 @@ from dotenv import load_dotenv
 
 from bot import Bot
 from tools.check_tools import is_super_user
-from tools.dt_tools import strfdelta
+from tools.dt_tools import get_local_timezone, strfdelta
 from tools.logger_tools import LoggerTools
 from tools.py_version_tools import check_python_version
 from tools.textfile_tools import lines_from_textfile
 
 check_python_version()
 
-STARTUP_TIME = dt.datetime.now()
+STARTUP_TIME = dt.datetime.now(tz=get_local_timezone())
 LOG_TOOL = LoggerTools(level="DEBUG")
 discord.utils.setup_logging(root=False)
 
@@ -86,13 +86,7 @@ class Administration(commands.Cog, name="Administration"):
     async def _git_pull(self, ctx: commands.Context) -> None:
         """Pullt die neusten Commits aus dem Github-Repo."""
 
-        console_output = (
-            subprocess.check_output(
-                ["git", "pull"]  # noqa: S603, S607
-            )
-            .strip()
-            .decode("ascii")
-        )
+        console_output = subprocess.check_output(["git", "pull"]).strip().decode("ascii")
 
         await ctx.send(f"```{console_output}```")
 
@@ -140,19 +134,13 @@ class Administration(commands.Cog, name="Administration"):
         Achtung: Eventuell muss der Bot komplett neu gestartet werden, damit nachträgliche
         Änderungen wirksam werden."""
 
-        console_output = (
-            subprocess.check_output(
-                ["git", "describe", "--tags"]  # noqa: S603, S607
-            )
-            .strip()
-            .decode("ascii")
-        )
+        console_output = subprocess.check_output(["git", "describe", "--tags"]).strip().decode("ascii")
 
         try:
             res = console_output.split("-")
             version_string = res[0].removeprefix("v")
 
-            if len(res) >= 2:
+            if len(res) >= 2:  # noqa: PLR2004
                 version_string += f".\nTag is {res[1]} commits behind. Currently running commit {res[2][1:]}"
 
             await ctx.send(f"Bot läuft auf Version {version_string}")
@@ -160,13 +148,13 @@ class Administration(commands.Cog, name="Administration"):
 
         except IndexError:
             await ctx.send(f"**Fehler!** {console_output}")
-            logging.error("Something is wrong with the version string: %s", console_output)
+            logging.exception("Something is wrong with the version string: %s", console_output)
 
     @_bot.command(name="uptime", aliases=["-u"])
     async def _uptime(self, ctx: commands.Context) -> None:
         """Gibt Auskunft darüber, wie lange der Bot seit dem letzten Start läuft."""
 
-        uptime = dt.datetime.now() - STARTUP_TIME
+        uptime = dt.datetime.now(tz=get_local_timezone()) - STARTUP_TIME
         uptime_str = strfdelta(uptime)
 
         await ctx.send(f'Uptime: {uptime_str} seit {STARTUP_TIME.strftime("%Y.%m.%d %H:%M:%S")}')
@@ -252,11 +240,11 @@ class Administration(commands.Cog, name="Administration"):
 
         logging.info("Bot ready!")
 
-        startup_duration = (dt.datetime.now() - STARTUP_TIME).total_seconds()
+        startup_duration = (dt.datetime.now(tz=get_local_timezone()) - STARTUP_TIME).total_seconds()
         logging.info("Startup took %.4f seconds.", startup_duration)
 
     @commands.Cog.listener()
-    async def on_command_error(self, ctx: commands.Context, error: commands.CommandError):
+    async def on_command_error(self, ctx: commands.Context, error: commands.CommandError) -> None:
         """This function iiss callled when a command raises an error.'
         The following actions are executed:
 

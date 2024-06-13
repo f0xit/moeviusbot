@@ -1,18 +1,22 @@
 """Cog for polls"""
 
+from __future__ import annotations
+
 import logging
 import re
-from typing import Optional
+from typing import TYPE_CHECKING
 
 import discord
 from discord.ext import commands
 
-from bot import Bot
 from tools.check_tools import SpecialUser, is_special_user
 from tools.converter_tools import convert_choices_to_list
 from tools.embed_tools import PollEmbed
 from tools.json_tools import DictFile
 from tools.view_tools import PollView
+
+if TYPE_CHECKING:
+    from bot import Bot
 
 
 async def setup(bot: Bot) -> None:
@@ -37,7 +41,7 @@ async def stop_poll(msg: discord.Message, polls: dict, poll_id: str) -> None:
 class Polls(commands.Cog, name="Umfragen"):
     """This cog includes commands for building polls"""
 
-    def __init__(self, bot: Bot):
+    def __init__(self, bot: Bot) -> None:
         self.bot = bot
         self.re_poll_button = re.compile(
             r"^moevius\:poll\:(?P<poll_id>\d+)\:choice\:(?P<choice>\w)\:iteration:(?P<iteration>\d+)$"
@@ -102,14 +106,14 @@ class Polls(commands.Cog, name="Umfragen"):
         self,
         ctx: commands.Context,
         title: str,
-        description: Optional[str],
+        description: str | None,
         choices_str: str,
     ) -> None:
         await ctx.defer()
 
         choices = convert_choices_to_list(choices_str)
 
-        if len(choices) < 2:
+        if len(choices) < 2:  # noqa: PLR2004
             await ctx.send(
                 "Bitte gib mindestens 2 Antwortmöglichkeiten an. Beispiel: Apfel; Birne; Krah Krah!",
                 ephemeral=True,

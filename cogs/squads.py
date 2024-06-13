@@ -47,11 +47,9 @@ class Squads(commands.Cog):
             logging.warning("%s hat ein leeres Squad in %s gerufen.", ctx.author.name, ctx.channel.name)
             return
 
-        members = []
-        for member in self.bot.squads[ctx.channel.name].values():
-            members.append(f"<@{member}>")
+        members = [f"<@{member}>" for member in self.bot.squads[ctx.channel.name].values()]
 
-        if len(members) == 0:
+        if not members:
             await ctx.send("Hey, es wissen schon alle bescheid, Krah Krah!")
             logging.warning(
                 "%s hat das Squad in %s gerufen aber es sind schon alle gejoint.",
@@ -64,7 +62,7 @@ class Squads(commands.Cog):
         logging.info("%s hat das Squad in %s gerufen.", ctx.author.name, ctx.channel.name)
 
     @commands.command(name="squad", aliases=["sq"], brief="Manage dein Squad mit ein paar simplen Kommandos.")
-    async def _squad(self, ctx: commands.Context, *args) -> None:
+    async def _squad(self, ctx: commands.Context, *args) -> None:  # noqa: ANN002
         """Du willst dein Squad managen? Okay, so gehts!
         Achtung: Jeder Game-Channel hat ein eigenes Squad. Du musst also im richtigen Channel sein.
 

@@ -40,7 +40,7 @@ async def request_ud_definition(term: str) -> Tuple[str, str]:
 
     api_url = "http://api.urbandictionary.com/v0/define?term="
 
-    data = json.loads((await async_request_html(format_url(api_url, term))))
+    data = json.loads(await async_request_html(format_url(api_url, term)))
 
     if not data["list"]:
         return ("", "")
@@ -62,13 +62,13 @@ async def request_try_these(term: str) -> list[str]:
     soup = BeautifulSoup((await async_request_html(format_url(page_url, term), 404)), "html.parser")
 
     if not (div := soup.find("div", class_="try-these")):
-        raise IOError("No try-these found.")
+        raise OSError("No try-these found.")
 
     if isinstance(div, NavigableString):
-        raise IOError("Div is navigable string, should be tag.")
+        raise OSError("Div is navigable string, should be tag.")
 
     if not (items := div.find_all("li")[:10]):
-        raise IOError("Could not find list items.")
+        raise OSError("Could not find list items.")
 
     return [item.text for item in items]
 
