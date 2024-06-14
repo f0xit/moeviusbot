@@ -10,7 +10,7 @@ async def lines_from_textfile(filepath: str, /, encoding: str = "utf-8") -> list
     """Returns a list of srings that represent the lines of a textfile."""
 
     try:
-        with Path(filepath).open("r", encoding=encoding) as file:
+        with Path(filepath).open("r", encoding=encoding) as file:  # noqa: ASYNC101
             output = [clean_line for line in file.readlines() if (clean_line := line.strip())]
             logging.debug("Read file %s with %s lines.", filepath, len(output))
             return output
@@ -23,7 +23,7 @@ async def lines_to_textfile(filepath: str, lines: list[str], /, encoding: str = 
     """Writes a list of strings as lines into a textfile."""
 
     try:
-        with Path(filepath).open("w", encoding=encoding) as file:
+        with Path(filepath).open("w", encoding=encoding) as file:  # noqa: ASYNC101
             print(*lines, sep="\n", file=file)
             logging.debug("Text file %s written with %s lines.", filepath, len(lines))
     except OSError:
