@@ -2,8 +2,6 @@
 
 from __future__ import annotations
 
-from typing import Any
-
 import discord
 
 Choice = tuple[str, str]
@@ -30,14 +28,14 @@ class PollView(discord.ui.View):
         return self
 
     def buttons_from_collection(
-        self, choices: dict[str, str], votes: dict[str, list], poll_id: str, iteration: Any
+        self, choices: dict[str, str], votes: dict[str, list], poll_id: str, iteration: int
     ) -> PollView:
         """Populates the view with buttons from a collection. Returns itself for daisy chaining."""
 
         for choice in choices.items():
             vote_count = len([item for row in votes.values() for item in row if item == choice[0]])
 
-            iteration = int(iteration) + 1
+            iteration = iteration + 1
 
             self.add_item(PollButton(choice, poll_id, vote_count, iteration))
 

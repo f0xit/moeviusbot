@@ -64,12 +64,13 @@ class Polls(commands.Cog, name="Umfragen"):
             logging.debug("Empty regex Match from custom_id. Not relevant for polls.")
             return
 
-        poll_id, choice_id, iteration = interaction_match.groups()
+        poll_id, choice_id, iter_str = interaction_match.groups()
 
         polls = DictFile("polls")
         votes = polls[poll_id]["votes"]
         choices = polls[poll_id]["choices"]
         user_id = str(interaction.user.id)
+        iteration = int(iter_str)
 
         if user_id not in votes:
             votes[user_id] = [choice_id]
