@@ -35,7 +35,7 @@ class Quiz(commands.Cog, name="Quiz"):
         self.player: discord.Member | None = None
         self.channel: discord.TextChannel | None = None
         self.game_stage: int = 0
-        self.question: dict[str, str | dict] = {}
+        self.question: dict[str, dict] = {}
         self.quiz: list | None = None
 
         self.stages = [
@@ -103,6 +103,55 @@ class Quiz(commands.Cog, name="Quiz"):
             f"Kategorie: {self.question['category']}",
             "embed": embed,
         }
+
+    async def check_answer(self, user_answer: str) -> None:
+        if self.channel is None or not isinstance(self.question["answers"], dict):
+            return
+
+        if self.question["answers"][user_answer]["correct"]:
+            await self.channel.send("✅ Richtig!\n")
+
+            if self.game_stage == 15:  # noqa: PLR2004
+                await self.channel.send(f"Du hast {self.stages[15]}🕊 gewonnen!!!")
+
+                await self.update_ranking(self.stages[15])
+                await self.stop_quiz()
+
+                return
+
+            if self.game_stage in [4, 9]:
+                await self.channel.send(f"❗️ Checkpoint erreicht: {self.stages[self.game_stage]}🕊.")
+
+            self.game_stage += 1
+
+            await self.get_random_question()
+            output = await self.get_question_output()
+
+            if output is None or not (
+                isinstance(output["content"], str) and isinstance(output["embed"], discord.Embed)
+            ):
+                return
+
+            await self.channel.send(content=output["content"], embed=output["embed"])
+
+        else:
+            await self.channel.send("❌ Falsch!")
+
+            correct_answer = next(answer for answer in self.question["answers"].items() if answer[1]["correct"])
+
+            await self.channel.send(f"Die richtige Antwort ist {correct_answer[0]}: {correct_answer[1]['text']}")
+
+            if self.game_stage <= 4:  # noqa: PLR2004
+                await self.channel.send("Du verlässt das Spiel ohne Gewinn.")
+                await self.update_ranking(0)
+            elif self.game_stage > 9:  # noqa: PLR2004
+                await self.channel.send(f"Du verlässt das Spiel mit {self.stages[9]}🕊.")
+                await self.update_ranking(self.stages[9])
+            elif self.game_stage > 4:  # noqa: PLR2004
+                await self.channel.send(f"Du verlässt das Spiel mit {self.stages[4]}🕊.")
+                await self.update_ranking(self.stages[4])
+
+            await self.stop_quiz()
 
     async def stop_quiz(self) -> None:
         """_summary_"""
@@ -286,52 +335,7 @@ class Quiz(commands.Cog, name="Quiz"):
 
         match user_answer:
             case "A" | "B" | "C" | "D":
-                if self.question["answers"][user_answer]["correct"]:
-                    await self.channel.send("✅ Richtig!\n")
-
-                    if self.game_stage == 15:  # noqa: PLR2004
-                        await self.channel.send(f"Du hast {self.stages[15]}🕊 gewonnen!!!")
-
-                        await self.update_ranking(self.stages[15])
-                        await self.stop_quiz()
-
-                        return
-
-                    if self.game_stage in [4, 9]:
-                        await self.channel.send(f"❗️ Checkpoint erreicht: {self.stages[self.game_stage]}🕊.")
-
-                    self.game_stage += 1
-
-                    await self.get_random_question()
-                    output = await self.get_question_output()
-
-                    if output is None or not (
-                        isinstance(output["content"], str) and isinstance(output["embed"], discord.Embed)
-                    ):
-                        return
-
-                    await self.channel.send(content=output["content"], embed=output["embed"])
-
-                else:
-                    await self.channel.send("❌ Falsch!")
-
-                    correct_answer = next(answer for answer in self.question["answers"].items() if answer[1]["correct"])
-
-                    await self.channel.send(
-                        f"Die richtige Antwort ist {correct_answer[0]}: {correct_answer[1]['text']}"
-                    )
-
-                    if self.game_stage <= 4:  # noqa: PLR2004
-                        await self.channel.send("Du verlässt das Spiel ohne Gewinn.")
-                        await self.update_ranking(0)
-                    elif self.game_stage > 9:  # noqa: PLR2004
-                        await self.channel.send(f"Du verlässt das Spiel mit {self.stages[9]}🕊.")
-                        await self.update_ranking(self.stages[9])
-                    elif self.game_stage > 4:  # noqa: PLR2004
-                        await self.channel.send(f"Du verlässt das Spiel mit {self.stages[4]}🕊.")
-                        await self.update_ranking(self.stages[4])
-
-                    await self.stop_quiz()
+                await self.check_answer(user_answer)
 
             case "Q":
                 await self.channel.send(
