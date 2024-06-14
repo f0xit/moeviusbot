@@ -1,10 +1,10 @@
 """Main file of the Moevius Discord Bot"""
 
-import asyncio
 import datetime as dt
 import logging
 import os
 import sys
+from asyncio import gather, run, subprocess
 from pathlib import Path
 
 import discord
@@ -86,8 +86,11 @@ class Administration(commands.Cog, name="Administration"):
     async def _git_pull(self, ctx: commands.Context) -> None:
         """Pullt die neusten Commits aus dem Github-Repo."""
 
-        process = await asyncio.subprocess.create_subprocess_exec(
-            "git", "pull", stdout=asyncio.subprocess.PIPE, stderr=asyncio.subprocess.PIPE
+        process = await subprocess.create_subprocess_exec(  # pylint: disable=E1101
+            "git",
+            "pull",
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
         )
 
         stdout, stderr = await process.communicate()
@@ -119,7 +122,7 @@ class Administration(commands.Cog, name="Administration"):
 
         path = f"logs/moevius.log.{file}" if file else "logs/moevius.log"
 
-        if not (log_lines := (await lines_from_textfile(path))):
+        if not (log_lines := await lines_from_textfile(path)):
             await ctx.send("Dieses Log-File scheint es nicht zu geben, Krah Krah! Format: YYYY_MM_DD")
             return
 
@@ -144,8 +147,12 @@ class Administration(commands.Cog, name="Administration"):
         Achtung: Eventuell muss der Bot komplett neu gestartet werden, damit nachträgliche
         Änderungen wirksam werden."""
 
-        process = await asyncio.subprocess.create_subprocess_exec(
-            "git", "describe", "--tags", stdout=asyncio.subprocess.PIPE, stderr=asyncio.subprocess.PIPE
+        process = await subprocess.create_subprocess_exec(  # pylint: disable=E1101
+            "git",
+            "describe",
+            "--tags",
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
         )
 
         stdout, stderr = await process.communicate()
@@ -249,7 +256,7 @@ class Administration(commands.Cog, name="Administration"):
             if not file.name.startswith("__") and file.suffix == ".py"
         ]
 
-        await asyncio.gather(*map(self.bot.load_extension, cog_list))
+        await gather(*map(self.bot.load_extension, cog_list))
 
         logging.info("Bot ready!")
 
@@ -314,9 +321,9 @@ async def main() -> None:
 
 if __name__ == "__main__":
     try:
-        asyncio.run(main())
+        run(main())
     except KeyboardInterrupt:
         logging.info("Stopping Moevius ...")
-        asyncio.run(MOEVIUS.close())
+        run(MOEVIUS.close())
         logging.info("Moevius stopped. Good night.")
         sys.exit(130)
