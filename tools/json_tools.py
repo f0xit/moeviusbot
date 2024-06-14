@@ -100,21 +100,21 @@ class DictFile(dict):
         logging.debug("Loaded data from file %s. %s keys.", self.file_name, len(json_file.keys()))
         logging.info("DictFile %s initialized succesfully.", self.file_name)
 
-    def __setitem__(self, __key: str, __value: Any) -> None:
+    def __setitem__(self, __key: str, __value: Any) -> None:  # noqa: ANN401
         super().__setitem__(__key, __value)
 
         logging.debug("DictFile %s item set. %s: %s", self.file_name, __key, __value)
 
         save_file(self.file_name, self)
 
-    def update(self, __m) -> None:
+    def update(self, __m) -> None:  # noqa: ANN001
         super().update(__m)
 
         logging.debug("DictFile %s updated", self.file_name)
 
         save_file(self.file_name, self)
 
-    def pop(self, key):
+    def pop(self, key):  # noqa: ANN001, ANN201
         item = super().pop(key)
 
         logging.debug("DictFile %s popped.", self.file_name)

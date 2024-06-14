@@ -55,7 +55,7 @@ class CustomFormatter(logging.Formatter):
         for level, colour in LEVEL_COLOURS
     }
 
-    def format(self, record) -> str:
+    def format(self, record: logging.LogRecord) -> str:
         """Dangerously like String? Well, only in that the two functions appear to use the same
         underlying infrastructure, namely Unicode, in a similar way. They both essentially convert
         a string literal (which comes with a certain intrinsic complexity) to a Unicode string with
