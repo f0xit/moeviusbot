@@ -46,11 +46,15 @@ async def setup(bot: Bot) -> None:
     logging.info("Cog: Overwatch geladen.")
 
 
-async def parse_hero_patch(hero) -> dict:  # noqa: ANN001
+async def parse_hero_patch(hero: Tag) -> dict | None:
     """Parses a given hero-soup from the overwatch website and stores it in a dict."""
 
     output_dict = {}
-    hero_name = hero.find("h5").contents[0]
+    hero_name_tag = hero.find("h5")
+    if not isinstance(hero_name_tag, Tag):
+        return None
+
+    hero_name = hero_name_tag.contents[0]
 
     output_dict[hero_name] = {}
 
