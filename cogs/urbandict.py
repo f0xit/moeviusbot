@@ -1,16 +1,20 @@
 """Cog for the urban dictionary command"""
 
+from __future__ import annotations
+
 import json
 import logging
-from typing import Tuple
+from typing import TYPE_CHECKING
 from urllib.parse import quote as urlquote
 
 import discord
 from bs4 import BeautifulSoup, NavigableString
 from discord.ext import commands
 
-from bot import Bot
 from tools.request_tools import async_request_html
+
+if TYPE_CHECKING:
+    from bot import Bot
 
 
 async def setup(bot: Bot) -> None:
@@ -34,7 +38,7 @@ def format_url(url: str, term: str) -> str:
     return url + urlquote(term.replace(" ", "+"))
 
 
-async def request_ud_definition(term: str) -> Tuple[str, str]:
+async def request_ud_definition(term: str) -> tuple[str, str]:
     """Uses the urban dictionary API and returns the first definition
     and the corresponding example sentence."""
 
@@ -62,13 +66,16 @@ async def request_try_these(term: str) -> list[str]:
     soup = BeautifulSoup((await async_request_html(format_url(page_url, term), 404)), "html.parser")
 
     if not (div := soup.find("div", class_="try-these")):
-        raise OSError("No try-these found.")
+        msg = "No try-these found."
+        raise OSError(msg)
 
     if isinstance(div, NavigableString):
-        raise OSError("Div is navigable string, should be tag.")
+        msg = "Div is navigable string, should be tag."
+        raise OSError(msg)
 
     if not (items := div.find_all("li")[:10]):
-        raise OSError("Could not find list items.")
+        msg = "Could not find list items."
+        raise OSError(msg)
 
     return [item.text for item in items]
 
@@ -83,7 +90,7 @@ class UrbanDict(commands.Cog, name="UrbanDict"):
         logging.info("Cog unloaded: UrbanDict.")
 
     @commands.command(name="urbandict", aliases=["ud"], brief="Durchforstet das Urban Dictionary")
-    async def _urbandict(self, ctx: commands.Context, *args):
+    async def _urbandict(self, ctx: commands.Context, *args: str) -> None:
         term = " ".join(args)
 
         logging.info("%s looked for %s in the Urban Dictionary.", ctx.author.name, term)
