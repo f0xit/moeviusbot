@@ -6,6 +6,7 @@ import logging
 import os
 import subprocess
 import sys
+from pathlib import Path
 
 import discord
 from discord.abc import GuildChannel
@@ -223,20 +224,13 @@ class Administration(commands.Cog, name="Administration"):
 
         await self.bot.analyze_guild()
 
-        await asyncio.gather(
-            *map(
-                self.bot.load_extension,
-                [
-                    f"cogs.{filename[:-3]}"
-                    for filename in os.listdir("./cogs")
-                    if (
-                        filename.endswith(".py")
-                        and not filename.startswith("__")
-                        and f"cogs.{filename[:-3]}" not in self.bot.extensions
-                    )
-                ],
-            )
-        )
+        cog_list = [
+            f"cogs.{file.name[:-3]}"
+            for file in Path("cogs").iterdir()
+            if not file.name.startswith("__") and file.suffix == ".py"
+        ]
+
+        await asyncio.gather(*map(self.bot.load_extension, cog_list))
 
         logging.info("Bot ready!")
 
