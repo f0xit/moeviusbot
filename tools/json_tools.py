@@ -68,7 +68,9 @@ class DictFile(dict):
     when it is updated. Additionally new dicts can directly by populated with data from
     a file."""
 
-    def __init__(self, name: str, /, suffix: str = ".json", path: str = "json/", load_from_file: bool = True) -> None:
+    def __init__(
+        self, name: str, /, suffix: str = ".json", path: str = "json/", *, load_from_file: bool = True
+    ) -> None:
         """Initializes a new dict which is linked to a file.
 
         By default, it tries to load data from the file when created.
