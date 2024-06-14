@@ -19,6 +19,9 @@ if TYPE_CHECKING:
     from bot import Bot
 
 
+MIN_CHOICES = 2
+
+
 async def setup(bot: Bot) -> None:
     """Setup function for the cog."""
 
@@ -114,7 +117,7 @@ class Polls(commands.Cog, name="Umfragen"):
 
         choices = convert_choices_to_list(choices_str)
 
-        if len(choices) < 2:  # noqa: PLR2004
+        if len(choices) < MIN_CHOICES:
             await ctx.send(
                 "Bitte gib mindestens 2 Antwortmöglichkeiten an. Beispiel: Apfel; Birne; Krah Krah!",
                 ephemeral=True,
