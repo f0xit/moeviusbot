@@ -4,7 +4,6 @@ import asyncio
 import datetime as dt
 import logging
 import os
-import subprocess
 import sys
 from pathlib import Path
 
@@ -87,7 +86,17 @@ class Administration(commands.Cog, name="Administration"):
     async def _git_pull(self, ctx: commands.Context) -> None:
         """Pullt die neusten Commits aus dem Github-Repo."""
 
-        console_output = subprocess.check_output(["git", "pull"]).strip().decode("ascii")
+        process = await asyncio.subprocess.create_subprocess_exec(
+            "git", "pull", stdout=asyncio.subprocess.PIPE, stderr=asyncio.subprocess.PIPE
+        )
+
+        stdout, stderr = await process.communicate()
+
+        if stderr:
+            logging.exception(stderr.strip().decode("ascii"))
+            return
+
+        console_output = stdout.strip().decode("ascii")
 
         await ctx.send(f"```{console_output}```")
 
@@ -135,13 +144,23 @@ class Administration(commands.Cog, name="Administration"):
         Achtung: Eventuell muss der Bot komplett neu gestartet werden, damit nachträgliche
         Änderungen wirksam werden."""
 
-        console_output = subprocess.check_output(["git", "describe", "--tags"]).strip().decode("ascii")
+        process = await asyncio.subprocess.create_subprocess_exec(
+            "git", "describe", "--tags", stdout=asyncio.subprocess.PIPE, stderr=asyncio.subprocess.PIPE
+        )
+
+        stdout, stderr = await process.communicate()
+
+        if stderr:
+            logging.exception(stderr.strip().decode("ascii"))
+            return
+
+        console_output = stdout.strip().decode("ascii")
 
         try:
             res = console_output.split("-")
             version_string = res[0].removeprefix("v")
 
-            if len(res) >= 2:  # noqa: PLR2004
+            if len(res) > 1:
                 version_string += f".\nTag is {res[1]} commits behind. Currently running commit {res[2][1:]}"
 
             await ctx.send(f"Bot läuft auf Version {version_string}")
