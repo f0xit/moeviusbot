@@ -7,7 +7,7 @@ from discord.ext import commands, tasks
 from bot import Bot
 from tools.converter_tools import convert_str_to_dt
 from tools.dt_tools import get_local_timezone
-from tools.event_tools import EventManager, EventType
+from tools.event_tools import Event, EventManager, EventType
 
 ANNOY_IDS = [232561052573892608]
 
@@ -56,7 +56,15 @@ class Reminder(commands.Cog, name="Events"):
 
         new_dt = await convert_str_to_dt(time)
 
-        new_event = self.events.new_event(EventType.STREAM, "Schnenko nervt!", new_dt, game, ctx.author.id)
+        new_event = self.events.add_event(
+            Event(
+                event_type=EventType.STREAM,
+                event_title="Schnenko nervt!",
+                event_dt=new_dt,
+                event_members=[ctx.author.id],
+                event_game=game,
+            )
+        )
 
         if (output_channel := self.bot.channels[str(new_event.event_type)]) is None:
             return
