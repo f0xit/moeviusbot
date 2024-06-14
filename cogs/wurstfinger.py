@@ -65,20 +65,21 @@ class Wurstfinger(commands.Cog, name="Wurstfinger"):
         message = [message async for message in ctx.channel.history(limit=2)][1].content
 
         for character in message:
-            if character.isdecimal():
-                output.write(character)
+            char = character
+            if char.isdecimal():
+                output.write(char)
                 continue
 
             try:
                 if random.SystemRandom().randint(1, round(100 / max(min(percent, 100), 1))) == 1:
-                    uppercase = character.isupper()
-                    character = random.SystemRandom().choice(self.substitute[character.lower()])  # noqa: PLW2901
+                    uppercase = char.isupper()
+                    char = random.SystemRandom().choice(self.substitute[char.lower()])
                     if uppercase:
-                        character = character.upper()  # noqa: PLW2901
+                        char = char.upper()
             except KeyError:
                 pass
             finally:
-                output.write(character)
+                output.write(char)
 
         await ctx.send(f"Oder wie Schnenk es sagen würde:\n{output.getvalue()} Krah Krah!")
 
