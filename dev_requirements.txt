@@ -1,11 +1,11 @@
 autopep8==2.2.0
-bandit==1.7.8
+bandit==1.7.9
 isort==5.13.2
 mypy==1.10.0
-pipdeptree==2.20.0
+pipdeptree==2.22.0
 pycodestyle==2.11.1
 pylint==3.2.3
-ruff==0.4.8
+ruff==0.4.10
 types-beautifulsoup4==4.12.0.20240511
 types-html5lib==1.1.11.20240228
 types-Pillow==10.2.0.20240520
