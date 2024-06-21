@@ -5,3 +5,4 @@ discord.py==2.3.2
 markovify==0.9.4
 pillow==10.3.0
 python-dotenv==1.0.1
+py-cord==2.5
