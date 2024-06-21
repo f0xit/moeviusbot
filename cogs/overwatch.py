@@ -82,7 +82,7 @@ async def parse_patchnotes() -> dict | None:
     patches = patch_notes_soup.find_all("div", class_="PatchNotes-patch")
 
     for patch in patches:
-        if (entry_point := patch.find("h4", class_="PatchNotes-sectionTitle", string="HELDENUPDATES")) is None:
+        if (entry_point := patch.find("h4", class_="PatchNotes-sectionTitle", string="Heldenupdates")) is None:
             continue
 
         output_dict = {
