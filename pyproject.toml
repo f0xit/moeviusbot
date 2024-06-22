@@ -1,7 +1,7 @@
 [tool.ruff]
 line-length = 120
 lint.extend-select = ["ALL"]
-lint.ignore = ["ANN101", "COM812", "D", "EXE002", "S603", "S607"]
+lint.ignore = ["ANN101", "COM812", "D", "EXE002"]
 show-fixes = true
 
 [tool.pylint]
