@@ -86,7 +86,7 @@ async def parse_patchnotes() -> dict | None:
     patches: ResultSet[Tag] = patch_notes_soup.find_all("div", class_="PatchNotes-patch")
 
     for patch in patches:
-        entry_point = patch.find("h4", class_="PatchNotes-sectionTitle", string="HELDENUPDATES")
+        entry_point = patch.find("h4", class_="PatchNotes-sectionTitle", string="Heldenupdates")
         title_tag = patch.find("h3", class_="PatchNotes-patchTitle")
 
         if not isinstance(title_tag, Tag) or not isinstance(entry_point, Tag):
