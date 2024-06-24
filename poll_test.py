@@ -15,12 +15,8 @@ from bot import Bot
 from cogs.polls import convert_choices_to_list
 from tools.dt_tools import get_local_timezone
 from tools.logger_tools import LoggerTools
-from tools.py_version_tools import check_python_version
 from tools.view_tools import emoji_from_asciilo
 
-check_python_version()
-
-STARTUP_TIME = dt.datetime.now()
 LOG_TOOL = LoggerTools(level="DEBUG")
 discord.utils.setup_logging(root=False)
 
@@ -29,7 +25,7 @@ MOEVIUS = Bot()
 TITEL = "Wann Terraria Hardcore?"
 CHOICES = "Freitag 19.7.; Samstag 20.7.; Anderer Vorschlag (in den Chat schreiben)"
 BESCHREIBUNG = "Hier die Abstimmung für diejenigen, die teilnehmen wollen. Abstimmung läuft bis Sonntag."
-UMFRAGE_ENDET = "23.06. 18:00"
+UMFRAGE_ENDET = "23.06. 19:00"
 
 
 async def convert_str_to_dt(argument: str) -> dt.datetime:
