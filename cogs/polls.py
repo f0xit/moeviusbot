@@ -183,3 +183,25 @@ class Polls(commands.Cog, name="Umfragen"):
         await stop_poll(msg, polls, poll_id)
 
         await ctx.send("Poll deaktiviert!", ephemeral=True)
+
+    @is_special_user([SpecialUser.SCHNENK, SpecialUser.HANS, SpecialUser.ZUGGI])
+    @_poll.command(name="info")
+    @discord.app_commands.rename(poll_id="umfragen_id")
+    @discord.app_commands.describe(poll_id="ID der Umfrage")
+    async def _poll_info(self, ctx: commands.Context, poll_id: str) -> None:
+        polls = DictFile("polls")
+
+        if poll_id not in polls:
+            await ctx.send("Umfrage ID nicht bekannt, Krah Krah!")
+
+        output = (
+            "**Abgegebene Stimmen:**\n```"
+            + "\n".join(
+                f"{user}: {', '.join(ch.capitalize() for ch in vote)}"
+                for user_id, vote in polls[poll_id]["votes"].items()
+                if (user := self.bot.get_user(int(user_id))) is not None
+            )
+            + "```"
+        )
+
+        await ctx.send(output, ephemeral=True)
