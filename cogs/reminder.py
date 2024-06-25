@@ -69,7 +69,7 @@ class Reminder(commands.Cog, name="Events"):
             f"**Macht euch bereit für {info_string}!**\n"
             f"Wann? {event_time} Uhr\n"
             f"Was? {event_game}\n"
-            "Gebt mir ein !join, Krah Krah!"
+            "Gebt mir ein /join, Krah Krah!"
         )
 
         logging.info("Event-Info was posted.")
