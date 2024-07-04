@@ -25,6 +25,7 @@ lint.extend-select = [
 ]
 lint.ignore = ["TCH0"]
 show-fixes = true
+output-format = "concise"
 
 [tool.pylint]
 max-line-length = 120

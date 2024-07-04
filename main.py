@@ -87,8 +87,8 @@ class Administration(commands.Cog, name="Administration"):
         """Pullt die neusten Commits aus dem Github-Repo."""
 
         console_output = (
-            subprocess.check_output(
-                ["git", "pull"]  # noqa: S603, S607
+            subprocess.check_output(  # noqa: S603
+                ["git", "pull"]  # noqa: S607
             )
             .strip()
             .decode("ascii")
@@ -141,8 +141,8 @@ class Administration(commands.Cog, name="Administration"):
         Änderungen wirksam werden."""
 
         console_output = (
-            subprocess.check_output(
-                ["git", "describe", "--tags"]  # noqa: S603, S607
+            subprocess.check_output(  # noqa: S603
+                ["git", "describe", "--tags"]  # noqa: S607
             )
             .strip()
             .decode("ascii")
