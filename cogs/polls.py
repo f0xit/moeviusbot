@@ -42,18 +42,6 @@ async def setup(bot: Bot) -> None:
     logging.info("Cog loaded: Polls.")
 
 
-async def stop_poll(msg: discord.Message, polls: dict, poll_id: str) -> None:
-    """Stops a running poll by deactivating the buttons of the given messsage."""
-
-    choices = polls[poll_id]["choices"]
-    votes = polls[poll_id]["votes"]
-
-    view = PollView().deactivate_buttons_from_collection(choices, votes)
-
-    await msg.edit(view=view)
-    view.stop()
-
-
 class Polls(commands.Cog, name="Umfragen"):
     """This cog includes commands for building polls"""
 
@@ -153,7 +141,7 @@ class Polls(commands.Cog, name="Umfragen"):
         view = PollView().buttons_from_choices(new_poll_id, choices)
         msg = await ctx.send(
             "Eine neue Umfrage, Krah Krah! Mehrfachauswahl erlaubt. "
-            "Klicke um abszutimmen oder um deine Stimme zurückzunehmen.",
+            "Klicke um abzustimmen oder um deine Stimme zurückzunehmen.",
             embed=embed,
             view=view,
         )
@@ -180,7 +168,13 @@ class Polls(commands.Cog, name="Umfragen"):
             logging.warning("Message not found!")
             return
 
-        await stop_poll(msg, polls, poll_id)
+        choices = polls[poll_id]["choices"]
+        votes = polls[poll_id]["votes"]
+
+        view = PollView().deactivate_buttons_from_collection(choices, votes)
+
+        await msg.edit(view=view)
+        view.stop()
 
         await ctx.send("Poll deaktiviert!", ephemeral=True)
 
