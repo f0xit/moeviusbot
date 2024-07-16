@@ -193,6 +193,7 @@ class Polls(commands.Cog, name="Umfragen"):
 
         if poll_id not in polls:
             await ctx.send("Umfrage ID nicht bekannt, Krah Krah!")
+            return
 
         output = (
             "**Abgegebene Stimmen:**\n```"
