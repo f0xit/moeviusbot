@@ -195,14 +195,15 @@ class Polls(commands.Cog, name="Umfragen"):
             await ctx.send("Umfrage ID nicht bekannt, Krah Krah!")
             return
 
-        output = (
-            "**Abgegebene Stimmen:**\n```"
-            + "\n".join(
-                f"{user}: {', '.join(ch.capitalize() for ch in vote)}"
-                for user_id, vote in polls[poll_id]["votes"].items()
-                if (user := self.bot.get_user(int(user_id))) is not None
-            )
-            + "```"
+        await ctx.send(
+            (
+                "**Abgegebene Stimmen:**\n```"
+                + "\n".join(
+                    f"{user}: {', '.join(ch.capitalize() for ch in vote)}"
+                    for user_id, vote in polls[poll_id]["votes"].items()
+                    if (user := self.bot.get_user(int(user_id))) is not None
+                )
+                + "```"
+            ),
+            ephemeral=True,
         )
-
-        await ctx.send(output, ephemeral=True)
