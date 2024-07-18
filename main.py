@@ -86,13 +86,7 @@ class Administration(commands.Cog, name="Administration"):
     async def _git_pull(self, ctx: commands.Context) -> None:
         """Pullt die neusten Commits aus dem Github-Repo."""
 
-        console_output = (
-            subprocess.check_output(  # noqa: S603
-                ["git", "pull"]  # noqa: S607
-            )
-            .strip()
-            .decode("ascii")
-        )
+        console_output = subprocess.check_output(["git", "pull"]).strip().decode("ascii")  # noqa: S603, S607
 
         await ctx.send(f"```{console_output}```")
 
@@ -141,11 +135,7 @@ class Administration(commands.Cog, name="Administration"):
         Änderungen wirksam werden."""
 
         console_output = (
-            subprocess.check_output(  # noqa: S603
-                ["git", "describe", "--tags"]  # noqa: S607
-            )
-            .strip()
-            .decode("ascii")
+            subprocess.check_output(["git", "describe", "--tags"]).strip().decode("ascii")  # noqa: S603, S607
         )
 
         try:
