@@ -32,7 +32,7 @@ def convert_choices_to_list(choices_str: str) -> list[tuple[str, str]]:
         list[tuple[str, str]]: A list of choices, enumerated by lowercase
         letters, starting at 'a'"""
 
-    return list(zip(ascii_lowercase, [name for name in map(str.strip, choices_str.split(";")) if name]))
+    return list(zip(ascii_lowercase, [name for name in map(str.strip, choices_str.split(";")) if name], strict=False))
 
 
 async def setup(bot: Bot) -> None:
