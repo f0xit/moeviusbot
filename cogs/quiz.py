@@ -28,10 +28,10 @@ class QuizError(Exception):
     pass
 
 
-class CheckPoint(Enum):
-    FIRST: int = 4
-    SECOND: int = 9
-    THIRD: int = 15
+class CheckPoint(int, Enum):
+    FIRST = 4
+    SECOND = 9
+    THIRD = 15
 
 
 class Quiz(commands.Cog, name="Quiz"):
@@ -252,7 +252,7 @@ class Quiz(commands.Cog, name="Quiz"):
         usage="report <Grund>",
     )
     async def _report(self, ctx: commands.Context, *args: str) -> None:
-        with Path("logs/quiz_report.log").open("a+", encoding="utf-8") as file:  # noqa: ASYNC101
+        with Path("logs/quiz_report.log").open("a+", encoding="utf-8") as file:  # noqa: ASYNC230
             file.write(f"Grund: {' '.join(args)} - Frage: {self.question['question']}\n")
 
         await ctx.send("Deine Meldung wurde abgeschickt.")
