@@ -51,7 +51,9 @@ class Reminder(commands.Cog, name="Events"):
         name="add",
         brief="Fügt ein Stream Event hinzu.",
     )
-    async def _add_stream(self, ctx: commands.Context, time: str, game: str = "") -> None:
+    async def _add_stream(
+        self, ctx: commands.Context, time: str, game: str = ""
+    ) -> None:
         """Fügt ein Stream Event hinzu."""
 
         new_dt = await convert_str_to_dt(time)
@@ -76,11 +78,15 @@ class Reminder(commands.Cog, name="Events"):
             "Gebt mir ein !join, Krah Krah!"
         )
 
-        await ctx.send(f"Stream wurde angekündigt! ID: {new_event.event_id}", ephemeral=True)
+        await ctx.send(
+            f"Stream wurde angekündigt! ID: {new_event.event_id}", ephemeral=True
+        )
 
     @tasks.loop(seconds=5.0)
     async def reminder_checker(self) -> None:
-        if self.time_now.strftime("%H:%M") == dt.datetime.now(tz=get_local_timezone()).strftime("%H:%M"):
+        if self.time_now.strftime("%H:%M") == dt.datetime.now(
+            tz=get_local_timezone()
+        ).strftime("%H:%M"):
             return
 
         self.time_now = dt.datetime.now(tz=get_local_timezone())

@@ -114,7 +114,9 @@ class Administration(commands.Cog, name="Administration"):
 
     @is_super_user()
     @_bot.command(name="log", aliases=["-l"])
-    async def _show_log(self, ctx: commands.Context, page: int = 1, file: str = "") -> None:
+    async def _show_log(
+        self, ctx: commands.Context, page: int = 1, file: str = ""
+    ) -> None:
         """Zeigt das neuste bzw. ein bestimmtes Logfile an. Die Seiten können mit dem page-Argument
         gewechselt werden."""
 
@@ -123,13 +125,17 @@ class Administration(commands.Cog, name="Administration"):
         path = f"logs/moevius.log.{file}" if file else "logs/moevius.log"
 
         if not (log_lines := await lines_from_textfile(path)):
-            await ctx.send("Dieses Log-File scheint es nicht zu geben, Krah Krah! Format: YYYY_MM_DD")
+            await ctx.send(
+                "Dieses Log-File scheint es nicht zu geben, Krah Krah! Format: YYYY_MM_DD"
+            )
             return
 
         number_of_pages = len(log_lines) // chunk_size + 1
 
         if not 1 <= page <= number_of_pages:
-            await ctx.send(f"Diese Seite gibt es nicht, Krah Krah! Bereich: 1 bis {number_of_pages}")
+            await ctx.send(
+                f"Diese Seite gibt es nicht, Krah Krah! Bereich: 1 bis {number_of_pages}"
+            )
             return
 
         log_lines.reverse()
@@ -138,7 +144,9 @@ class Administration(commands.Cog, name="Administration"):
         log_output = log_lines[(chunk_size * page) : (chunk_size) * (page + 1)]
         log_output.reverse()
 
-        await ctx.send(f'{path[5:]} - Seite {page + 1}/{number_of_pages}:\n```{"".join(log_output)}```')
+        await ctx.send(
+            f'{path[5:]} - Seite {page + 1}/{number_of_pages}:\n```{"".join(log_output)}```'
+        )
 
     @_bot.command(name="version", aliases=["-v"])
     async def _version(self, ctx: commands.Context) -> None:
@@ -175,7 +183,9 @@ class Administration(commands.Cog, name="Administration"):
 
         except IndexError:
             await ctx.send(f"**Fehler!** {console_output}")
-            logging.exception("Something is wrong with the version string: %s", console_output)
+            logging.exception(
+                "Something is wrong with the version string: %s", console_output
+            )
 
     @_bot.command(name="uptime", aliases=["-u"])
     async def _uptime(self, ctx: commands.Context) -> None:
@@ -184,7 +194,9 @@ class Administration(commands.Cog, name="Administration"):
         uptime = dt.datetime.now(tz=get_local_timezone()) - STARTUP_TIME
         uptime_str = strfdelta(uptime)
 
-        await ctx.send(f'Uptime: {uptime_str} seit {STARTUP_TIME.strftime("%Y.%m.%d %H:%M:%S")}')
+        await ctx.send(
+            f'Uptime: {uptime_str} seit {STARTUP_TIME.strftime("%Y.%m.%d %H:%M:%S")}'
+        )
 
     @is_super_user()
     @_bot.command(name="reload", aliases=["-r"])
@@ -203,7 +215,9 @@ class Administration(commands.Cog, name="Administration"):
         self.bot.load_files_into_attrs()
         await self.bot.analyze_guild()
 
-    @commands.group(name="extensions", aliases=["ext"], brief="Verwaltet die Extensions des Bots.")
+    @commands.group(
+        name="extensions", aliases=["ext"], brief="Verwaltet die Extensions des Bots."
+    )
     async def _extensions(self, ctx: commands.Context) -> None:
         """Verwaltet die Extensions des Bots. Ein Aufruf ohne Unterbefehle zeigt die aktuell
         geladenen Extensions an."""
@@ -211,24 +225,33 @@ class Administration(commands.Cog, name="Administration"):
         if ctx.invoked_subcommand is not None:
             return
 
-        await ctx.send("Aktuell sind folgende Extensions geladen:\n" + ", ".join(self.bot.extensions.keys()))
+        await ctx.send(
+            "Aktuell sind folgende Extensions geladen:\n"
+            + ", ".join(self.bot.extensions.keys())
+        )
 
     @is_super_user()
-    @_extensions.command(name="load", aliases=["-l"], brief="Lädt eine Extension in den Bot.")
+    @_extensions.command(
+        name="load", aliases=["-l"], brief="Lädt eine Extension in den Bot."
+    )
     async def _load(self, ctx: commands.Context, extension: str) -> None:
         """'Lädt die Extension mit den angegebenen Namen in den Bot."""
 
         await self.load_ext(ctx, extension)
 
     @is_super_user()
-    @_extensions.command(name="unload", aliases=["-u"], brief="Entfernt eine Extension aus dem Bot.")
+    @_extensions.command(
+        name="unload", aliases=["-u"], brief="Entfernt eine Extension aus dem Bot."
+    )
     async def _unload(self, ctx: commands.Context, extension: str) -> None:
         """'Entfernt die Extension mit den angegebenen Namen aus dem Bot."""
 
         await self.unload_ext(ctx, extension)
 
     @is_super_user()
-    @_extensions.command(name="reload", aliases=["-r"], brief="Lädt eine Extension neu.")
+    @_extensions.command(
+        name="reload", aliases=["-r"], brief="Lädt eine Extension neu."
+    )
     async def _reload(self, ctx: commands.Context, extension: str) -> None:
         """Lädt eine Extension mit dem angegebenen Namen neu.
 
@@ -260,11 +283,15 @@ class Administration(commands.Cog, name="Administration"):
 
         logging.info("Bot ready!")
 
-        startup_duration = (dt.datetime.now(tz=get_local_timezone()) - STARTUP_TIME).total_seconds()
+        startup_duration = (
+            dt.datetime.now(tz=get_local_timezone()) - STARTUP_TIME
+        ).total_seconds()
         logging.info("Startup took %.4f seconds.", startup_duration)
 
     @commands.Cog.listener()
-    async def on_command_error(self, ctx: commands.Context, error: commands.CommandError) -> None:
+    async def on_command_error(
+        self, ctx: commands.Context, error: commands.CommandError
+    ) -> None:
         """This function iiss callled when a command raises an error.'
         The following actions are executed:
 
@@ -276,7 +303,9 @@ class Administration(commands.Cog, name="Administration"):
         if (hans := self.bot.get_user(247117682875432960)) is None:
             return
 
-        await hans.send(f"```*ERROR*\n{ctx.author.name}\n{ctx.message.content}\n{error}```")
+        await hans.send(
+            f"```*ERROR*\n{ctx.author.name}\n{ctx.message.content}\n{error}```"
+        )
 
     @commands.Cog.listener()
     async def on_guild_channel_create(self, channel: GuildChannel) -> None:
@@ -293,7 +322,9 @@ class Administration(commands.Cog, name="Administration"):
         await self.bot.analyze_guild()
 
     @commands.Cog.listener()
-    async def on_guild_channel_update(self, bef: GuildChannel, aft: GuildChannel) -> None:
+    async def on_guild_channel_update(
+        self, bef: GuildChannel, aft: GuildChannel
+    ) -> None:
         """Re-analizes the guild if a channel is updated."""
 
         logging.info("Channel updated: [ID:%s] %s > %s", aft.id, bef.name, aft.name)
