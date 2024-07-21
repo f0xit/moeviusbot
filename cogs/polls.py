@@ -2,7 +2,7 @@
 
 import datetime as dt
 import logging
-from typing import Optional
+from typing import Literal, Optional
 
 import discord
 from discord.ext import commands
@@ -43,20 +43,23 @@ class Polls(commands.Cog, name="Umfragen"):
         description="beschreibung",
         choices_str="antworten",
         ends_at_str="endzeitpunkt",
+        multiple="mehrfachantwort",
     )
     @discord.app_commands.describe(
         title="Titel der Umfrage",
-        description="Optionale Beschreibung",
         choices_str="Antwortmöglichkeiten, getrennt mit Semikolon",
+        description="Optionale Beschreibung",
         ends_at_str="HH:MM oder DD.MM. HH:MM",
+        multiple="Ja oder Nein? Standard: Ja",
     )
     async def _poll(
         self,
         ctx: commands.Context,
         title: str,
-        description: Optional[str],
         choices_str: str,
+        description: Optional[str],
         ends_at_str: Optional[str],
+        multiple: Optional[Literal["Ja", "Nein"]],
     ) -> None:
         await ctx.defer()
 
@@ -73,10 +76,12 @@ class Polls(commands.Cog, name="Umfragen"):
                 )
             return
 
+        multi_choice = multiple is None or multiple == "Ja"
+
         new_poll = discord.Poll(
             escape_markdown(title),
             duration=timedelta_to_end,
-            multiple=True,
+            multiple=multi_choice,
         )
 
         try:
