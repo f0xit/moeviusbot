@@ -95,12 +95,22 @@ class Polls(commands.Cog, name="Umfragen"):
     @_poll.command(name="stop")
     @discord.app_commands.rename(poll_id="umfragen_id")
     @discord.app_commands.describe(poll_id="ID der Umfrage")
-    async def _poll_stop(self, ctx: commands.Context, poll_id: str) -> None:
-        pass
+    async def _poll_stop(self, ctx: commands.Context, msg: discord.Message) -> None:
+        await msg.end_poll()
+
+        await ctx.send("Umfrage wurde gestoppt, Krah Krah!", ephemeral=True)
 
     @is_special_user([SpecialUser.SCHNENK, SpecialUser.HANS, SpecialUser.ZUGGI])
     @_poll.command(name="info")
     @discord.app_commands.rename(poll_id="umfragen_id")
     @discord.app_commands.describe(poll_id="ID der Umfrage")
-    async def _poll_info(self, ctx: commands.Context, poll_id: str) -> None:
-        pass
+    async def _poll_info(self, ctx: commands.Context, msg: discord.Message) -> None:
+        if msg.poll is None:
+            return
+
+        output = []
+
+        for answer in msg.poll.answers:
+            output.append(str(answer.emoji) + ", ".join([str(voter) async for voter in answer.voters()]))
+
+        await ctx.send("Bisher wurde so abgestimmt: ```" + "\n".join(output) + "```")
