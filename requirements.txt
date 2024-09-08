@@ -1,4 +1,4 @@
-aiohttp==3.10.2
+aiohttp==3.10.5
 autocorrect==2.6.1
 beautifulsoup4==4.12.3
 discord.py==2.4.0
