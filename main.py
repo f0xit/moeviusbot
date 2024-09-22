@@ -109,7 +109,7 @@ class Administration(commands.Cog, name="Administration"):
 
         path = f"logs/moevius.log.{file}" if file else "logs/moevius.log"
 
-        if not (log_lines := (await lines_from_textfile(path))):
+        if not (log_lines := await lines_from_textfile(path)):
             await ctx.send("Dieses Log-File scheint es nicht zu geben, Krah Krah! Format: YYYY_MM_DD")
             return
 

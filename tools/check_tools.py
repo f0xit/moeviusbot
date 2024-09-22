@@ -22,9 +22,7 @@ def is_special_user(user_list: list[SpecialUser]):
 
 def is_super_user():
     async def wrapper(ctx: commands.Context) -> bool:
-        settings = load_file("json/settings.json").unwrap()
-
-        if settings is None:
+        if (settings := load_file("json/settings.json").unwrap()) is None:
             return False
 
         return ctx.author.name in settings["super-users"]
