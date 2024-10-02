@@ -1,4 +1,4 @@
-aiohttp==3.10.5
+aiohttp==3.10.9
 autocorrect==2.6.1
 beautifulsoup4==4.12.3
 discord.py==2.4.0
@@ -6,3 +6,4 @@ markovify==0.9.4
 pillow==10.4.0
 python-dotenv==1.0.1
 result==0.17.0
+audioop-lts; python_version>='3.13'
