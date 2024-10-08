@@ -74,7 +74,7 @@ class Polls(commands.Cog, name="Umfragen"):
                     "Datum nicht erkannt. Bitte verwende HH:MM oder DD.MM. HH:MM, Krah Krah!",
                     ephemeral=True,
                 )
-            return
+                return
 
         multi_choice = multiple is None or multiple == "Ja"
 
