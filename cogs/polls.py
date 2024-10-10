@@ -82,7 +82,7 @@ class Polls(commands.Cog, **cog_info["cog"]):
     @commands.hybrid_group(**cog_info["poll"]["start"]["cmd"])
     @discord.app_commands.rename(**cog_info["poll"]["start"]["rename"])
     @discord.app_commands.describe(**cog_info["poll"]["start"]["describe"])
-    async def _poll(
+    async def _poll(  # noqa: PLR0913
         self,
         ctx: commands.Context,
         question: str,

@@ -297,11 +297,8 @@ class Quiz(commands.Cog, name="Quiz"):
             name_length = len(user_name)
             points = len(format(user_data["points"], ",d"))
 
-            if max_length["name"] < name_length:
-                max_length["name"] = name_length
-
-            if max_length["points"] < points:
-                max_length["points"] = points
+            max_length["name"] = max(max_length["name"], name_length)
+            max_length["points"] = max(max_length["points"], points)
 
         for user_id in broken_users:
             sorted_ranking.pop(user_id)
