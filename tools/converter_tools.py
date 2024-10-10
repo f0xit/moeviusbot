@@ -54,7 +54,7 @@ async def convert_str_to_dt(argument: str) -> dt.datetime:
             )
 
             if event_date < today:
-                event_date += dt.timedelta(1)
+                event_date += dt.timedelta(days=1.0)
 
         case (day, month, hour, minute):
             event_date = dt.datetime(
