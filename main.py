@@ -2,6 +2,7 @@
 
 import asyncio
 import datetime as dt
+import io
 import logging
 import os
 import subprocess
@@ -97,7 +98,18 @@ class Administration(commands.Cog, name="Administration"):
 
         cmds = await self.bot.tree.sync()
 
-        await ctx.send(f"Synced:\n```{cmds}```")
+        with io.StringIO() as output:
+            output.write("Synced:\n```")
+
+            for cmd in cmds:
+                output.write(f"{cmd.name} [{cmd.id}]\n")
+                for option in cmd.options:
+                    if option.type.name == "subcommand":
+                        output.write(f"   {option.name}\n")
+
+            output.write("```")
+
+            await ctx.send(output.getvalue())
 
     @is_super_user()
     @_bot.command(name="log", aliases=["-l"])
