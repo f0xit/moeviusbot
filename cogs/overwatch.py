@@ -60,20 +60,14 @@ async def parse_hero_patch(hero: Tag) -> dict | None:
 
     output_dict[hero_name]["gen"] = [
         list_item.contents[0]
-        for general_update in hero.find_all(
-            "div", class_="PatchNotesHeroUpdate-generalUpdates"
-        )
+        for general_update in hero.find_all("div", class_="PatchNotesHeroUpdate-generalUpdates")
         for list_item in general_update.find_all(["li", "p"])
     ]
 
     output_dict[hero_name]["abs"] = {
         (
             ability_name[0]
-            if (
-                ability_name := ability.find(
-                    "div", class_="PatchNotesAbilityUpdate-name"
-                ).contents
-            )
+            if (ability_name := ability.find("div", class_="PatchNotesAbilityUpdate-name").contents)
             else "<Ability name not found>"
         ): [list_item.contents[0] for list_item in ability.find_all("li")]
         for ability in hero.find_all("div", class_="PatchNotesAbilityUpdate-text")
@@ -88,12 +82,8 @@ async def parse_patchnotes() -> dict | None:
 
     output_dict = {}
 
-    patch_notes_soup = BeautifulSoup(
-        await async_request_html(PATCH_NOTES_URL), "html.parser"
-    )
-    patches: ResultSet[Tag] = patch_notes_soup.find_all(
-        "div", class_="PatchNotes-patch"
-    )
+    patch_notes_soup = BeautifulSoup(await async_request_html(PATCH_NOTES_URL), "html.parser")
+    patches: ResultSet[Tag] = patch_notes_soup.find_all("div", class_="PatchNotes-patch")
 
     for patch in patches:
         entry_point = patch.find(
@@ -116,10 +106,7 @@ async def parse_patchnotes() -> dict | None:
             continue
 
         for section in entry_section.next_siblings:
-            if (
-                not isinstance(section, Tag)
-                or "PatchNotes-section-hero_update" not in section.attrs["class"]
-            ):
+            if not isinstance(section, Tag) or "PatchNotes-section-hero_update" not in section.attrs["class"]:
                 break
 
             section_header = section.find("h4")
@@ -130,10 +117,7 @@ async def parse_patchnotes() -> dict | None:
                 output_dict["changes"][hero_class] = {}
 
             for hero in section_header.next_siblings:
-                if (
-                    not isinstance(hero, Tag)
-                    or "PatchNotesHeroUpdate" not in hero.attrs["class"]
-                ):
+                if not isinstance(hero, Tag) or "PatchNotesHeroUpdate" not in hero.attrs["class"]:
                     continue
 
                 output_dict["changes"][hero_class].update(await parse_hero_patch(hero))
@@ -168,10 +152,7 @@ class Overwatch(commands.Cog, name="Overwatch"):
             msg = "Could not load Overwatch heroes!"
             raise OwHeroError(msg)
 
-        self.heroes = {
-            cell.attrs["data-hero-id"].title(): cell.attrs["data-role"].upper()
-            for cell in cells
-        }
+        self.heroes = {cell.attrs["data-hero-id"].title(): cell.attrs["data-role"].upper() for cell in cells}
         logging.info("Overwatch heroes loaded: %s heroes.", len(cells))
 
     async def random_hero_for_user(self, requested_role: Role = Role.NONE) -> str:
@@ -184,9 +165,7 @@ class Overwatch(commands.Cog, name="Overwatch"):
         if requested_role == Role.NONE:
             return random.SystemRandom().choice(list(self.heroes.keys()))
 
-        return random.SystemRandom().choice(
-            [hero for hero, role in self.heroes.items() if role == requested_role.name]
-        )
+        return random.SystemRandom().choice([hero for hero, role in self.heroes.items() if role == requested_role.name])
 
     async def random_hero_for_group(self, author: discord.Member) -> list[str]:
         """This function returns random heroes for a group of player that are in the
@@ -219,40 +198,35 @@ class Overwatch(commands.Cog, name="Overwatch"):
             return
 
         if not patchnotes:
-            await ctx.send(
-                "Anscheinend gab es in letzter Zeit keine Heldenupdates, Krah Krah!"
-            )
+            await ctx.send("Anscheinend gab es in letzter Zeit keine Heldenupdates, Krah Krah!")
             return
 
-        embed_list = []
-        output = io.StringIO()
+        with io.StringIO() as output:
+            embed_list = []
 
-        for hero_class in patchnotes["changes"].items():
-            embed = discord.Embed(
-                title=hero_class[0].capitalize(), colour=discord.Colour(0xFF00FF)
-            )
-            for hero in hero_class[1].items():
-                if hero[1]["gen"]:
-                    output.write("__Allgemein__:\n")
-                    output.write("\n".join(hero[1]["gen"]))
-                    output.write("\n")
+            for hero_class in patchnotes["changes"].items():
+                embed = discord.Embed(title=hero_class[0].capitalize(), colour=discord.Colour(0xFF00FF))
 
-                if hero[1]["abs"]:
-                    for ability in hero[1]["abs"]:
-                        output.write(f"__{ability}__:\n")
-                        output.write("\n".join(hero[1]["abs"][ability]))
+                for hero in hero_class[1].items():
+                    if hero[1]["gen"]:
+                        output.write("__Allgemein__:\n")
+                        output.write("\n".join(hero[1]["gen"]))
                         output.write("\n")
 
-                embed.add_field(name=hero[0], value=output.getvalue(), inline=False)
+                    if hero[1]["abs"]:
+                        for ability in hero[1]["abs"]:
+                            output.write(f"__{ability}__:\n")
+                            output.write("\n".join(hero[1]["abs"][ability]))
+                            output.write("\n")
 
-                output.truncate(0)
-                output.seek(0)
+                    embed.add_field(name=hero[0], value=output.getvalue(), inline=False)
 
-            embed_list.append(embed)
+                    output.truncate(0)
+                    output.seek(0)
 
-        await ctx.send(f"**{patchnotes['title']}**", embeds=embed_list)
+                embed_list.append(embed)
 
-        output.close()
+            await ctx.send(f"**{patchnotes['title']}**", embeds=embed_list)
 
     @commands.command(
         name="ow",
@@ -278,17 +252,13 @@ class Overwatch(commands.Cog, name="Overwatch"):
         else:
             logging.info("%s requested a random hero for everyone.", ctx.author.name)
 
-            await ctx.channel.send(
-                PROMPT + ", ".join(await self.random_hero_for_group(ctx.author))
-            )
+            await ctx.channel.send(PROMPT + ", ".join(await self.random_hero_for_group(ctx.author)))
 
     @commands.command(brief="Gibt dir einen zufälligen Overwatch-DPS.")
     async def owd(self, ctx: commands.Context) -> None:
         """Gibt dir einen zufälligen Overwatch-DPS."""
 
-        logging.info(
-            "%s requested a random hero for themselves, Role: Damage.", ctx.author.name
-        )
+        logging.info("%s requested a random hero for themselves, Role: Damage.", ctx.author.name)
 
         await ctx.channel.send(PROMPT + (await self.random_hero_for_user(Role.DAMAGE)))
 
@@ -296,9 +266,7 @@ class Overwatch(commands.Cog, name="Overwatch"):
     async def ows(self, ctx: commands.Context) -> None:
         """Gibt dir einen zufälligen Overwatch-Support."""
 
-        logging.info(
-            "%s requested a random hero for themselves, Role: Support.", ctx.author.name
-        )
+        logging.info("%s requested a random hero for themselves, Role: Support.", ctx.author.name)
 
         await ctx.channel.send(PROMPT + (await self.random_hero_for_user(Role.SUPPORT)))
 
@@ -306,8 +274,6 @@ class Overwatch(commands.Cog, name="Overwatch"):
     async def owt(self, ctx: commands.Context) -> None:
         """Gibt dir einen zufälligen Overwatch-Tank."""
 
-        logging.info(
-            "%s requested a random hero for themselves, Role: Tank.", ctx.author.name
-        )
+        logging.info("%s requested a random hero for themselves, Role: Tank.", ctx.author.name)
 
         await ctx.channel.send(PROMPT + (await self.random_hero_for_user(Role.TANK)))
