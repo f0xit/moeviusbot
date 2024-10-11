@@ -14,7 +14,7 @@ from discord.ext import commands
 from dotenv import load_dotenv
 
 from bot import Bot
-from tools.check_tools import is_super_user
+from tools.check_tools import SpecialUser, is_super_user
 from tools.dt_tools import get_local_timezone, strfdelta
 from tools.logger_tools import LoggerTools
 from tools.py_version_tools import check_python_version
@@ -154,10 +154,7 @@ class Administration(commands.Cog, name="Administration"):
 
     @_bot.command(name="version", aliases=["-v"])
     async def _version(self, ctx: commands.Context) -> None:
-        """Gibt Auskunft darüber, welche Version des Bots aktuell installiert ist.
-
-        Achtung: Eventuell muss der Bot komplett neu gestartet werden, damit nachträgliche
-        Änderungen wirksam werden."""
+        """Gibt Auskunft darüber, welche Version des Bots aktuell installiert ist."""
 
         process = await subprocess.create_subprocess_exec(  # pylint: disable=E1101
             "git",
@@ -209,11 +206,14 @@ class Administration(commands.Cog, name="Administration"):
         Achtung: Dieser Befehl startet nicht wirklich das Programm neu. Auch werden geladene
         Extensions nicht neu geladen. Bitte dafür den entsprechenden Befehl benutzen."""
 
-        logging.warning("%s hat einen Reload gestartet.", ctx.author.name)
-        await ctx.send("Reload wird gestartet.")
+        logging.info("%s started a reload...", ctx.author.name)
+        await ctx.send("Reload wird gestartet...")
 
         self.bot.load_files_into_attrs()
         await self.bot.analyze_guild()
+
+        logging.info("Reload complete.")
+        await ctx.send("Reload abgeschlossen.")
 
     @commands.group(name="extensions", aliases=["ext"], brief="Verwaltet die Extensions des Bots.")
     async def _extensions(self, ctx: commands.Context) -> None:
@@ -277,18 +277,20 @@ class Administration(commands.Cog, name="Administration"):
 
     @commands.Cog.listener()
     async def on_command_error(self, ctx: commands.Context, error: commands.CommandError) -> None:
-        """This function iiss callled when a command raises an error.'
-        The following actions are executed:
+        """This function is callled when a command raises an error. The following actions are executed:
 
         1) Logging the context and the error
-        2) Sending a private message with the same content to the owner of the bot"""
+        2) Returning the error to the user as ephemeral message
+        3) Sending a private message with the same content to the owner of the bot"""
 
         logging.error("%s - %s - %s", ctx.author.name, ctx.message.content, error)
+        await ctx.send(f"Es gab einen Fehler beim Ausführen des Befehls, Krah Krah!\n{error}", ephemeral=True)
 
-        if (hans := self.bot.get_user(247117682875432960)) is None:
+        if (hans := self.bot.get_user(SpecialUser.HANS.value)) is None:
+            logging.error("%s not found!", SpecialUser.HANS)
             return
 
-        await hans.send(f"```*ERROR*\n{ctx.author.name}\n{ctx.message.content}\n{error}```")
+        await hans.send(f"**ERROR**```{ctx.author.name}\n{ctx.message.content}\n{error}```")
 
     @commands.Cog.listener()
     async def on_guild_channel_create(self, channel: GuildChannel) -> None:
@@ -324,8 +326,8 @@ async def main() -> None:
 
     if (discord_token := os.getenv("DISCORD_TOKEN")) is None:
         sys.exit("Discord token not found! Please check your .env file!")
-    else:
-        logging.info("Discord token loaded successfully.")
+
+    logging.info("Discord token loaded successfully.")
 
     await MOEVIUS.add_cog(Administration(MOEVIUS))
     await MOEVIUS.start(discord_token)
