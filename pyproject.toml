@@ -1,11 +1,13 @@
+[project]
+requires-python = ">=3.13"
+
 [tool.black]
 line-length = 120
-target-version = ["py312"]
 
 [tool.ruff]
 line-length = 120
 lint.extend-select = ["ALL"]
-lint.ignore = ["ANN101", "COM812", "D", "EXE002"]
+lint.ignore = ["COM812", "D", "EXE002"]
 show-fixes = true
 output-format = "concise"
 
