@@ -1,34 +1,15 @@
+[project]
+name = "moeviusbot"
+dynamic = ["version"]
+requires-python = ">=3.13"
+
 [tool.black]
 line-length = 120
-target-version = ["py312"]
 
 [tool.ruff]
 line-length = 120
-target-version = "py312"
-lint.extend-select = [
-    "B",
-    "BLE",
-    "C4",
-    "ERA",
-    "I",
-    "ICN",
-    # "INP",
-    "ISC",
-    "N",
-    "PGH",
-    "PIE",
-    # "Q",
-    "RET",
-    "RSE",
-    "RUF",
-    "S",
-    "SIM",
-    "T20",
-    "TCH",
-    "TID",
-    "YTT",
-]
-lint.ignore = ["TCH0"]
+lint.extend-select = ["ALL"]
+lint.ignore = ["COM812", "D", "EXE002"]
 show-fixes = true
 output-format = "concise"
 
