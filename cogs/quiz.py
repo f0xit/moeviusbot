@@ -184,9 +184,12 @@ class Quiz(commands.Cog, name="Quiz"):
         if not isinstance(ranking, dict):
             return
 
-        ranking[player_id]["name"] = self.player.display_name
-        ranking[player_id]["points"] = ranking[player_id].get("points") + amount
-        ranking[player_id]["tries"] = ranking[player_id].get("tries") + 1
+        if player_id not in ranking:
+            ranking[player_id] = {"name": self.player.display_name, "points": amount, "tries": 1}
+        else:
+            ranking[player_id]["name"] = self.player.display_name
+            ranking[player_id]["points"] = ranking[player_id].get("points") + amount
+            ranking[player_id]["tries"] = ranking[player_id].get("tries") + 1
 
         save_file("json/quiz_ranking.json", ranking)
 

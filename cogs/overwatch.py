@@ -89,7 +89,7 @@ async def parse_patchnotes() -> dict | None:
         entry_point = patch.find(
             "h4",
             class_="PatchNotes-sectionTitle",
-            string=["Heldenupdates", "HELDENUPDATES"],
+            string=["Heldenupdates", "HELDENUPDATES", "HERO UPDATES"],
         )
         title_tag = patch.find("h3", class_="PatchNotes-patchTitle")
 
