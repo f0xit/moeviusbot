@@ -3,7 +3,6 @@
 import datetime as dt
 import logging
 import math
-import os
 import random
 import re
 from pathlib import Path
@@ -25,36 +24,34 @@ async def setup(bot: Bot) -> None:
 async def generate_random_painting() -> None:
     """Generates a combination of prompt and drawing from a random gartic phone game."""
 
+    gartic_path = Path("gartic")
+    cache_path = Path("cache")
+
     gartic_round = random.SystemRandom().choice(
-        [file_round for file_round in os.listdir("gartic") if re.match(r"^\d{3}$", file_round)]
+        [directory for directory in gartic_path.iterdir() if re.match(r"^\d{3}$", directory.name)]
     )
 
     gartic_story = random.SystemRandom().choice(
-        [story for story in os.listdir(f"gartic/{gartic_round}") if re.match(r"^album_.*\.gif$", story)]
+        [file for file in gartic_round.iterdir() if re.match(r"^album_.*\.gif$", file.name)]
     )
 
-    story_gif = Image.open(f"gartic/{gartic_round}/{gartic_story}")
-
+    story_gif = Image.open(gartic_story)
     position = random.SystemRandom().randint(0, math.floor(story_gif.n_frames / 2) - 1)
 
-    if not Path("cache").exists():
-        Path("cache").mkdir()
-        logging.warning("Created cache directory")
-
     story_gif.seek(2 * position)
-    story_gif.save("cache/gartic_text.png")
+    story_gif.save(cache_path / "gartic_text.png")
     story_gif.seek(2 * position + 1)
-    story_gif.save("cache/gartic_image.png")
+    story_gif.save(cache_path / "gartic_image.png")
 
     output_image = Image.new("RGB", (story_gif.width, 2 * story_gif.height))
 
-    image_top = Image.open("cache/gartic_text.png")
-    image_bottom = Image.open("cache/gartic_image.png")
+    image_top = Image.open(cache_path / "gartic_text.png")
+    image_bottom = Image.open(cache_path / "gartic_image.png")
 
     output_image.paste(im=image_top, box=(0, 0))
     output_image.paste(im=image_bottom, box=(0, story_gif.height))
 
-    output_image.save("cache/gartic_output.png")
+    output_image.save(cache_path / "gartic_output.png")
 
 
 class Gartic(commands.Cog, name="Gartic"):
@@ -62,6 +59,11 @@ class Gartic(commands.Cog, name="Gartic"):
 
     def __init__(self, bot: Bot) -> None:
         self.bot = bot
+
+        if not (cache_path := Path("cache")).exists():
+            cache_path.mkdir()
+            logging.warning("Created cache directory")
+
         self.daily_gartic.start()
 
     async def cog_unload(self) -> None:
