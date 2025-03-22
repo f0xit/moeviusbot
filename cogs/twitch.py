@@ -1,6 +1,5 @@
 """Cog for Twitch related commands"""
 
-import asyncio
 import datetime as dt
 import logging
 import os
@@ -20,7 +19,9 @@ HTTP_STATUS_OK = 200
 async def setup(bot: Bot) -> None:
     """Setup function for the cog."""
 
-    await bot.add_cog(Twitch(bot))
+    cog = Twitch(bot)
+    await cog.clip_handler.fetch_all_clips()
+    await bot.add_cog(cog)
     logging.info("Cog loaded: Twitch.")
 
 
@@ -34,11 +35,9 @@ class TwitchTokenHandler:
         self.token = ""
         self.expire_dt = dt.datetime.now(tz=get_local_timezone())
 
-        asyncio.run(self.fetch_twitch_token())
-
     @property
     def is_expired(self) -> bool:
-        return self.expire_dt > dt.datetime.now(tz=get_local_timezone())
+        return self.expire_dt < dt.datetime.now(tz=get_local_timezone())
 
     async def fetch_twitch_token(self) -> None:
         load_dotenv()
@@ -74,12 +73,11 @@ class TwitchTokenHandler:
 class TwitchClipsHandler:
     def __init__(self, *, broadcaster_name: str) -> None:
         self.token_handler = TwitchTokenHandler()
+
+        self.broadcaster_name = broadcaster_name
+        self.broadcaster_id = ""
+
         self.clips = []
-
-        broadcaster_info = asyncio.run(self.fetch_creator_info(name=broadcaster_name))
-        self.broadcaster_id = broadcaster_info["id"]
-
-        asyncio.run(self.fetch_all_clips())
 
     @property
     async def headers(self) -> dict[str, str]:
@@ -95,10 +93,10 @@ class TwitchClipsHandler:
     def clip_count(self) -> int:
         return len(self.clips)
 
-    async def fetch_creator_info(self, *, name: str) -> dict:
+    async def fetch_broadcaster_id(self) -> None:
         async with (
             aiohttp.ClientSession(headers=await self.headers) as session,
-            session.get("https://api.twitch.tv/helix/users", params={"login": name}) as response,
+            session.get("https://api.twitch.tv/helix/users", params={"login": self.broadcaster_name}) as response,
         ):
             if not response.ok:
                 message = (await response.json())["message"]
@@ -113,9 +111,12 @@ class TwitchClipsHandler:
                 logging.exception(err_msg)
                 raise OSError(err_msg)
 
-            return data["data"][0]
+            self.broadcaster_id = data["data"][0]["id"]
 
     async def fetch_all_clips(self) -> None:
+        if not self.broadcaster_id:
+            await self.fetch_broadcaster_id()
+
         async with aiohttp.ClientSession(headers=await self.headers) as session:
             clips = []
 
@@ -156,9 +157,9 @@ class TwitchClipsHandler:
 class Twitch(commands.Cog, name="Twitch"):
     """This cog includes Twitch related commands"""
 
-    def __init__(self, bot: Bot) -> None:
+    def __init__(self, bot: Bot, *, broadcaster_name: str = "schnenko") -> None:
         self.bot = bot
-        self.clip_handler = TwitchClipsHandler(broadcaster_name="schnenko")
+        self.clip_handler = TwitchClipsHandler(broadcaster_name=broadcaster_name)
 
     async def cog_unload(self) -> None:
         logging.info("Cog unloaded: Twitch.")
