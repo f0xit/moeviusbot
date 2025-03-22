@@ -45,6 +45,12 @@ class YTClipsHandler:
         return len(self.shorts)
 
     async def fetch_channel_id(self) -> None:
+        """Fetches channel_id for set channel_handle from YT API
+
+        Raises:
+            OSError: YT API responded with status code 400 or above
+            OSError: YT API response missing data"""
+
         logging.info("Fetching id for channel @%s...", self.channel_handle)
 
         async with (
@@ -77,6 +83,12 @@ class YTClipsHandler:
             logging.info("Fetched id %s for channel @%s...", self.channel_id, self.channel_handle)
 
     async def fetch_all_shorts(self) -> None:
+        """Fetches all shorts for set channel_id from YT API
+
+        Raises:
+            OSError: YT API responded with status code 400 or above
+            OSError: YT API response missing data"""
+
         logging.info("Fetching YT shorts ...")
 
         if not self.channel_id:
@@ -156,7 +168,7 @@ class YTClipsHandler:
 
 
 class Shorts(commands.Cog, name="Shorts"):
-    """This cog includes Twitch related commands"""
+    """This cog includes YT Short related commands"""
 
     def __init__(self, bot: Bot, *, channel_handle: str = "schnenko6263") -> None:
         logging.info("Initializing YT Shorts cog...")
