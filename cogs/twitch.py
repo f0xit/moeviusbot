@@ -13,6 +13,31 @@ from bot import Bot
 from tools.check_tools import is_super_user
 from tools.dt_tools import get_local_timezone
 
+cog_info = {
+    "cog": {"name": "Twitch"},
+    "clip": {
+        "random": {
+            "cmd": {
+                "name": "clip",
+                "fallback": "random",
+                "brief": "Postet einen zufälligen Twitch Clip von Schnenko",
+            },
+        },
+        "count": {
+            "cmd": {
+                "name": "count",
+                "brief": "Zeigt die aktuelle Anzahl an Twitch Clips im Bot",
+            },
+        },
+        "refresh": {
+            "cmd": {
+                "name": "refresh",
+                "brief": "Aktualisiert die Twitch Clips im Bot",
+            },
+        },
+    },
+}
+
 
 async def setup(bot: Bot) -> None:
     """Setup function for the cog."""
@@ -229,7 +254,7 @@ class TwitchClipsHandler:
         return f"https://clips.twitch.tv/{self.clips.pop()}"
 
 
-class Twitch(commands.Cog, name="Twitch"):
+class Twitch(commands.Cog, **cog_info["cog"]):
     """This cog includes Twitch related commands"""
 
     def __init__(self, bot: Bot, *, broadcaster_name: str = "schnenko") -> None:
@@ -242,9 +267,21 @@ class Twitch(commands.Cog, name="Twitch"):
         logging.info("Cog unloaded: Twitch.")
 
     @is_super_user()
-    @commands.command(
-        name="clip",
-        brief="Postet einen zufälligen Twitch Clip von Schnenko",
-    )
+    @commands.hybrid_group(**cog_info["clip"]["random"]["cmd"])
     async def _clip(self, ctx: commands.Context) -> None:
         await ctx.send(await self.clip_handler.get_random_clip_url())
+
+    @_clip.command(**cog_info["clip"]["count"]["cmd"])
+    async def _count(self, ctx: commands.Context) -> None:
+        await ctx.send(f"Es sind aktuell {self.clip_handler.clip_count} in der Warteschlange.")
+
+    @is_super_user()
+    @_clip.command(**cog_info["clip"]["refresh"]["cmd"])
+    async def _refresh(self, ctx: commands.Context) -> None:
+        start_time = dt.datetime.now(tz=get_local_timezone())
+        await ctx.defer(ephemeral=True)
+        await self.clip_handler.fetch_all_clips()
+        duration = (dt.datetime.now(tz=get_local_timezone()) - start_time).total_seconds()
+        await ctx.send(
+            f"Clips neu geladen! Es wurden insgesamt {self.clip_handler.clip_count} gefunden. Dauer: {duration}"
+        )
