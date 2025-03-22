@@ -151,7 +151,7 @@ class YTClipsHandler:
 
                     params["pageToken"] = data["nextPageToken"]
 
-        self.shorts = shorts
+        self.shorts = [short["contentDetails"]["videoId"] for short in shorts]
         logging.info("Fetched %s YT shorts.", self.short_count)
 
         random.shuffle(self.shorts)
@@ -164,7 +164,7 @@ class YTClipsHandler:
         if not self.shorts:
             logging.debug("No short found in handler.")
             await self.fetch_all_shorts()
-        return "https://www.youtube.com/shorts/" + (self.shorts.pop())["contentDetails"]["videoId"]
+        return f"https://www.youtube.com/shorts/{self.shorts.pop()}"
 
 
 class Shorts(commands.Cog, name="Shorts"):

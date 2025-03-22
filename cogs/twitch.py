@@ -213,7 +213,7 @@ class TwitchClipsHandler:
 
                     params["after"] = data["pagination"]["cursor"]
 
-        self.clips = clips
+        self.clips = [clip["id"] for clip in clips]
         logging.info("Fetched %s Twitch clips.", self.clip_count)
 
         random.shuffle(self.clips)
@@ -226,7 +226,7 @@ class TwitchClipsHandler:
         if not self.clips:
             logging.debug("No clips found in handler.")
             await self.fetch_all_clips()
-        return (self.clips.pop())["url"]
+        return f"https://clips.twitch.tv/{self.clips.pop()}"
 
 
 class Twitch(commands.Cog, name="Twitch"):
