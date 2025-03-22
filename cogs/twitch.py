@@ -44,11 +44,20 @@ class TwitchTokenHandler:
 
     @property
     def is_expired(self) -> bool:
+        """Returns true if token is expired."""
+
         token_expired = self.expire_dt < dt.datetime.now(tz=get_local_timezone())
         logging.debug("Twitch token is%s expired", "" if token_expired else " not")
         return token_expired
 
     async def fetch_twitch_token(self) -> None:
+        """Fetches twitch token for API requests.
+
+        Raises:
+            OSError: No .env file found!
+            OSError: Twitch API responded with status code 400 or above
+            OSError: Faulty Response from Twitch: Missing access token!"""
+
         logging.info("Fetching Twitch token ...")
 
         if not load_dotenv():
@@ -102,6 +111,11 @@ class TwitchClipsHandler:
 
     @property
     async def headers(self) -> dict[str, str]:
+        """Returns header file for authorizing at Twitch API.
+
+        Returns:
+            dict[str, str]: Header dict with Token and Client-Id."""
+
         logging.debug("Generating request header...")
 
         if self.token_handler.is_expired:
@@ -114,9 +128,17 @@ class TwitchClipsHandler:
 
     @property
     def clip_count(self) -> int:
+        """Number of clips in handler."""
+
         return len(self.clips)
 
     async def fetch_broadcaster_id(self) -> None:
+        """Fetches broadcaster_id for set broadcaster_name from Twitch API.
+
+        Raises:
+            OSError: Twitch API responded with status code 400 or above
+            OSError: Twitch response missing data"""
+
         logging.info("Fetching id for broadcaster %s...", self.broadcaster_name)
 
         async with (
@@ -143,6 +165,11 @@ class TwitchClipsHandler:
             logging.info("Fetched id %s for broadcaster %s...", self.broadcaster_id, self.broadcaster_name)
 
     async def fetch_all_clips(self) -> None:
+        """Fetches all clips for set broadcaster_id from Twitch API.
+
+        Raises:
+            OSError: Twitch API responded with status code 400 or above"""
+
         logging.info("Fetching Twitch clips ...")
 
         if not self.broadcaster_id:
@@ -195,6 +222,8 @@ class TwitchClipsHandler:
         logging.info("Shuffled %s Twitch clips.", self.clip_count)
 
     async def get_random_clip_url(self) -> str:
+        """Returns url of a random clip and removes it from handler"""
+
         logging.debug("Getting random clip from handler.")
         if not self.clips:
             logging.debug("No clips found in handler.")
