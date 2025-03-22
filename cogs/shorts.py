@@ -124,6 +124,8 @@ class YTClipsHandler:
                         logging.exception(err_msg)
                         raise OSError(err_msg)
 
+                    data = await response.json()
+
                     if "items" not in data or not data["items"]:
                         err_msg = "YT response missing data"
                         logging.exception(err_msg)
@@ -150,7 +152,7 @@ class YTClipsHandler:
         if not self.shorts:
             logging.debug("No short found in handler.")
             await self.fetch_all_shorts()
-        return "https://www.youtube.com/shorts/" + (self.shorts.pop())["contentDetails"]["id"]
+        return "https://www.youtube.com/shorts/" + (self.shorts.pop())["contentDetails"]["videoId"]
 
 
 class Shorts(commands.Cog, name="Shorts"):
