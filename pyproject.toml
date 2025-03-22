@@ -9,7 +9,7 @@ line-length = 120
 [tool.ruff]
 line-length = 120
 lint.extend-select = ["ALL"]
-lint.ignore = ["COM812", "D", "EXE002"]
+lint.ignore = ["COM812", "D", "EXE002", "LOG015"]
 show-fixes = true
 output-format = "concise"
 
