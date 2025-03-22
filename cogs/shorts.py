@@ -1,5 +1,6 @@
 """Cog for YT Shorts related commands"""
 
+import datetime as dt
 import logging
 import os
 import random
@@ -10,6 +11,32 @@ from dotenv import load_dotenv
 
 from bot import Bot
 from tools.check_tools import is_super_user
+from tools.dt_tools import get_local_timezone
+
+cog_info = {
+    "cog": {"name": "Shorts"},
+    "short": {
+        "random": {
+            "cmd": {
+                "name": "short",
+                "fallback": "random",
+                "brief": "Postet ein zufälliges YT Short von Schnenko",
+            },
+        },
+        "count": {
+            "cmd": {
+                "name": "count",
+                "brief": "Zeigt die aktuelle Anzahl an YT Shorts im Bot",
+            },
+        },
+        "refresh": {
+            "cmd": {
+                "name": "refresh",
+                "brief": "Aktualisiert die YT Shorts im Bot",
+            },
+        },
+    },
+}
 
 
 async def setup(bot: Bot) -> None:
@@ -151,7 +178,7 @@ class YTClipsHandler:
 
                     params["pageToken"] = data["nextPageToken"]
 
-        self.shorts = shorts
+        self.shorts = [short["contentDetails"]["videoId"] for short in shorts]
         logging.info("Fetched %s YT shorts.", self.short_count)
 
         random.shuffle(self.shorts)
@@ -164,10 +191,10 @@ class YTClipsHandler:
         if not self.shorts:
             logging.debug("No short found in handler.")
             await self.fetch_all_shorts()
-        return "https://www.youtube.com/shorts/" + (self.shorts.pop())["contentDetails"]["videoId"]
+        return f"https://www.youtube.com/shorts/{self.shorts.pop()}"
 
 
-class Shorts(commands.Cog, name="Shorts"):
+class Shorts(commands.Cog, **cog_info["cog"]):
     """This cog includes YT Short related commands"""
 
     def __init__(self, bot: Bot, *, channel_handle: str = "schnenko6263") -> None:
@@ -179,10 +206,21 @@ class Shorts(commands.Cog, name="Shorts"):
     async def cog_unload(self) -> None:
         logging.info("Cog unloaded: Shorts.")
 
-    @is_super_user()
-    @commands.command(
-        name="short",
-        brief="Postet ein zufälliges YT Short von Schnenko",
-    )
+    @commands.hybrid_group(**cog_info["short"]["random"]["cmd"])
     async def _short(self, ctx: commands.Context) -> None:
         await ctx.send(await self.clip_handler.get_random_short_url())
+
+    @_short.command(**cog_info["short"]["count"]["cmd"])
+    async def _count(self, ctx: commands.Context) -> None:
+        await ctx.send(f"Es sind aktuell {self.clip_handler.short_count} in der Warteschlange.")
+
+    @is_super_user()
+    @_short.command(**cog_info["short"]["refresh"]["cmd"])
+    async def _refresh(self, ctx: commands.Context) -> None:
+        start_time = dt.datetime.now(tz=get_local_timezone())
+        await ctx.defer(ephemeral=True)
+        await self.clip_handler.fetch_all_shorts()
+        duration = (dt.datetime.now(tz=get_local_timezone()) - start_time).total_seconds()
+        await ctx.send(
+            f"Clips neu geladen! Es wurden insgesamt {self.clip_handler.short_count} gefunden. Dauer: {duration}"
+        )
