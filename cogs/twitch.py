@@ -27,7 +27,12 @@ async def setup(bot: Bot) -> None:
 
 class TwitchTokenHandler:
     def __init__(self) -> None:
-        load_dotenv()
+        logging.info("Initializing Twitch token handler...")
+
+        if not load_dotenv():
+            err_msg = "No .env file found!"
+            logging.exception(err_msg)
+            raise OSError(err_msg)
 
         self.client_id = str(os.getenv("TWITCH_CLIENT_ID"))
         self.client_secret = str(os.getenv("TWITCH_CLIENT_SECRET"))
@@ -35,12 +40,21 @@ class TwitchTokenHandler:
         self.token = ""
         self.expire_dt = dt.datetime.now(tz=get_local_timezone())
 
+        logging.info("Initialized Twitch token handler.")
+
     @property
     def is_expired(self) -> bool:
-        return self.expire_dt < dt.datetime.now(tz=get_local_timezone())
+        token_expired = self.expire_dt < dt.datetime.now(tz=get_local_timezone())
+        logging.debug("Twitch token is%s expired", "" if token_expired else " not")
+        return token_expired
 
     async def fetch_twitch_token(self) -> None:
-        load_dotenv()
+        logging.info("Fetching Twitch token ...")
+
+        if not load_dotenv():
+            err_msg = "No .env file found!"
+            logging.exception(err_msg)
+            raise OSError(err_msg)
 
         async with (
             aiohttp.ClientSession() as session,
@@ -53,6 +67,8 @@ class TwitchTokenHandler:
                 },
             ) as response,
         ):
+            logging.debug("Twitch responded with code %s.", response.status)
+
             if not response.ok:
                 message = (await response.json())["message"]
                 err_msg = f"Twitch API responded with Code {response.status}: {message}!"
@@ -69,18 +85,25 @@ class TwitchTokenHandler:
             expires_in = dt.timedelta(seconds=response_json["expires_in"])
             self.expire_dt = dt.datetime.now(tz=get_local_timezone()) + expires_in
 
+            logging.debug("Twitch token recieved, expires in %s.", expires_in)
+            logging.info("Fetched Twitch token, expires at: %s", self.expire_dt)
+
 
 class TwitchClipsHandler:
     def __init__(self, *, broadcaster_name: str) -> None:
+        logging.info("Initializing Twitch clip handler for broadcaster %s...", broadcaster_name)
         self.token_handler = TwitchTokenHandler()
 
         self.broadcaster_name = broadcaster_name
         self.broadcaster_id = ""
 
         self.clips = []
+        logging.info("Initialized Twitch clip handler for broadcaster %s.", broadcaster_name)
 
     @property
     async def headers(self) -> dict[str, str]:
+        logging.debug("Generating request header...")
+
         if self.token_handler.is_expired:
             await self.token_handler.fetch_twitch_token()
 
@@ -94,10 +117,14 @@ class TwitchClipsHandler:
         return len(self.clips)
 
     async def fetch_broadcaster_id(self) -> None:
+        logging.info("Fetching id for broadcaster %s...", self.broadcaster_name)
+
         async with (
             aiohttp.ClientSession(headers=await self.headers) as session,
             session.get("https://api.twitch.tv/helix/users", params={"login": self.broadcaster_name}) as response,
         ):
+            logging.debug("Twitch responded with code %s.", response.status)
+
             if not response.ok:
                 message = (await response.json())["message"]
                 err_msg = f"Twitch API responded with Code {response.status}: {message}"
@@ -113,8 +140,13 @@ class TwitchClipsHandler:
 
             self.broadcaster_id = data["data"][0]["id"]
 
+            logging.info("Fetched id %s for broadcaster %s...", self.broadcaster_id, self.broadcaster_name)
+
     async def fetch_all_clips(self) -> None:
+        logging.info("Fetching Twitch clips ...")
+
         if not self.broadcaster_id:
+            logging.debug("Broadcaster id not set.")
             await self.fetch_broadcaster_id()
 
         async with aiohttp.ClientSession(headers=await self.headers) as session:
@@ -130,26 +162,42 @@ class TwitchClipsHandler:
                     "https://api.twitch.tv/helix/clips",
                     params=params,
                 ) as response:
-                    if response.status != HTTP_STATUS_OK:
-                        break
+                    logging.debug("Twitch responded with code %s.", response.status)
+
+                    if not response.ok:
+                        message = (await response.json())["message"]
+                        err_msg = f"Twitch API responded with Code {response.status}: {message}"
+                        logging.exception(err_msg)
+                        raise OSError(err_msg)
 
                     data = await response.json()
 
                     if not data:
+                        logging.warning("Recieved not data from Twitch. Fetching stopped.")
                         break
+
+                    logging.debug("Fetched %s clips, adding to list ...", len(data["data"]))
 
                     clips.extend(data["data"])
 
                     if "pagination" not in data or "cursor" not in data["pagination"]:
+                        logging.warning("Recieved not pagination from Twitch. Fetching stopped.")
                         break
+
+                    logging.debug("Next pagination cursor: %s", data["pagination"]["cursor"])
 
                     params["after"] = data["pagination"]["cursor"]
 
         self.clips = clips
+        logging.info("Fetched %s Twitch clips.", self.clip_count)
+
         random.shuffle(self.clips)
+        logging.info("Shuffled %s Twitch clips.", self.clip_count)
 
     async def get_random_clip_url(self) -> str:
+        logging.debug("Getting random clip from handler.")
         if not self.clips:
+            logging.debug("No clips found in handler.")
             await self.fetch_all_clips()
         return (self.clips.pop())["url"]
 
@@ -158,8 +206,10 @@ class Twitch(commands.Cog, name="Twitch"):
     """This cog includes Twitch related commands"""
 
     def __init__(self, bot: Bot, *, broadcaster_name: str = "schnenko") -> None:
+        logging.info("Initializing Twitch cog...")
         self.bot = bot
         self.clip_handler = TwitchClipsHandler(broadcaster_name=broadcaster_name)
+        logging.info("Initialized Twitch cog.")
 
     async def cog_unload(self) -> None:
         logging.info("Cog unloaded: Twitch.")
