@@ -13,8 +13,6 @@ from bot import Bot
 from tools.check_tools import is_super_user
 from tools.dt_tools import get_local_timezone
 
-HTTP_STATUS_OK = 200
-
 
 async def setup(bot: Bot) -> None:
     """Setup function for the cog."""
