@@ -2,10 +2,10 @@ bandit==1.8.3
 black==25.1.0
 isort==6.0.1
 mypy==1.15.0
-pipdeptree==2.25.1
-pycodestyle==2.12.1
-pylint==3.3.5
-ruff==0.11.0
+pipdeptree==2.26.0
+pycodestyle==2.13.0
+pylint==3.3.6
+ruff==0.11.2
 types-beautifulsoup4==4.12.0.20250204
 types-html5lib==1.1.11.20241018
 types-Pillow==10.2.0.20240822
