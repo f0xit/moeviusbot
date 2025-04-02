@@ -1,18 +1,22 @@
 """Cog for polls"""
 
+from __future__ import annotations
+
 import datetime as dt
 import logging
-from typing import Literal, Optional
+from typing import TYPE_CHECKING, Literal
 
 import discord
 from discord.ext import commands
 from discord.ext.commands import BadArgument
 from discord.utils import escape_markdown
 
-from bot import Bot
 from tools.check_tools import SpecialUser, is_special_user
 from tools.converter_tools import convert_choices_to_list, convert_str_to_dt
 from tools.dt_tools import get_local_timezone
+
+if TYPE_CHECKING:
+    from bot import Bot
 
 cog_info = {
     "cog": {"name": "Umfragen"},
@@ -68,7 +72,7 @@ class Poll(discord.Poll):
 class Polls(commands.Cog, **cog_info["cog"]):
     """This cog includes commands for building polls"""
 
-    def __init__(self, bot: Bot):
+    def __init__(self, bot: Bot) -> None:
         self.bot = bot
 
     async def cog_unload(self) -> None:
@@ -78,14 +82,14 @@ class Polls(commands.Cog, **cog_info["cog"]):
     @commands.hybrid_group(**cog_info["poll"]["start"]["cmd"])
     @discord.app_commands.rename(**cog_info["poll"]["start"]["rename"])
     @discord.app_commands.describe(**cog_info["poll"]["start"]["describe"])
-    async def _poll(
+    async def _poll(  # noqa: PLR0913
         self,
         ctx: commands.Context,
         question: str,
         choices_str: str,
-        description: Optional[str],
-        end_str: Optional[str],
-        multi_str: Optional[Literal["Ja", "Nein"]],
+        description: str | None,
+        end_str: str | None,
+        multi_str: Literal["Ja", "Nein"] | None,
     ) -> None:
         await ctx.defer()
 
@@ -96,6 +100,7 @@ class Polls(commands.Cog, **cog_info["cog"]):
                 duration = await convert_str_to_dt(end_str) - dt.datetime.now(get_local_timezone())
         except BadArgument:
             await ctx.send("Datum nicht erkannt. Bitte verwende HH:MM oder DD.MM. HH:MM, Krah Krah!", ephemeral=True)
+
             return
 
         multiple = multi_str is None or multi_str == "Ja"

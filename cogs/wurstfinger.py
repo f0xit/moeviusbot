@@ -61,26 +61,27 @@ class Wurstfinger(commands.Cog, name="Wurstfinger"):
 
     @commands.command(name="schnenk", aliases=["Schnenk"])
     async def _schnenk(self, ctx: commands.Context, percent: int = 5) -> None:
-        output = io.StringIO()
-        message = [message async for message in ctx.channel.history(limit=2)][1].content
+        with io.StringIO() as output:
+            message = [message async for message in ctx.channel.history(limit=2)][1].content
 
-        for character in message:
-            if character.isdecimal():
-                output.write(character)
-                continue
+            for character in message:
+                char = character
+                if char.isdecimal():
+                    output.write(char)
+                    continue
 
-            try:
-                if random.SystemRandom().randint(1, round(100 / max(min(percent, 100), 1))) == 1:
-                    uppercase = character.isupper()
-                    character = random.SystemRandom().choice(self.substitute[character.lower()])
-                    if uppercase:
-                        character = character.upper()
-            except KeyError:
-                pass
-            finally:
-                output.write(character)
+                try:
+                    if random.SystemRandom().randint(1, round(100 / max(min(percent, 100), 1))) == 1:
+                        uppercase = char.isupper()
+                        char = random.SystemRandom().choice(self.substitute[char.lower()])
+                        if uppercase:
+                            char = char.upper()
+                except KeyError:
+                    pass
+                finally:
+                    output.write(char)
 
-        await ctx.send(f"Oder wie Schnenk es sagen würde:\n{output.getvalue()} Krah Krah!")
+            await ctx.send(f"Oder wie Schnenk es sagen würde:\n{output.getvalue()} Krah Krah!")
 
     @commands.command(name="wurstfinger")
     async def _wurstfinger(self, ctx: commands.Context) -> None:

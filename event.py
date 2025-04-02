@@ -53,7 +53,8 @@ class Event:
     def save(self) -> None:
         """Saves the event to a json-file"""
 
-        if save_file(self.event_type + ".json", self.__dict__).is_ok():
+        try:
+            save_file(self.event_type + ".json", self.__dict__)
             logging.info(
                 "Event saved. Type: %s - Name: %s - Time: %s - Members: %s",
                 self.event_type,
@@ -61,8 +62,8 @@ class Event:
                 self.event_time,
                 ".".join(self.event_members.values()),
             )
-        else:
-            logging.error(
+        except OSError:
+            logging.exception(
                 "Event could not be saved! Type: %s - Name: %s - Time: %s - Members: %s",
                 self.event_type,
                 self.event_game,
@@ -73,8 +74,14 @@ class Event:
     def load(self) -> None:
         """Loads the event from a json-file if possible"""
 
-        if (data := load_file(self.event_type + ".json").unwrap()) is None:
-            logging.error("Event could not be loaded!")
+        try:
+            data = load_file(self.event_type + ".json")
+        except OSError:
+            logging.exception("Event could not be loaded!")
+            return
+
+        if not isinstance(data, dict):
+            logging.exception("Event data corrupted!")
             return
 
         self.event_time = data["event_time"]

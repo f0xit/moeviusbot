@@ -5,6 +5,8 @@ import datetime as dt
 from dataclasses import dataclass, field
 from enum import Enum
 
+from tools.dt_tools import get_local_timezone
+
 
 class EventType(Enum):
     """Enum of the supported event types"""
@@ -30,7 +32,7 @@ class Event:
     @property
     def is_past(self) -> bool:
         """Is True if the event is in the past"""
-        return self.event_dt < dt.datetime.now()
+        return self.event_dt < dt.datetime.now(tz=get_local_timezone())
 
 
 class EventList(list[Event]):

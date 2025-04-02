@@ -39,7 +39,8 @@ class Bot(commands.Bot):
         logging.info("Finding guild with ID:%s...", self.settings["server_id"])
 
         if (guild := self.get_guild(int(self.settings["server_id"]))) is None:
-            raise RuntimeError("Guild not found!")
+            msg = "Guild not found!"
+            raise RuntimeError(msg)
 
         logging.info("Guild found! [ID:%s] %s", guild.id, guild.name)
 

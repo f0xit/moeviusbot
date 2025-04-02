@@ -1,13 +1,18 @@
 """Cog for the faith point mechanic"""
 
+from __future__ import annotations
+
 import logging
+from typing import TYPE_CHECKING
 
 import discord
 from discord.ext import commands
 
-from bot import Bot
 from tools.check_tools import is_super_user
 from tools.json_tools import DictFile
+
+if TYPE_CHECKING:
+    from bot import Bot
 
 default_fields = {
     "member": commands.parameter(description="Server Mitglied. Möglicher Input: ID, Mention, Name."),
@@ -155,7 +160,7 @@ class Faith(commands.Cog, name="Faith"):
         await ctx.send(f"Alles klar, {member.display_name} hat nun {amount}🕊, Krah Krah!")
 
     @commands.Cog.listener()
-    async def on_command_completion(self, ctx: commands.Context):
+    async def on_command_completion(self, ctx: commands.Context) -> None:
         """Checks wether the completed command is in the faith_by_command-list
         and add the amount of faith points to the user who invoked the command."""
 
@@ -173,11 +178,11 @@ class Faith(commands.Cog, name="Faith"):
         await self.add_faith(ctx.author, amount)
 
     @commands.Cog.listener()
-    async def on_raw_reaction_add(self, payload: discord.RawReactionActionEvent):
+    async def on_raw_reaction_add(self, payload: discord.RawReactionActionEvent) -> None:
         """Adds faith points somone added to a message."""
         await self.faith_on_react(payload)
 
     @commands.Cog.listener()
-    async def on_raw_reaction_remove(self, payload: discord.RawReactionActionEvent):
+    async def on_raw_reaction_remove(self, payload: discord.RawReactionActionEvent) -> None:
         """Removes faith points somone added to a message."""
         await self.faith_on_react(payload)

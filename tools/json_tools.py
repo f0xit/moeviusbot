@@ -1,58 +1,66 @@
 """This tool contains functions to help loading/saving Python dicts from/to .json-files"""
 
+from __future__ import annotations
+
+import datetime as dt
 import json
 import logging
-import os
+from pathlib import Path
 from typing import Any
 
-from result import Err, Ok, Result
+
+class EmptyPathError(OSError):
+    pass
 
 
-def load_file(file_path: str, /, encoding: str = "utf-8") -> Result[dict, str]:
-    """Opens the file under the specified path and converts it to a dict.
-    If the file could not be found or the file path is empty, the function returns None.
+class DictFileLoadError(Exception):
+    pass
+
+
+def json_ser(obj: object) -> str:
+    if isinstance(obj, dt.datetime):
+        return obj.isoformat()
+    raise TypeError
+
+
+def load_file(file_path: str, /, encoding: str = "utf-8") -> dict[str, Any] | list[Any]:
+    """Opens a JSON-file under the specified path and converts it to a dict.
+
+    Raises EmptyPathError, if the file path is empty.
+    Raieses OSError, if reading the file failed.
 
     Args:
-        file_path (str): _description_
-        encoding (str, optional): _description_. Defaults to 'utf-8'.
+        file_path (str): Path to the given JSON-file, including .json suffix
+        encoding (str, optional): Defaults to 'utf-8'.
 
     Returns:
-        dict | None: _description_"""
+        dict: The requested JSON-file, parsed as Python dict."""
 
     if str(file_path) == "":
-        return Err("Can't save file, file_path is empty.")
+        msg = "Can't load file, file_path is empty."
+        raise EmptyPathError(msg)
 
-    try:
-        with open(file_path, "r", encoding=encoding) as file:
-            return Ok(json.load(file))
-    except OSError as err_msg:
-        return Err(f"Could not read file {file_path}! Exception: {err_msg}")
+    with Path(file_path).open("r", encoding=encoding) as file:
+        return json.load(file)
 
 
-def save_file(file_path: str, content: dict, /, indent: int = 4, encoding: str = "utf-8") -> Result[str, str]:
-    """Writes the content dict into a file under the specified path.
+def save_file(file_path: str, content: dict, /, indent: int = 4, encoding: str = "utf-8") -> None:
+    """Writes the content dict into a JSON-file under the specified path.
 
-    If the file could not be found or the file path is empty, the function returns False,
-    otherwise it returns True.
+    Raises EmptyPathError, if the file path is empty.
+    Raieses OSError, if writing the file failed.
 
     Args:
-        file_path (str): _description_
+        file_path (str): Path to the desired JSON-file, including .json suffix
         content (dict): _description_
-        indent (int, optional): _description_. Defaults to 4.
-
-    Returns:
-        bool: _description_
-    """
+        indent (int, optional): _description_. Defaults to 4."""
 
     if str(file_path) == "":
-        return Err("Can't save file, file_path is empty.")
+        msg = "Can't save file, file_path is empty."
+        raise EmptyPathError(msg)
 
-    try:
-        with open(file_path, "w", encoding=encoding) as file:
-            json.dump(content, file, indent=indent)
-            return Ok(f"File {file_path} saved succesfully.")
-    except OSError as err_msg:
-        return Err(f"Could not read file {file_path}! Exception: {err_msg}")
+    with Path(file_path).open("w", encoding=encoding) as file:
+        json.dump(content, file, indent=indent, default=json_ser)
 
 
 class DictFile(dict):
@@ -60,7 +68,9 @@ class DictFile(dict):
     when it is updated. Additionally new dicts can directly by populated with data from
     a file."""
 
-    def __init__(self, name: str, /, suffix: str = ".json", path: str = "json/", load_from_file: bool = True) -> None:
+    def __init__(
+        self, name: str, /, suffix: str = ".json", path: str = "json/", *, load_from_file: bool = True
+    ) -> None:
         """Initializes a new dict which is linked to a file.
 
         By default, it tries to load data from the file when created.
@@ -72,38 +82,39 @@ class DictFile(dict):
         super().__init__()
         self.file_name = path + name + suffix
 
-        if not os.path.exists(path):
-            os.makedirs(path)
+        if not Path(path).exists():
+            Path(path).mkdir(parents=True)
             logging.debug("Created dirs for path %s", path)
 
-        if load_from_file:
-            match load_file(self.file_name):
-                case Ok(value):
-                    self.update(value)
+        if not load_from_file:
+            return
 
-                    logging.debug("Loaded data from file %s. %s keys.", self.file_name, len(value.keys()))
+        json_file = load_file(self.file_name)
 
-                case Err(err_msg):
-                    logging.error(err_msg)
-                    return
+        if not isinstance(json_file, dict):
+            msg = "DictFile could not be loaded. JSON-File formatted wrong."
+            raise DictFileLoadError(msg)
 
+        self.update(json_file)
+
+        logging.debug("Loaded data from file %s. %s keys.", self.file_name, len(json_file.keys()))
         logging.info("DictFile %s initialized succesfully.", self.file_name)
 
-    def __setitem__(self, __key: str, __value: Any) -> None:
-        super().__setitem__(__key, __value)
+    def __setitem__(self, key: str, value: Any, /) -> None:  # noqa: ANN401
+        super().__setitem__(key, value)
 
-        logging.debug("DictFile %s item set. %s: %s", self.file_name, __key, __value)
+        logging.debug("DictFile %s item set. %s: %s", self.file_name, key, value)
 
         save_file(self.file_name, self)
 
-    def update(self, __m) -> None:
-        super().update(__m)
+    def update(self, m, /) -> None:  # noqa: ANN001
+        super().update(m)
 
         logging.debug("DictFile %s updated", self.file_name)
 
         save_file(self.file_name, self)
 
-    def pop(self, key):
+    def pop(self, key):  # noqa: ANN001, ANN201
         item = super().pop(key)
 
         logging.debug("DictFile %s popped.", self.file_name)
@@ -112,5 +123,5 @@ class DictFile(dict):
 
         return item
 
-    def save(self):
+    def save(self) -> None:
         save_file(self.file_name, self)

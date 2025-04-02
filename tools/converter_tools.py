@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import datetime as dt
 import re
 from string import ascii_lowercase
@@ -24,14 +26,11 @@ def convert_choices_to_list(choices_str: str) -> list[tuple[str, str]]:
         list[tuple[str, str]]: A list of choices, enumerated by lowercase
         letters, starting at 'a'"""
 
-    if len(choices := choices_str.split(";")) < 2:
-        raise BadArgument
-
-    return list(zip(ascii_lowercase, [name for name in map(str.strip, choices) if name], strict=False))
+    return list(zip(ascii_lowercase, [name for name in map(str.strip, choices_str.split(";")) if name], strict=False))
 
 
 async def convert_str_to_dt(argument: str) -> dt.datetime:
-    """Accepted string formats: HH:MM | DD.MM. HH:MM"""
+    """Accepted string formats: HH:MM | DD.MM HH:MM"""
 
     date_match = re.match(
         r"(?:(?P<day>\d{1,2})\.(?P<month>\d{1,2})\.\s)?(?P<hour>\d{,2}):(?P<minute>\d{1,2})",

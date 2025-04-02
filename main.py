@@ -1,12 +1,12 @@
 """Main file of the Moevius Discord Bot"""
 
-import asyncio
 import datetime as dt
 import io
 import logging
 import os
-import subprocess
 import sys
+from asyncio import gather, run, subprocess
+from pathlib import Path
 
 import discord
 from discord.abc import GuildChannel
@@ -14,15 +14,15 @@ from discord.ext import commands
 from dotenv import load_dotenv
 
 from bot import Bot
-from tools.check_tools import is_super_user
-from tools.dt_tools import strfdelta
+from tools.check_tools import SpecialUser, is_super_user
+from tools.dt_tools import get_local_timezone, strfdelta
 from tools.logger_tools import LoggerTools
 from tools.py_version_tools import check_python_version
 from tools.textfile_tools import lines_from_textfile
 
 check_python_version()
 
-STARTUP_TIME = dt.datetime.now()
+STARTUP_TIME = dt.datetime.now(tz=get_local_timezone())
 LOG_TOOL = LoggerTools(level="DEBUG")
 discord.utils.setup_logging(root=False)
 
@@ -87,7 +87,20 @@ class Administration(commands.Cog, name="Administration"):
     async def _git_pull(self, ctx: commands.Context) -> None:
         """Pullt die neusten Commits aus dem Github-Repo."""
 
-        console_output = subprocess.check_output(["git", "pull"]).strip().decode("ascii")  # noqa: S603, S607
+        process = await subprocess.create_subprocess_exec(  # pylint: disable=E1101
+            "git",
+            "pull",
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+        )
+
+        stdout, stderr = await process.communicate()
+
+        if stderr:
+            logging.exception(stderr.strip().decode("ascii"))
+            return
+
+        console_output = stdout.strip().decode("ascii")
 
         await ctx.send(f"```{console_output}```")
 
@@ -137,24 +150,33 @@ class Administration(commands.Cog, name="Administration"):
         log_output = log_lines[(chunk_size * page) : (chunk_size) * (page + 1)]
         log_output.reverse()
 
-        await ctx.send(f'{path[5:]} - Seite {page + 1}/{number_of_pages}:\n```{"".join(log_output)}```')
+        await ctx.send(f"{path[5:]} - Seite {page + 1}/{number_of_pages}:\n```{''.join(log_output)}```")
 
     @_bot.command(name="version", aliases=["-v"])
     async def _version(self, ctx: commands.Context) -> None:
-        """Gibt Auskunft darüber, welche Version des Bots aktuell installiert ist.
+        """Gibt Auskunft darüber, welche Version des Bots aktuell installiert ist."""
 
-        Achtung: Eventuell muss der Bot komplett neu gestartet werden, damit nachträgliche
-        Änderungen wirksam werden."""
-
-        console_output = (
-            subprocess.check_output(["git", "describe", "--tags"]).strip().decode("ascii")  # noqa: S603, S607
+        process = await subprocess.create_subprocess_exec(  # pylint: disable=E1101
+            "git",
+            "describe",
+            "--tags",
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
         )
+
+        stdout, stderr = await process.communicate()
+
+        if stderr:
+            logging.exception(stderr.strip().decode("ascii"))
+            return
+
+        console_output = stdout.strip().decode("ascii")
 
         try:
             res = console_output.split("-")
             version_string = res[0].removeprefix("v")
 
-            if len(res) >= 2:
+            if len(res) > 1:
                 version_string += f".\nTag is {res[1]} commits behind. Currently running commit {res[2][1:]}"
 
             await ctx.send(f"Bot läuft auf Version {version_string}")
@@ -162,16 +184,16 @@ class Administration(commands.Cog, name="Administration"):
 
         except IndexError:
             await ctx.send(f"**Fehler!** {console_output}")
-            logging.error("Something is wrong with the version string: %s", console_output)
+            logging.exception("Something is wrong with the version string: %s", console_output)
 
     @_bot.command(name="uptime", aliases=["-u"])
     async def _uptime(self, ctx: commands.Context) -> None:
         """Gibt Auskunft darüber, wie lange der Bot seit dem letzten Start läuft."""
 
-        uptime = dt.datetime.now() - STARTUP_TIME
+        uptime = dt.datetime.now(tz=get_local_timezone()) - STARTUP_TIME
         uptime_str = strfdelta(uptime)
 
-        await ctx.send(f'Uptime: {uptime_str} seit {STARTUP_TIME.strftime("%Y.%m.%d %H:%M:%S")}')
+        await ctx.send(f"Uptime: {uptime_str} seit {STARTUP_TIME.strftime('%Y.%m.%d %H:%M:%S')}")
 
     @is_super_user()
     @_bot.command(name="reload", aliases=["-r"])
@@ -184,11 +206,14 @@ class Administration(commands.Cog, name="Administration"):
         Achtung: Dieser Befehl startet nicht wirklich das Programm neu. Auch werden geladene
         Extensions nicht neu geladen. Bitte dafür den entsprechenden Befehl benutzen."""
 
-        logging.warning("%s hat einen Reload gestartet.", ctx.author.name)
-        await ctx.send("Reload wird gestartet.")
+        logging.info("%s started a reload...", ctx.author.name)
+        await ctx.send("Reload wird gestartet...")
 
         self.bot.load_files_into_attrs()
         await self.bot.analyze_guild()
+
+        logging.info("Reload complete.")
+        await ctx.send("Reload abgeschlossen.")
 
     @commands.group(name="extensions", aliases=["ext"], brief="Verwaltet die Extensions des Bots.")
     async def _extensions(self, ctx: commands.Context) -> None:
@@ -237,40 +262,35 @@ class Administration(commands.Cog, name="Administration"):
 
         await self.bot.analyze_guild()
 
-        await asyncio.gather(
-            *map(
-                self.bot.load_extension,
-                [
-                    f"cogs.{filename[:-3]}"
-                    for filename in os.listdir("./cogs")
-                    if (
-                        filename.endswith(".py")
-                        and not filename.startswith("__")
-                        and f"cogs.{filename[:-3]}" not in self.bot.extensions
-                    )
-                ],
-            )
-        )
+        cog_list = [
+            f"cogs.{file.name[:-3]}"
+            for file in Path("cogs").iterdir()
+            if not file.name.startswith("__") and file.suffix == ".py"
+        ]
+
+        await gather(*map(self.bot.load_extension, cog_list))
 
         logging.info("Bot ready!")
 
-        startup_duration = (dt.datetime.now() - STARTUP_TIME).total_seconds()
+        startup_duration = (dt.datetime.now(tz=get_local_timezone()) - STARTUP_TIME).total_seconds()
         logging.info("Startup took %.4f seconds.", startup_duration)
 
     @commands.Cog.listener()
-    async def on_command_error(self, ctx: commands.Context, error: commands.CommandError):
-        """This function iiss callled when a command raises an error.'
-        The following actions are executed:
+    async def on_command_error(self, ctx: commands.Context, error: commands.CommandError) -> None:
+        """This function is callled when a command raises an error. The following actions are executed:
 
         1) Logging the context and the error
-        2) Sending a private message with the same content to the owner of the bot"""
+        2) Returning the error to the user as ephemeral message
+        3) Sending a private message with the same content to the owner of the bot"""
 
         logging.error("%s - %s - %s", ctx.author.name, ctx.message.content, error)
+        await ctx.send(f"Es gab einen Fehler beim Ausführen des Befehls, Krah Krah!\n{error}", ephemeral=True)
 
-        if (hans := self.bot.get_user(247117682875432960)) is None:
+        if (hans := self.bot.get_user(SpecialUser.HANS.value)) is None:
+            logging.error("%s not found!", SpecialUser.HANS)
             return
 
-        await hans.send(f"```*ERROR*\n{ctx.author.name}\n{ctx.message.content}\n{error}```")
+        await hans.send(f"**ERROR**```{ctx.author.name}\n{ctx.message.content}\n{error}```")
 
     @commands.Cog.listener()
     async def on_guild_channel_create(self, channel: GuildChannel) -> None:
@@ -306,8 +326,8 @@ async def main() -> None:
 
     if (discord_token := os.getenv("DISCORD_TOKEN")) is None:
         sys.exit("Discord token not found! Please check your .env file!")
-    else:
-        logging.info("Discord token loaded successfully.")
+
+    logging.info("Discord token loaded successfully.")
 
     await MOEVIUS.add_cog(Administration(MOEVIUS))
     await MOEVIUS.start(discord_token)
@@ -315,9 +335,9 @@ async def main() -> None:
 
 if __name__ == "__main__":
     try:
-        asyncio.run(main())
+        run(main())
     except KeyboardInterrupt:
         logging.info("Stopping Moevius ...")
-        asyncio.run(MOEVIUS.close())
+        run(MOEVIUS.close())
         logging.info("Moevius stopped. Good night.")
         sys.exit(130)

@@ -1,17 +1,20 @@
 """Cog for the urban dictionary command"""
 
+from __future__ import annotations
+
 import json
 import logging
-from typing import Tuple
+from typing import TYPE_CHECKING
 from urllib.parse import quote as urlquote
 
 import discord
 from bs4 import BeautifulSoup, NavigableString
 from discord.ext import commands
-from result import Err, Ok, Result, UnwrapError
 
-from bot import Bot
 from tools.request_tools import async_request_html
+
+if TYPE_CHECKING:
+    from bot import Bot
 
 
 async def setup(bot: Bot) -> None:
@@ -35,49 +38,46 @@ def format_url(url: str, term: str) -> str:
     return url + urlquote(term.replace(" ", "+"))
 
 
-async def request_ud_definition(term: str) -> Result[Tuple[str, str], str]:
+async def request_ud_definition(term: str) -> tuple[str, str]:
     """Uses the urban dictionary API and returns the first definition
     and the corresponding example sentence."""
 
     api_url = "http://api.urbandictionary.com/v0/define?term="
 
-    try:
-        data = json.loads((await async_request_html(format_url(api_url, term))).unwrap())
-    except UnwrapError as err_msg:
-        return Err(f"API-Request failed: {err_msg}")
+    data = json.loads(await async_request_html(format_url(api_url, term)))
 
     if not data["list"]:
-        return Ok(("", ""))
+        return ("", "")
 
     first_result: dict[str, str] = data["list"][0]
 
     definition = first_result["definition"].translate({ord(c): None for c in "[]"})
     example = first_result["example"].translate({ord(c): None for c in "[]"})
 
-    return Ok((definition, example))
+    return (definition, example)
 
 
-async def request_try_these(term: str) -> Result[list[str], str]:
+async def request_try_these(term: str) -> list[str]:
     """Scrapes the urban dictionary website to find existing definitions,
     when the search term doesn't have one."""
 
     page_url = "https://www.urbandictionary.com/define.php?term="
 
-    try:
-        soup = BeautifulSoup((await async_request_html(format_url(page_url, term), 404)).unwrap(), "html.parser")
-    except UnwrapError as err_msg:
-        return Err(f"API-Request failed: {err_msg}")
+    soup = BeautifulSoup((await async_request_html(format_url(page_url, term), 404)), "html.parser")
 
     if not (div := soup.find("div", class_="try-these")):
-        return Err("No try-these found.")
+        msg = "No try-these found."
+        raise OSError(msg)
 
     if isinstance(div, NavigableString):
-        return Err("Div is navigable string, should be tag.")
+        msg = "Div is navigable string, should be tag."
+        raise OSError(msg)
 
     if not (items := div.find_all("li")[:10]):
-        return Err("Could not find list items.")
+        msg = "Could not find list items."
+        raise OSError(msg)
 
-    return Ok([item.text for item in items])
+    return [item.text for item in items]
 
 
 class UrbanDict(commands.Cog, name="UrbanDict"):
@@ -90,17 +90,12 @@ class UrbanDict(commands.Cog, name="UrbanDict"):
         logging.info("Cog unloaded: UrbanDict.")
 
     @commands.command(name="urbandict", aliases=["ud"], brief="Durchforstet das Urban Dictionary")
-    async def _urbandict(self, ctx: commands.Context, *args):
+    async def _urbandict(self, ctx: commands.Context, *args: str) -> None:
         term = " ".join(args)
 
         logging.info("%s looked for %s in the Urban Dictionary.", ctx.author.name, term)
 
-        try:
-            definition, example = (await request_ud_definition(term)).unwrap()
-
-        except UnwrapError as err_msg:
-            logging.error(err_msg)
-            return
+        definition, example = await request_ud_definition(term)
 
         if definition:
             logging.debug("Definition found.")
@@ -118,12 +113,7 @@ class UrbanDict(commands.Cog, name="UrbanDict"):
 
         logging.debug("No definition found, but a list of try-these.")
 
-        try:
-            try_these = (await request_try_these(term)).unwrap()
-        except UnwrapError as err_msg:
-            logging.info("No definition found: %s", err_msg)
-            await ctx.send("Dazu kann ich nun wirklich gar nichts sagen, Krah Krah!")
-            return
+        try_these = await request_try_these(term)
 
         await ctx.send(
             content="Hey, ich habe habe dazu nichts gefunden, aber versuch's doch mal hiermit:",
