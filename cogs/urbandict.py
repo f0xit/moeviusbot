@@ -8,7 +8,7 @@ from typing import TYPE_CHECKING
 from urllib.parse import quote as urlquote
 
 import discord
-from bs4 import BeautifulSoup, NavigableString
+from bs4 import BeautifulSoup
 from discord.ext import commands
 
 from tools.request_tools import async_request_html
@@ -63,17 +63,9 @@ async def request_try_these(term: str) -> list[str]:
 
     page_url = "https://www.urbandictionary.com/define.php?term="
 
-    soup = BeautifulSoup((await async_request_html(format_url(page_url, term), 404)), "html.parser")
+    soup = BeautifulSoup((await async_request_html(format_url(page_url, term))), "html.parser")
 
-    if not (div := soup.find("div", class_="try-these")):
-        msg = "No try-these found."
-        raise OSError(msg)
-
-    if isinstance(div, NavigableString):
-        msg = "Div is navigable string, should be tag."
-        raise OSError(msg)
-
-    if not (items := div.find_all("li")[:10]):
+    if not (items := soup.find_all("li", class_="py-1", limit=10)):
         msg = "Could not find list items."
         raise OSError(msg)
 

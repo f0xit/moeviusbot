@@ -33,7 +33,7 @@ class Event:
 
     def __str__(self) -> str:
         return (
-            f"Event ({self.event_type}, {self.event_dt}, {self.event_game}, {" ".join(map(str, self.event_members))})"
+            f"Event ({self.event_type}, {self.event_dt}, {self.event_game}, {' '.join(map(str, self.event_members))})"
         )
 
     def __repr__(self) -> str:

@@ -93,11 +93,11 @@ class Misc(commands.Cog, name="Sonstiges"):
         quot_ps5 = number / ps5_price
 
         if quot_ps5 < 1:
-            await ctx.send(f"Wow, das reicht ja gerade mal für {round(quot_ps5*100)}% einer PS5.")
+            await ctx.send(f"Wow, das reicht ja gerade mal für {round(quot_ps5 * 100)}% einer PS5.")
         else:
             await ctx.send(
                 f"Wow, das reicht ja gerade mal für {math.floor(quot_ps5)} "
-                f"{"PS5" if math.floor(quot_ps5) == 1 else "PS5en"}."
+                f"{'PS5' if math.floor(quot_ps5) == 1 else 'PS5en'}."
             )
 
     async def embed_random_item(self, ctx: commands.Context, choice: ListType = ListType.NONE) -> str | None:

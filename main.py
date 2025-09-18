@@ -150,7 +150,7 @@ class Administration(commands.Cog, name="Administration"):
         log_output = log_lines[(chunk_size * page) : (chunk_size) * (page + 1)]
         log_output.reverse()
 
-        await ctx.send(f'{path[5:]} - Seite {page + 1}/{number_of_pages}:\n```{"".join(log_output)}```')
+        await ctx.send(f"{path[5:]} - Seite {page + 1}/{number_of_pages}:\n```{''.join(log_output)}```")
 
     @_bot.command(name="version", aliases=["-v"])
     async def _version(self, ctx: commands.Context) -> None:
@@ -193,7 +193,7 @@ class Administration(commands.Cog, name="Administration"):
         uptime = dt.datetime.now(tz=get_local_timezone()) - STARTUP_TIME
         uptime_str = strfdelta(uptime)
 
-        await ctx.send(f'Uptime: {uptime_str} seit {STARTUP_TIME.strftime("%Y.%m.%d %H:%M:%S")}')
+        await ctx.send(f"Uptime: {uptime_str} seit {STARTUP_TIME.strftime('%Y.%m.%d %H:%M:%S')}")
 
     @is_super_user()
     @_bot.command(name="reload", aliases=["-r"])
