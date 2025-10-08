@@ -3,11 +3,13 @@
 import io
 import logging
 import random
+from typing import TYPE_CHECKING
 
 from autocorrect import Speller
 from discord.ext import commands
 
-from bot import Bot
+if TYPE_CHECKING:
+    from bot import Bot
 
 
 async def setup(bot: Bot) -> None:

@@ -7,9 +7,9 @@ import os
 import sys
 from asyncio import gather, run, subprocess
 from pathlib import Path
+from typing import TYPE_CHECKING
 
 import discord
-from discord.abc import GuildChannel
 from discord.ext import commands
 from dotenv import load_dotenv
 
@@ -19,6 +19,9 @@ from tools.dt_tools import get_local_timezone, strfdelta
 from tools.logger_tools import LoggerTools
 from tools.py_version_tools import check_python_version
 from tools.textfile_tools import lines_from_textfile
+
+if TYPE_CHECKING:
+    from discord.abc import GuildChannel
 
 check_python_version()
 

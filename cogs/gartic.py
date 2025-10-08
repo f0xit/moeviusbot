@@ -6,13 +6,16 @@ import math
 import random
 import re
 from pathlib import Path
+from typing import TYPE_CHECKING
 
 import discord
 from discord.ext import commands, tasks
 from PIL import Image
 
-from bot import Bot
 from tools.dt_tools import get_local_timezone
+
+if TYPE_CHECKING:
+    from bot import Bot
 
 
 async def setup(bot: Bot) -> None:

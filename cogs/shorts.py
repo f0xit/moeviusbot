@@ -4,14 +4,17 @@ import datetime as dt
 import logging
 import os
 import random
+from typing import TYPE_CHECKING
 
 import aiohttp
 from discord.ext import commands
 from dotenv import load_dotenv
 
-from bot import Bot
 from tools.check_tools import is_super_user
 from tools.dt_tools import get_local_timezone
+
+if TYPE_CHECKING:
+    from bot import Bot
 
 cog_info = {
     "cog": {"name": "Shorts"},

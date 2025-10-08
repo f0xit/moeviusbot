@@ -1,12 +1,15 @@
 import datetime as dt
 import logging
 import random
+from typing import TYPE_CHECKING
 
 import discord
 from discord.ext import commands, tasks
 
-from bot import Bot
 from event import Event
+
+if TYPE_CHECKING:
+    from bot import Bot
 
 ANNOY_IDS = [232561052573892608]
 

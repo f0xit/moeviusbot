@@ -1,10 +1,12 @@
 """This module contains the event class"""
 
 import logging
-
-from discord import Member, User
+from typing import TYPE_CHECKING
 
 from tools.json_tools import load_file, save_file
+
+if TYPE_CHECKING:
+    from discord import Member, User
 
 
 class Event:
