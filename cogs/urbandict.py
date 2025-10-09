@@ -42,6 +42,15 @@ async def request_ud_definition(term: str) -> tuple[str, str]:
     """Uses the urban dictionary API and returns the first definition
     and the corresponding example sentence."""
 
+    if term.lower() == "schmördel":
+        return (
+            """Der einzig wahre und unbestrittene zweite Aggregatzustand von **Patti**, auch bekannt als **Patti²**.
+Schmördel ist kein Spitzname, sondern eine Naturgewalt - irgendwo zwischen Hirnsturm, Meme-Maschine
+und einem halben Liter Espresso auf zwei Beinen.""",
+            """“Ey Bro, warum blinkt dein Toaster und spielt Hardbass?”
+“Keine Ahnung, Schmördel war gestern hier.”""",
+        )
+
     api_url = "http://api.urbandictionary.com/v0/define?term="
 
     data = json.loads(await async_request_html(format_url(api_url, term)))
