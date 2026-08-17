@@ -10,8 +10,7 @@ from tools.json_tools import DictFile
 
 class Bot(commands.Bot):
     """This bot class expands the default discord bot with attributes and
-    functions needed in this project.
-    """
+    functions needed in this project."""
 
     def __init__(self) -> None:
         super().__init__(("!", "?"), intents=discord.Intents.all())
@@ -33,8 +32,7 @@ class Bot(commands.Bot):
         bot's channels-attribute.
 
         Raises:
-            RuntimeError: When no guild is found.
-        """
+            RuntimeError: When no guild is found."""
 
         logging.info("Finding guild with ID:%s...", self.settings["server_id"])
 
@@ -51,13 +49,13 @@ class Bot(commands.Bot):
         try:
             self.channels["stream"] = next(
                 chan
-                for chan in categories[None]
+                for chan in categories["Streaming"]
                 if chan.name == self.settings["channels"]["stream"] and chan.type == discord.ChannelType.text
             )
         except KeyError as err_msg:
             logging.warning("Category not found. Stream channel should be here. %s", err_msg)
             self.channels["stream"] = None
-        except IndexError as err_msg:
+        except (IndexError, StopIteration) as err_msg:
             logging.warning(
                 "Stream channel not found. Name in settings is %s. %s",
                 self.settings["channels"]["stream"],
