@@ -148,10 +148,6 @@ class Overwatch(commands.Cog, name="Overwatch"):
             class_="heroCard",
         )
 
-        if cells is None:
-            msg = "Could not load Overwatch heroes!"
-            raise OwHeroError(msg)
-
         self.heroes = {cell.attrs["data-hero-id"].title(): cell.attrs["data-role"].upper() for cell in cells}
         logging.info("Overwatch heroes loaded: %s heroes.", len(cells))
 

@@ -138,7 +138,7 @@ class Reminder(commands.Cog, name="Events"):
                 ctx.author.name,
                 event_type,
             )
-        else:
+        else:  # noqa: PLR5501
             if ctx.author.display_name in self.events[event_type].event_members.values():
                 await ctx.send("Hey du Vogel, du stehst bereits auf der Teilnehmerliste, Krah Krah!")
                 logging.warning(
@@ -245,7 +245,7 @@ class Reminder(commands.Cog, name="Events"):
         members = []
         for member in self.bot.squads[ctx.channel.name].values():
             if member != ctx.author.id and str(member) not in self.events["game"].event_members:
-                members.append(f"<@{member}>")
+                members.append(f"<@{member}>")  # noqa: PERF401
 
         if len(members) == 0:
             await ctx.send("Hey, es wissen schon alle bescheid, Krah Krah!")
@@ -372,9 +372,11 @@ class Reminder(commands.Cog, name="Events"):
                         member.name,
                         ctx.channel.name,
                     )
+            case _:
+                pass
 
     @tasks.loop(seconds=5.0)
-    async def reminder_checker(self):
+    async def reminder_checker(self) -> None:
         if self.time_now == dt.datetime.now().strftime("%H:%M"):
             return
 
@@ -426,7 +428,7 @@ class Reminder(commands.Cog, name="Events"):
                 logging.info("Event-Post abgesetzt, Timer resettet.")
 
     @reminder_checker.before_loop
-    async def before_reminder_loop(self):
+    async def before_reminder_loop(self) -> None:
         logging.debug("Waiting for reminder time checker..")
         await self.bot.wait_until_ready()
         logging.info("Reminder time checker started!")

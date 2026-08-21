@@ -16,7 +16,7 @@ async def lines_from_textfile(filepath: str, /, encoding: str = "utf-8") -> list
             return output
     except OSError:
         logging.exception("Could not read file %s!", filepath)
-        return output
+        return []
 
 
 async def lines_to_textfile(filepath: str, lines: list[str], /, encoding: str = "utf-8") -> None:

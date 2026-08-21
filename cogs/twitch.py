@@ -57,7 +57,7 @@ class TwitchTokenHandler:
 
         if not load_dotenv():
             err_msg = "No .env file found!"
-            logging.exception(err_msg)
+            logging.error(err_msg)
             raise OSError(err_msg)
 
         self.client_id = str(os.getenv("TWITCH_CLIENT_ID"))
@@ -88,7 +88,7 @@ class TwitchTokenHandler:
 
         if not load_dotenv():
             err_msg = "No .env file found!"
-            logging.exception(err_msg)
+            logging.error(err_msg)
             raise OSError(err_msg)
 
         async with (
@@ -107,12 +107,12 @@ class TwitchTokenHandler:
             if not response.ok:
                 message = (await response.json())["message"]
                 err_msg = f"Twitch API responded with Code {response.status}: {message}!"
-                logging.exception(err_msg)
+                logging.error(err_msg)
                 raise OSError(err_msg)
 
             if "access_token" not in (response_json := await response.json(encoding="utf-8")):
                 err_msg = "Faulty Response from Twitch: Missing access token!"
-                logging.exception(err_msg)
+                logging.error(err_msg)
                 raise OSError(err_msg)
 
             self.token = response_json["access_token"]
@@ -176,14 +176,14 @@ class TwitchClipsHandler:
             if not response.ok:
                 message = (await response.json())["message"]
                 err_msg = f"Twitch API responded with Code {response.status}: {message}"
-                logging.exception(err_msg)
+                logging.error(err_msg)
                 raise OSError(err_msg)
 
             data = await response.json()
 
             if "data" not in data or not data["data"]:
                 err_msg = "Twitch response missing data"
-                logging.exception(err_msg)
+                logging.error(err_msg)
                 raise OSError(err_msg)
 
             self.broadcaster_id = data["data"][0]["id"]
@@ -220,7 +220,7 @@ class TwitchClipsHandler:
                     if not response.ok:
                         message = (await response.json())["message"]
                         err_msg = f"Twitch API responded with Code {response.status}: {message}"
-                        logging.exception(err_msg)
+                        logging.error(err_msg)
                         raise OSError(err_msg)
 
                     data = await response.json()

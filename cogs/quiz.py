@@ -97,9 +97,6 @@ class Quiz(commands.Cog, name="Quiz"):
         Returns:
             dict[str, Any]: _description_"""
 
-        if not isinstance(self.question["answers"], dict):
-            return None
-
         embed = discord.Embed(
             title=self.question["question"],
             colour=discord.Colour(0xFF00FF),
@@ -113,7 +110,7 @@ class Quiz(commands.Cog, name="Quiz"):
         }
 
     async def check_answer(self, user_answer: str) -> None:
-        if self.channel is None or not isinstance(self.question["answers"], dict):
+        if self.channel is None:
             return
 
         if self.question["answers"][user_answer]["correct"]:
@@ -293,9 +290,7 @@ class Quiz(commands.Cog, name="Quiz"):
                 broken_users.append(user_id)
                 continue
 
-            if (user_name := user.display_name) is None:
-                broken_users.append(user_id)
-                continue
+            user_name = user.display_name
 
             name_length = len(user_name)
             points = len(format(user_data["points"], ",d"))
@@ -335,7 +330,6 @@ class Quiz(commands.Cog, name="Quiz"):
             self.channel is None
             or self.player != message.author
             or message.channel != self.channel
-            or not isinstance(self.question["answers"], dict)
         ):
             return
 
@@ -365,3 +359,5 @@ class Quiz(commands.Cog, name="Quiz"):
                 await self.channel.send(f"Die richtige Antwort ist {correct_answer[0]}: {correct_answer[1]['text']}")
 
                 await self.stop_quiz()
+            case _:
+                pass

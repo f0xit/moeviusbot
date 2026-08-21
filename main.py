@@ -100,7 +100,7 @@ class Administration(commands.Cog, name="Administration"):
         stdout, stderr = await process.communicate()
 
         if stderr:
-            logging.exception(stderr.strip().decode("ascii"))
+            logging.error(stderr.strip().decode("ascii"))
             return
 
         console_output = stdout.strip().decode("ascii")
@@ -170,7 +170,7 @@ class Administration(commands.Cog, name="Administration"):
         stdout, stderr = await process.communicate()
 
         if stderr:
-            logging.exception(stderr.strip().decode("ascii"))
+            logging.error(stderr.strip().decode("ascii"))
             return
 
         console_output = stdout.strip().decode("ascii")

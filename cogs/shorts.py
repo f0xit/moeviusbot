@@ -57,7 +57,7 @@ class YTClipsHandler:
 
         if not load_dotenv():
             err_msg = "No .env file found!"
-            logging.exception(err_msg)
+            logging.error(err_msg)
             raise OSError(err_msg)
 
         self.yt_api_key = str(os.getenv("YT_API_KEY"))
@@ -98,14 +98,14 @@ class YTClipsHandler:
 
             if not response.ok:
                 err_msg = f"YT API responded with Code {response.status}!"
-                logging.exception(err_msg)
+                logging.error(err_msg)
                 raise OSError(err_msg)
 
             data = await response.json()
 
             if "items" not in data or not data["items"]:
                 err_msg = "YT response missing data"
-                logging.exception(err_msg)
+                logging.error(err_msg)
                 raise OSError(err_msg)
 
             self.channel_id = data["items"][0]["id"][2:]
@@ -142,14 +142,14 @@ class YTClipsHandler:
             ) as response:
                 if not response.ok:
                     err_msg = f"YT API responded with Code {response.status}!"
-                    logging.exception(err_msg)
+                    logging.error(err_msg)
                     raise OSError(err_msg)
 
                 data = await response.json()
 
                 if "pageInfo" not in data:
                     err_msg = "YT response missing data"
-                    logging.exception(err_msg)
+                    logging.error(err_msg)
                     raise OSError(err_msg)
 
                 pages = int(data["pageInfo"]["totalResults"]) // 2 + 1
@@ -163,14 +163,14 @@ class YTClipsHandler:
                 ) as response:
                     if not response.ok:
                         err_msg = f"YT API responded with Code {response.status}!"
-                        logging.exception(err_msg)
+                        logging.error(err_msg)
                         raise OSError(err_msg)
 
                     data = await response.json()
 
                     if "items" not in data or not data["items"]:
                         err_msg = "YT response missing data"
-                        logging.exception(err_msg)
+                        logging.error(err_msg)
                         raise OSError(err_msg)
 
                     shorts.extend(data["items"])

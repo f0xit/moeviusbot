@@ -83,7 +83,7 @@ class Event:
             return
 
         if not isinstance(data, dict):
-            logging.exception("Event data corrupted!")
+            logging.error("Event data corrupted!")
             return
 
         self.event_time = data["event_time"]
