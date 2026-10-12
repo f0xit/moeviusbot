@@ -65,7 +65,7 @@ class Lachs(commands.Cog, name="Lachs"):
 
         logging.info("Lachs successful.")
 
-    @commands.group(name="lachs", aliases=["z"], brief="Zitiert eine weise Persönlichkeit.")
+    @commands.group(name="lachs", brief="Wie steht es denn um den Lachs?")
     async def _lachs(self, ctx: commands.Context) -> None:
         if ctx.invoked_subcommand is not None or not isinstance(ctx.channel, discord.TextChannel | discord.DMChannel):
             return
